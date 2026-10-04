@@ -35,7 +35,9 @@ const hook = (nombre, entrada) => {
     try { return t ? JSON.parse(t) : null; } catch { return { crudo: t }; }
 };
 const contexto = r => (r && r.hookSpecificOutput && r.hookSpecificOutput.additionalContext) || '';
-const hace = dias => new Date(Date.now() - dias * 864e5).toISOString().slice(0, 10);
+// fecha LOCAL de hace n días (como la escribe el usuario y la cuenta revisarMemoria): con toISOString (UTC),
+// entre las 00:00 y las 02:00 en España salía un día menos y el pendiente «de 12 días» contaba 13
+const hace = dias => { const d = new Date(Date.now() - dias * 864e5); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
 
 // ---------------------------------------------------------------- proyecto de prueba
 g('init', '-q', '-b', 'main'); g('config', 'user.email', 't@t'); g('config', 'user.name', 't');

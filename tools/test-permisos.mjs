@@ -50,6 +50,12 @@ bloquea('git push origin --delete feat/x', 'push --delete');
 bloquea('git push --mirror origin', 'push --mirror');
 bloquea('git push origin feat/x && git push origin main', 'dos push encadenados, el segundo a main');
 bloquea('git push origin feat/x && git reset --hard HEAD~1', 'push permitido + reset --hard encadenado');
+// todas las ramas principales, no solo main: staging o production también despliegan
+for (const r of ['staging', 'production', 'prod', 'develop', 'dev', 'qa', 'uat', 'live', 'trunk', 'release/2.1', 'Production'])
+    bloquea(`git push origin ${r}`, `push a la rama principal ${r} sin pushMain`);
+bloquea('git push origin feat/x:staging', 'push feat:staging (destino principal) sin pushMain');
+deja('git push origin hotfix/login', 'push a hotfix/… (rama de trabajo, no principal)');
+deja('git push origin feat/staging-banner', 'una rama que solo CONTIENE «staging» no es principal');
 git('switch', '-q', '-c', 'feat/carrito');
 deja('git push', 'push sin destino desde una rama de feature');
 deja('git push --follow-tags', 'push --follow-tags desde feature');
@@ -69,6 +75,15 @@ deja('git commit -m "feat: algo en main"', 'commit en main con commitEnMain');
 bloquea('git commit -m "algo sin formato"', 'commitEnMain no quita Conventional Commits');
 bloquea('git commit -m "feat: x" -m "Co-Authored-By: bot <b@b>"', 'commitEnMain no permite co-autores');
 bloquea('git push origin feat/x', 'commitEnMain no da permiso de push');
+
+// ---------------------------------------------------------------- otras ramas principales y las del proyecto
+marcador({});
+git('switch', '-q', '-c', 'staging');
+bloquea('git commit -m "feat: algo en staging"', 'sin permisos, commit en staging (rama principal)');
+git('switch', '-q', 'main');
+marcador({ permisos: { push: true }, ramasProtegidas: ['demo-cliente'] });
+bloquea('git push origin demo-cliente', 'rama protegida por el proyecto (ramasProtegidas) sin pushMain');
+deja('git push origin feat/demo', 'el resto de ramas de trabajo siguen libres');
 
 // ---------------------------------------------------------------- valores raros
 marcador({ permisos: { push: 'true', pushMain: 1 } });

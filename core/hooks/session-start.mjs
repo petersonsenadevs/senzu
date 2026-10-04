@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion,
+    readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion, ramaProtegida,
 } from './lib.mjs';
 
 const p = readHookInput() || {};
@@ -41,7 +41,7 @@ if (fs.existsSync(ruta(root, 'conventions.md'))) {
 const branch = gitBranch(root);
 if (branch) {
     const dirty = gitDirty(root);
-    const warn = ['main', 'master', 'develop'].includes(branch) ? ' -> NO commitees aqui: crea una rama primero.' : '';
+    const warn = ramaProtegida(root, branch) ? ' -> rama PRINCIPAL: ni commit ni push aqui; crea una rama primero.' : '';
     L.push(`- Git: rama '${branch}', ${dirty} archivo(s) con cambios sin commitear.${warn}`);
     // Al empezar, nada de lo que hay a medias es de esta sesión: puede ser de otro agente (Codex o Claude) o del
     // usuario. Se nombra para no trabajar a ciegas encima, ni commitearlo o descartarlo sin preguntar.

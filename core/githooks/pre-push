@@ -1,9 +1,24 @@
 #!/usr/bin/env sh
 # Senzu: bloquea git push salvo aprobacion explicita (SENZU_ALLOW_PUSH=1 en el entorno; vale el antiguo DEV_STANDARDS_ALLOW_PUSH=1).
+# Y aun con ella, a una rama PRINCIPAL (main, master, develop, staging, production, release/*... la misma lista que
+# lib.mjs) solo con SENZU_ALLOW_PUSH_MAIN=1: un push a staging o production tambien despliega.
 # Instalado por sync.ps1 -GitHooks. Capa dura comun a Claude Code, Codex, Cursor, Windsurf.
-if [ "${SENZU_ALLOW_PUSH:-$DEV_STANDARDS_ALLOW_PUSH}" = "1" ]; then
+if [ "${SENZU_ALLOW_PUSH:-$DEV_STANDARDS_ALLOW_PUSH}" != "1" ]; then
+  echo "[senzu] git push bloqueado: requiere aprobacion explicita." >&2
+  echo "  Si el humano lo aprueba, ejecuta:  SENZU_ALLOW_PUSH=1 git push ...  (o set SENZU_ALLOW_PUSH=1 en Windows)" >&2
+  exit 1
+fi
+if [ "$SENZU_ALLOW_PUSH_MAIN" = "1" ]; then
   exit 0
 fi
-echo "[senzu] git push bloqueado: requiere aprobacion explicita." >&2
-echo "  Si el humano lo aprueba, ejecuta:  SENZU_ALLOW_PUSH=1 git push ...  (o set SENZU_ALLOW_PUSH=1 en Windows)" >&2
-exit 1
+# git pasa por stdin una linea por ref: <ref local> <sha local> <ref remota> <sha remota>
+while read -r local_ref local_sha remote_ref remote_sha; do
+  rama=$(printf '%s' "$remote_ref" | sed 's#^refs/heads/##' | tr 'A-Z' 'a-z')
+  case "$rama" in
+    main|master|trunk|develop|development|dev|staging|stage|stg|preprod|pre-production|production|prod|live|qa|uat|release|release/*|releases/*|production/*|prod/*|staging/*|stage/*)
+      echo "[senzu] push a la rama principal '$rama' bloqueado." >&2
+      echo "  Si el humano lo aprueba: SENZU_ALLOW_PUSH=1 SENZU_ALLOW_PUSH_MAIN=1 git push ..." >&2
+      exit 1 ;;
+  esac
+done
+exit 0

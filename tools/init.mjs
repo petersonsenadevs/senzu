@@ -418,7 +418,7 @@ function hookSet(hasFront) {
         UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs', 'memoria-viva.mjs'] }],
         PreToolUse: [
             { matcher: 'Bash|PowerShell', files: ['guard.mjs'] },
-            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
+            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
         ],
         PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs'] }],
         Stop: [{ matcher: null, files: ['stop-guard.mjs', 'cierre-limpio.mjs', 'estado-sesion.mjs'] }],
@@ -456,6 +456,7 @@ const HOOKS_ELEGIBLES = [
     ['format-on-save', 'Formatea cada archivo con la herramienta del stack'],
     ['stop-guard', 'No deja cerrar sin verificar ni documentar'],
     ['cierre-limpio', 'No deja cerrar con archivos propios sin commitear; avisa de los de otro agente'],
+    ['tarjeta-guard', 'Una tarjeta del plan no pasa a done sin Verificado, Cumple y su devlog'],
     ['session-start', 'Contexto del proyecto al arrancar la sesión'],
     ['prompt-router', 'Sugiere la skill adecuada en cada petición'],
     ['memoria-viva', 'Detecta tus reglas y correcciones y pide apuntarlas en la memoria'],
@@ -607,7 +608,9 @@ function todayStr() { const d = new Date(); return `${d.getFullYear()}-${pad(d.g
 // Mismo comportamiento que _lib.ps1 (Move-SenzuProject).
 const CARPETA = 'senzu';
 const MIGRABLES = [['devlog', 'devlog'], ['plan', 'plan'], ['design-system', 'design-system'], ['conventions.md', 'conventions.md'],
-    ['conventions.json', 'conventions.json'], ['.ui-verify', 'ui-verify'], ['.dev-standards.json', 'senzu.json']];
+    ['conventions.json', 'conventions.json'], ['.ui-verify', 'ui-verify'], ['.dev-standards.json', 'senzu.json'],
+    // lo que Senzu generaba en docs/ antes de v2.12 (los docs/ PROPIOS del proyecto, como docs/adr, no se tocan)
+    ['docs/auditoria', 'auditoria'], ['docs/entrega', 'entrega'], ['docs/MAPA.md', 'mapa.md']];
 function rutaMarcador(projectPath) {
     const nueva = path.join(projectPath, CARPETA, 'senzu.json');
     return exists(nueva) ? nueva : path.join(projectPath, '.dev-standards.json');

@@ -99,7 +99,7 @@ entre ellos, o el límite está mal.
 | Read model verde | query + DTO plano | `Application/Query/GetReturnableLines.php` |
 | Sistema externo rosa | puerto + adaptador (ACL) | `Domain/CarrierGateway.php`, `Infrastructure/Carrier/` |
 | Actor amarillo | autorización en el adaptador driving | policy/guard del controlador |
-| Hotspot rojo | ADR pendiente o ticket | `docs/decisions/` o backlog |
+| Hotspot rojo | ADR pendiente o ticket | `senzu/arquitectura/adr/` o backlog |
 | Contexto rodeado | módulo raíz | `src/Returns/` |
 
 Los eventos que cruzan la línea de un contexto son candidatos a published language
@@ -118,7 +118,7 @@ export class GenerateLabelOnReturnApproved {
 
 ## Salida en markdown
 
-Un archivo por sesión en `docs/event-storming/<fecha>-<alcance>.md`:
+Un archivo por sesión en `senzu/arquitectura/event-storming/<fecha>-<alcance>.md`:
 
 ```markdown
 # Event storming: Devoluciones (2026-08-25)

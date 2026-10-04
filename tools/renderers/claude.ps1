@@ -9,7 +9,7 @@ function Get-HookSet {
         UserPromptSubmit = @(@{ matcher = $null; files = @('prompt-router.mjs', 'memoria-viva.mjs') })
         PreToolUse       = @(
             @{ matcher = 'Bash|PowerShell';                   files = @('guard.mjs') },
-            @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }
+            @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }
         )
         PostToolUse      = @(@{ matcher = 'Edit|Write|MultiEdit|apply_patch'; files = @('format-on-save.mjs', 'edit-tracker.mjs') }, @{ matcher = 'Bash|PowerShell'; files = @('depurar-coach.mjs') })
         Stop             = @(@{ matcher = $null; files = @('stop-guard.mjs', 'cierre-limpio.mjs', 'estado-sesion.mjs') })

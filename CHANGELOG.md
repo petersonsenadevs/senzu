@@ -4,6 +4,10 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-05
+
+- **feature** — Todo dentro de senzu/, tarjetas que se cierran con pruebas y ramas principales protegidas · v2.12.0 (entrada 090)
+
 ## 2026-10-04
 
 - **feature** — Memoria viva: memoria del usuario, correcciones apuntadas, memoria por archivo, /retomar y medida del recuerdo · v2.11.0 (entrada 089)

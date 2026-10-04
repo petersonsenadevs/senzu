@@ -113,7 +113,7 @@ Restricción heredada del brief: si "solo migraciones aditivas", la DoD de la ta
 |-------|----------------|-----------------|
 | Entrada de devlog por tarea | `devlog §Plantilla de entrada` | `senzu/devlog/<YYYY-MM-DD>/NNN-<slug>.md` con `Tarea: <id>`; `senzu/devlog/INDEX.md` actualizado |
 | Resumen de fase | `devlog §Resumen de fase` | Entrada de tipo docs con lo entregado, verificación y retro; enlaza todas las tareas |
-| Decisión de arquitectura | `ddd-hexagonal §templates/docs/adr` | `docs/adr/NNN-titulo.md` con contexto, decisión, consecuencias |
+| Decisión de arquitectura | `ddd-hexagonal §templates/docs/adr` | `senzu/arquitectura/adr/NNN-titulo.md` con contexto, decisión, consecuencias |
 | Ficha de contexto y glosario del módulo | `ddd-hexagonal §templates/docs/context-sheet` + `ddd-hexagonal §templates/docs/glossary` | Contexto delimitado, lenguaje ubicuo, integraciones |
 | README de módulo | sin skill (propósito, estructura, cómo probar) | README corto enlazado desde el README raíz |
 | Documentación de API | `code-quality §references/api-design "OpenAPI como contrato"` | OpenAPI o tabla de endpoints con ejemplos |

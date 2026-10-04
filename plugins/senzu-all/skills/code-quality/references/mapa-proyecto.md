@@ -16,7 +16,7 @@ el mapa explica la ESTRUCTURA. Solo lectura: no cambia código.
 5. Modelos de datos principales y sus relaciones.
 6. Zonas de riesgo: `node <skills>/backend-audit/scripts/hotspots.mjs` (lo que cambia mucho y es grande).
 
-## 2. Contenido del mapa (`docs/MAPA.md`)
+## 2. Contenido del mapa (`senzu/mapa.md`)
 - **Qué es**: una frase de negocio y a quién sirve.
 - **Arrancarlo en local**: requisitos, pasos y variables de entorno necesarias.
 - **Stack y versiones**.

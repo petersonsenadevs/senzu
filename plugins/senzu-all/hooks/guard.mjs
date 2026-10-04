@@ -10,7 +10,7 @@
 // Se usa como capa "inteligente" además de permissions.deny (capa simple) en settings.json.
 
 import { execFileSync } from 'node:child_process';
-import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos } from './lib.mjs';
+import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida } from './lib.mjs';
 
 const p = readHookInput();
 if (!p) process.exit(0);
@@ -21,7 +21,7 @@ if (!cmd.trim()) process.exit(0);
 const c = cmd;
 const root = projectRoot();
 const permisos = permisosProyecto(root);
-const RAMAS_PROTEGIDAS = ['main', 'master', 'develop'];
+// ramas principales (main, staging, production…): lista única en lib.mjs (ramaProtegida)
 function ramaActual() {
     try { return execFileSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: root, stdio: ['ignore', 'pipe', 'ignore'], encoding: 'utf8' }).trim(); } catch { return ''; }
 }
@@ -38,14 +38,14 @@ function pushPermitido() {
         const refspecs = posicionales.slice(1);   // el primero es el remoto
         if (refspecs.some(r => r.startsWith('+') || r.startsWith(':'))) return false;   // +rama = forzado; :rama = borrar en remoto
         const destinos = refspecs.length ? refspecs.map(r => r.split(':').pop().replace(/^refs\/heads\//, '')) : [ramaActual()];
-        if (destinos.some(d => !d || RAMAS_PROTEGIDAS.includes(d)) && !permisos.pushMain) return false;
+        if (destinos.some(d => !d || ramaProtegida(root, d)) && !permisos.pushMain) return false;
     }
     return pushes.length > 0;
 }
 
 // --- Patrones prohibidos: { p: patrón; m: motivo } ---
 const rules = [
-    { p: /\bgit\s+push\b/i,                                   m: 'git push está prohibido sin aprobación explícita. (Si el usuario quiere permitirlo en este proyecto: "permisos": { "push": true } en senzu/senzu.json; a main, además "pushMain": true. Lo decide el usuario, no el agente.)' },
+    { p: /\bgit\s+push\b/i,                                   m: 'git push está prohibido sin aprobación explícita. (Si el usuario quiere permitirlo en este proyecto: "permisos": { "push": true } en senzu/senzu.json; a una rama principal (main, develop, staging, production, release/…), además "pushMain": true. Lo decide el usuario, no el agente.)' },
     { p: /\bgit\s+push\s+.*--force/i,                         m: 'git push --force está terminantemente prohibido.' },
     { p: /--force-with-lease/i,                               m: 'push forzado (--force-with-lease) prohibido.' },
     { p: /\bdrop\s+(database|table|schema)\b/i,               m: 'DROP DATABASE/TABLE/SCHEMA en BD requiere aprobación explícita.' },
@@ -97,7 +97,7 @@ if (/(^|\s)(--permitir|-permitir|--apagar-hooks|-apagarhooks|--sin-permisos|-sin
 // --- Reglas de git commit: rama protegida, Conventional Commits, sin co-autores ---
 if (/\bgit\s+commit\b/i.test(c)) {
     const branch = ramaActual();
-    if (RAMAS_PROTEGIDAS.includes(branch) && !permisos.commitEnMain) {
+    if (ramaProtegida(root, branch) && !permisos.commitEnMain) {
         deny([`[BLOQUEADO por Senzu] No se commitea en '${branch}'. Crea una rama (git switch -c feat/...) y commitea ahi. (Si el usuario lo quiere permitir en este proyecto: "permisos": { "commitEnMain": true } en senzu/senzu.json.)`]);
     }
     if (/co-authored-by/i.test(c)) {

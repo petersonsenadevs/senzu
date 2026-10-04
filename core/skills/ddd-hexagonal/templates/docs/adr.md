@@ -1,6 +1,6 @@
 # ADR: plantilla de Architecture Decision Record
 
-Copiar la sección "Plantilla" a `docs/adr/NNNN-titulo-corto.md`. Un ADR por decisión;
+Copiar la sección "Plantilla" a `senzu/arquitectura/adr/NNNN-titulo-corto.md`. Un ADR por decisión;
 nunca se edita uno aceptado: se escribe otro que lo sustituye (`Supersedes`).
 
 Numeración correlativa de cuatro dígitos. Título en imperativo o como afirmación

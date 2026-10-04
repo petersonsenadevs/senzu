@@ -189,7 +189,7 @@ recorrer(devlogDir, 0, null, false);
 // sin esto, un proyecto con dos devlogs solo encontraría la mitad de su historia. --solo-devlog lo desactiva.
 if (fs.existsSync(devlogDir)) fuentes.push((path.relative(process.cwd(), devlogDir) || 'devlog').replace(/\\/g, '/'));
 if (!opts.soloDevlog) {
-    for (const [rel, esAdr] of [['docs/devlog', false], ['docs/adr', true], ['docs/adrs', true], ['docs/decisions', true],
+    for (const [rel, esAdr] of [['senzu/arquitectura/adr', true], ['docs/devlog', false], ['docs/adr', true], ['docs/adrs', true], ['docs/decisions', true],
         ['docs/architecture/decisions', true], ['doc/adr', true], ['adr', true]]) {
         const d = path.resolve(process.cwd(), rel);
         if (d === devlogDir || !esDir(d)) continue;

@@ -1,6 +1,6 @@
 # Plantilla del informe de auditoría
 
-Archivo: `docs/auditoria/<AAAA-MM-DD>-<area>.md`. En el idioma del usuario, sin jerga innecesaria en
+Archivo: `senzu/auditoria/<AAAA-MM-DD>-<area>.md`. En el idioma del usuario, sin jerga innecesaria en
 el resumen (lo lee quien decide, no solo quien programa).
 
 ```markdown

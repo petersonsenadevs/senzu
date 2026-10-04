@@ -148,6 +148,10 @@ foreach ($p in $a, $b) {
     Move-Item (Join-Path $p 'senzu\senzu.json') (Join-Path $p '.dev-standards.json')
     Remove-Item (Join-Path $p 'senzu') -Recurse -Force
     Write-Utf8 (Join-Path $p 'conventions.md') "# Convenciones`n"
+    # lo que Senzu generaba en docs/ antes de v2.12, y un docs/ propio del proyecto que NO se toca
+    Ensure-Dir (Join-Path $p 'docs\auditoria'); Write-Utf8 (Join-Path $p 'docs\auditoria\2026-09-01-pagos.md') "# Auditoria`n"
+    Write-Utf8 (Join-Path $p 'docs\MAPA.md') "# Mapa`n"
+    Ensure-Dir (Join-Path $p 'docs\adr'); Write-Utf8 (Join-Path $p 'docs\adr\0001-propia.md') "# ADR propio`n"
     # CLAUDE.md y AGENTS.md generados por la version ANTERIOR (cabecera dev-standards): no son guias propias
     foreach ($g in 'CLAUDE.md', 'AGENTS.md') { $gp = Join-Path $p $g; Write-Utf8 $gp ((Read-Utf8 $gp) -replace 'GENERADO por Senzu', 'GENERADO por dev-standards') }   # compat-dev-standards
 }
@@ -161,7 +165,9 @@ foreach ($p in $a, $b) {
     foreach ($viejo in 'devlog', 'plan', '.dev-standards.json', 'conventions.md') {
         if (Test-Path (Join-Path $p $viejo)) { Fail "[migracion] $viejo sigue en la raiz ($p)" }
     }
-    foreach ($nuevo in 'senzu\devlog\INDEX.md', 'senzu\plan\PLAN.md', 'senzu\senzu.json', 'senzu\conventions.md') {
+    foreach ($viejo in 'docs\auditoria', 'docs\MAPA.md') { if (Test-Path (Join-Path $p $viejo)) { Fail "[migracion] $viejo (generado por Senzu) sigue fuera de senzu/ ($p)" } }
+    if (-not (Test-Path (Join-Path $p 'docs\adr\0001-propia.md'))) { Fail "[migracion] se movio docs/adr, que es PROPIO del proyecto ($p)" }
+    foreach ($nuevo in 'senzu\devlog\INDEX.md', 'senzu\plan\PLAN.md', 'senzu\senzu.json', 'senzu\conventions.md', 'senzu\auditoria\2026-09-01-pagos.md', 'senzu\mapa.md') {
         if (-not (Test-Path (Join-Path $p $nuevo))) { Fail "[migracion] falta $nuevo ($p)" }
     }
 }

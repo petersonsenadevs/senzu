@@ -15,7 +15,7 @@ skills que se activan solas, muros que bloquean de verdad y verificación obliga
 nada por hecho.
 
 <!-- GEN:resumen -->
-![Version](https://img.shields.io/badge/version-v2.11.0-black) ![Skills](https://img.shields.io/badge/skills-43-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Muros](https://img.shields.io/badge/muros-20_hooks-red) ![Comandos](https://img.shields.io/badge/comandos-22-orange) ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
+![Version](https://img.shields.io/badge/version-v2.12.0-black) ![Skills](https://img.shields.io/badge/skills-43-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Muros](https://img.shields.io/badge/muros-21_hooks-red) ![Comandos](https://img.shields.io/badge/comandos-22-orange) ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
 
 | Grupo | Skills | Entra por |
 |---|---|---|
@@ -92,6 +92,19 @@ pueden ser de otro agente (Codex o Claude en otra sesión). No los commitees ni 
 ```
 
 Si trabajas con Claude y con Codex a la vez en el mismo repositorio, cada uno sabe qué archivos son suyos.
+
+Y no da nada por hecho sin pruebas, ni toca las ramas principales:
+
+```text
+> (marca la tarjeta AU-T1 como [done])
+[BLOQUEADO por Senzu] Una tarjeta no pasa a [done] sin demostrar que está bien y que cumple lo que se quería.
+  - AU-T1 · Autorizar el acceso a pedidos: falta «Verificado:» con la evidencia; «Cumple:» que diga cómo
+    cumple su «Para qué» (H-03 de la auditoría: un cliente ve los pedidos de otro); «Devlog:» de cierre
+
+> git push origin staging        (en un proyecto que SÍ permite push a ramas de trabajo)
+[BLOQUEADO por Senzu] git push está prohibido sin aprobación explícita. (… a una rama principal
+(main, develop, staging, production, release/…), además "pushMain": true. Lo decide el usuario, no el agente.)
+```
 
 También: secretos en código, `console.log` nuevos, migraciones ya desplegadas, archivos generados,
 `rm -rf`, `chmod 777`, `curl|bash`, marcadores de conflicto, vetos del cliente en `gustos.md`…

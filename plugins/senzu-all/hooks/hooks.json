@@ -78,6 +78,11 @@
                                                        },
                                                        {
                                                            "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/tarjeta-guard.mjs\"",
+                                                           "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/front-skill-reminder.mjs\"",
                                                            "timeout":  30
                                                        }

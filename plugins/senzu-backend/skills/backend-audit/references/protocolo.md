@@ -52,10 +52,18 @@ Gravedad (crítica, alta, media, baja) según `catalogo-hallazgos.md`, ajustada 
 - **Coste del arreglo**: esfuerzo S, M o L. Los arreglos críticos de esfuerzo S van primero.
 
 ## 7. Informe y plan
-- Informe con la plantilla de `informe.md` en `docs/auditoria/<AAAA-MM-DD>-<area>.md`.
+- Informe con la plantilla de `informe.md` en `senzu/auditoria/<AAAA-MM-DD>-<area>.md`.
 - Presenta al usuario el resumen ejecutivo y los 3-5 hallazgos principales; pregunta qué se arregla.
-- Lo aprobado → tarjetas en `senzu/plan/PLAN.md`, cada una con su hallazgo enlazado, la receta que lo arregla
-  y cómo se verifica. Los refactores grandes se hacen con `/refactor`.
+- Lo aprobado → tarjetas en `senzu/plan/PLAN.md` (formato de `project-planner/templates/task-card.md`), una por
+  hallazgo o grupo pequeño, en una fase propia (`AU-T1`, `AU-T2`…) ordenadas por riesgo:
+  - **Para qué**: el hallazgo y su riesgo en una línea, con su id y el informe
+    (`H-03 de senzu/auditoria/2026-10-04-pagos.md: un cliente ve los pedidos de otro`).
+  - **Skill**: la receta del catálogo que lo arregla. **Verificar**: la MISMA evidencia que demostró el fallo
+    (el test de reproducción que fallaba ahora pasa, la herramienta ya no lo marca, la medición mejora).
+  Los refactores grandes se hacen con `/refactor`.
+- Las tarjetas se trabajan con `/siguiente`, una a una, como las del plan. El muro tarjeta-guard no deja cerrar
+  ninguna sin «Verificado» (esa evidencia, otra vez), «Cumple» (el riesgo ya no existe) y su devlog. Cuando se
+  cierran todas las de un informe, se anota en él «Resuelto: AU-T1…AU-Tn» con la fecha.
 - Devlog con herramientas ejecutadas, hallazgos por gravedad y decisiones.
 
 ## 8. Qué NO hacer

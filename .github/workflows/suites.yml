@@ -62,6 +62,9 @@ jobs:
       - name: test-memoria-viva (correcciones, retomar, memoria por archivo, comprobador y recuerdo >= 90 %)
         run: node tools/test-memoria-viva.mjs
 
+      - name: test-tarjetas (una tarjeta no pasa a done sin Verificado, Cumple y devlog)
+        run: node tools/test-tarjetas.mjs
+
       - name: test-cierre (no cerrar con archivos propios sin commitear; no tocar los de otro agente)
         run: node tools/test-cierre.mjs
 

@@ -52,6 +52,42 @@ senzu/
 └── templates/                # Plantillas (devlog, plan, decisiones)
 ```
 
+## Lo que Senzu deja en cada proyecto: todo en `senzu/`
+```
+<proyecto>/
+├── CLAUDE.md · AGENTS.md          # donde los agentes los exigen (raíz)
+├── .claude/ · .agents/            # skills, muros (hooks), comandos y configuración de cada agente
+└── senzu/
+    ├── senzu.json                 # marcador: stack, perfil, selección, permisos, hooks apagados, ramasProtegidas
+    ├── conventions.md · .json     # convenciones selladas con /adoptar
+    ├── devlog/                    # MEMORIA.md, INDEX.md, AAAA-MM-DD/NNN-slug.md
+    ├── plan/                      # PLAN.md (tarjetas), brief.md, estimacion.md
+    ├── auditoria/                 # AAAA-MM-DD-<area>.md (/auditar); sus tarjetas van al plan (fase AU)
+    ├── arquitectura/              # adr/, contextos/, glosario/, event-storming/, context-map.md (DDD)
+    ├── entrega/                   # manual, servicios y accesos para el cliente (/entregar)
+    ├── informes/                  # comparativas e informes
+    ├── mapa.md                    # mapa del proyecto (/mapa)
+    ├── design-system/<slug>/      # MASTER, gustos, blueprint, brand-guidelines, propuestas/, logos/
+    ├── ui-verify/                 # capturas de verificación (fuera de git)
+    └── .estado/                   # en qué se quedó la sesión, para /retomar (fuera de git)
+```
+Si el proyecto ya tiene SU carpeta para algo (`docs/adr`, `docs/architecture`, un CHANGELOG), Senzu usa la suya y
+no la duplica. Lo que Senzu dejaba antes en `docs/` (`docs/auditoria`, `docs/entrega`, `docs/MAPA.md`) lo mueven los
+instaladores a `senzu/` con `git mv` al actualizar.
+
+## Las tarjetas se cierran con pruebas
+Todo trabajo con varios pasos va a `senzu/plan/PLAN.md` como tarjetas (las del plan y las que salen de una
+auditoría, fase `AU`). Cada tarjeta lleva **«Para qué»**: el objetivo del usuario, o el hallazgo que resuelve.
+El muro `tarjeta-guard` no deja pasarla a `[done]` sin **«Verificado»** (la evidencia real; en una de auditoría,
+la misma que demostró el fallo), **«Cumple»** (cómo cumple su «Para qué») y un **«Devlog»** que exista.
+
+## Ramas principales
+Ni commit directo ni push del agente a una rama principal: `main`, `master`, `trunk`, `develop`, `dev`,
+`staging`, `stage`, `preprod`, `production`, `prod`, `live`, `qa`, `uat`, `release` y `release/…`,
+`production/…`, `staging/…` (un push a staging o a production también despliega), más las que el usuario añada
+en `"ramasProtegidas"` del marcador. Una sola lista (`ramaProtegida()` en `lib.mjs`) para guard, cierre-limpio y
+session-start, la misma en los githooks. Solo el usuario lo abre con `pushMain` / `commitEnMain`.
+
 Fuera de `main` vive la rama **`stats`**: solo datos (el histórico de tráfico y los badges), la escribe cada día
 el workflow `trafico.yml` y de ahí la leen el README y la web.
 

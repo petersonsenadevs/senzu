@@ -43,7 +43,7 @@ pasarela de pago, email transaccional, plugins o licencias de pago, APIs y el re
 - Sesión de 30-60 minutos grabada con las tareas del manual, y el manual como referencia después.
 
 ## 7. Salida
-`docs/entrega/` con `manual-de-uso.md`, `servicios-y-accesos.md` (sin contraseñas),
+`senzu/entrega/` con `manual-de-uso.md`, `servicios-y-accesos.md` (sin contraseñas),
 `mantenimiento.md` y `como-pedir-cambios.md`, más un resumen de una página para el cliente. Entrada en
 el devlog con la fecha de entrega y lo pendiente.
 

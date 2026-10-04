@@ -44,7 +44,7 @@ Un contexto se materializa en código como **un módulo** (`src/Invoicing/`,
 
 ## 3. Lenguaje ubicuo: glosario por contexto
 
-El glosario es un archivo por contexto (`docs/contexts/invoicing.md` o en la ficha, §8).
+El glosario es un archivo por contexto (`senzu/arquitectura/contextos/invoicing.md` o en la ficha, §8).
 Cada término: definición de una frase, sinónimos prohibidos, nombre en código.
 
 ```
@@ -142,7 +142,7 @@ observabilidad y consistencia eventual.
 
 ## 8. Plantilla de ficha de contexto
 
-Un archivo por contexto (`docs/contexts/<name>.md` o en el README del módulo).
+Un archivo por contexto (`senzu/arquitectura/contextos/<name>.md` o en el README del módulo).
 
 ```markdown
 # Contexto: Invoicing

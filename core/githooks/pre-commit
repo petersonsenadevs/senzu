@@ -1,9 +1,9 @@
 #!/usr/bin/env sh
-# Senzu: antes de commitear, exige rama no protegida y entrada de devlog del dia.
+# Senzu: antes de commitear, exige rama no principal (main, staging, production, release/*... la lista de lib.mjs) y devlog del dia.
 # Instalado por sync.ps1 -GitHooks. Desactivar puntualmente: SENZU_SKIP_DEVLOG=1 (o el antiguo DEV_STANDARDS_SKIP_DEVLOG=1)
 branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
 case "$branch" in
-  main|master|develop)
+  main|master|trunk|develop|development|dev|staging|stage|stg|preprod|pre-production|production|prod|live|qa|uat|release|release/*|releases/*|production/*|prod/*|staging/*|stage/*)
     echo "[senzu] No se commitea en '$branch'. Crea una rama (git switch -c feat/...)." >&2
     exit 1 ;;
 esac

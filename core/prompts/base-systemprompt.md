@@ -55,12 +55,22 @@ que tienen prioridad sobre cualquier atajo.
   aparece nada, di que no hay registro. Detalle en la skill `devlog` (references/memoria.md).
 
 ## Dónde se guarda lo que generas
-Todo lo que el usuario vaya a mirar se guarda DENTRO del proyecto, nunca en el scratchpad ni en carpetas
-temporales del sistema (aunque la herramienta lo sugiera): capturas en `senzu/ui-verify/`, maquetas en
-`senzu/design-system/<slug>/propuestas/`, logos en `senzu/design-system/<slug>/logos/` (`generados/` los
-bocetos, `final/<tipo>/` los elegidos: con logo final, no se hacen bocetos sin pedirlo), guía de marca en
-`senzu/design-system/<slug>/brand-guidelines.md`, comparativas, informes y documentos en `docs/` (o donde diga su skill).
-El scratchpad solo vale para scripts y archivos intermedios que nadie va a abrir. Al terminar, di la ruta.
+Todo lo que genera Senzu va DENTRO de `senzu/`, nunca en el scratchpad ni en carpetas temporales del sistema
+(aunque la herramienta lo sugiera), ni suelto en `docs/` o en la raíz:
+
+| Qué | Dónde |
+|---|---|
+| Devlog y memoria · plan, brief y estimación | `senzu/devlog/` · `senzu/plan/` |
+| Auditorías (`/auditar`) | `senzu/auditoria/AAAA-MM-DD-<area>.md` |
+| Arquitectura: ADR, contextos, glosario, event storming, mapa de contextos | `senzu/arquitectura/` (`adr/`, `contextos/`, `glosario/`, `event-storming/`, `context-map.md`) |
+| Mapa del proyecto (`/mapa`) · entrega al cliente (`/entregar`) | `senzu/mapa.md` · `senzu/entrega/` |
+| Comparativas e informes | `senzu/informes/` |
+| Marca, maquetas y logos | `senzu/design-system/<slug>/` (`brand-guidelines.md`, `propuestas/`, `logos/generados/` y `logos/final/<tipo>/`: con logo final, no se hacen bocetos sin pedirlo) |
+| Capturas de verificación | `senzu/ui-verify/` (fuera de git) |
+
+Si el proyecto YA tiene su propia carpeta para algo (`docs/adr`, `docs/architecture`, un CHANGELOG), se usa la
+suya: Senzu no duplica lo que el proyecto ya lleva. El scratchpad solo vale para scripts y archivos
+intermedios que nadie va a abrir. Al terminar, di la ruta.
 
 ## Estilo de trabajo
 - Escribe código que se parezca al que lo rodea (naming, idioms, densidad de comentarios).

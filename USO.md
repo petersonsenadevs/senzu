@@ -24,6 +24,15 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
   código, (b) verificación móvil-primero si tocó UI, (c) devlog del día escrito.
 - **Cierre limpio**: tampoco se va con archivos suyos sin commitear. O termina la tarea y la commitea (en una
   rama), o la commitea igualmente y te dice qué falta. Si el usuario le pidió no commitear, lo dice y cierra.
+- **Ramas principales intocables**: ni commit ni push a `main`, `master`, `develop`, `staging`, `production`,
+  `release/…` y el resto de ramas principales (un push a staging o production también despliega). Añade las
+  tuyas en `"ramasProtegidas"` de `senzu/senzu.json`; solo tú lo abres (`--permitir push-main,commit-main`).
+- **Tarjetas con pruebas**: el trabajo con varios pasos va a `senzu/plan/PLAN.md` como tarjetas, también lo
+  que sale de `/auditar` (fase AU). Cada una dice **para qué** sirve (tu objetivo, o el hallazgo que
+  resuelve), y no puede marcarse como hecha sin **la prueba** (el comando y su resultado), **cómo cumple** ese
+  para qué y su entrada del devlog. Se trabajan con `/siguiente`, una a una.
+- **Todo dentro de `senzu/`**: devlog, plan, auditorías, arquitectura, mapa, entrega, informes, design system y
+  capturas. Lo que antes iba a `docs/` se mueve solo al actualizar; tus propios `docs/` no se tocan.
 - **Dos agentes a la vez** (Claude y Codex en el mismo repositorio): cada sesión sabe qué archivos tocó. Lo que
   está a medias y no es suyo (de Codex, de otra sesión o tuyo) no lo commitea ni lo descarta: te lo nombra al
   empezar la sesión y al cerrar. Así puedes preguntarle a Claude por lo que hizo Codex sin que se mezclen.

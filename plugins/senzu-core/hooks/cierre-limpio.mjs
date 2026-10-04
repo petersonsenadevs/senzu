@@ -7,7 +7,7 @@
 //    acabar con uno commiteando o borrando lo que el otro tiene a medias.
 // Mismo formato JSON en Claude y Codex (decision/reason para bloquear, systemMessage para avisar).
 
-import { readHookInput, projectRoot, gitCambios, gitBranch, editadosSesion, testOnce, permisosProyecto } from './lib.mjs';
+import { readHookInput, projectRoot, gitCambios, gitBranch, editadosSesion, testOnce, permisosProyecto, ramaProtegida } from './lib.mjs';
 
 const p = readHookInput() || {};
 const root = projectRoot();
@@ -23,7 +23,7 @@ const ajenos = cambios.filter(r => !mios.has(clave(r)));
 const lista = (l, n = 8) => l.slice(0, n).join(', ') + (l.length > n ? ` y ${l.length - n} más` : '');
 
 const rama = gitBranch(root);
-const protegida = ['main', 'master', 'develop'].includes(rama) && !permisosProyecto(root).commitEnMain;
+const protegida = ramaProtegida(root, rama) && !permisosProyecto(root).commitEnMain;
 const avisoAjenos = ajenos.length
     ? ` Además hay ${ajenos.length} archivo(s) con cambios que NO has tocado en esta sesión (${lista(ajenos)}): pueden ser de otro agente (Codex o Claude en otra sesión) o del usuario. No los commitees ni los descartes sin preguntar; menciónalos en tu respuesta.`
     : '';

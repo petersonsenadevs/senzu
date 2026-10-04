@@ -535,7 +535,9 @@ function Get-CombinedRules {
 $script:SenzuCarpeta = 'senzu'
 $script:SenzuMigrables = @(
     @('devlog', 'devlog'), @('plan', 'plan'), @('design-system', 'design-system'), @('conventions.md', 'conventions.md'),
-    @('conventions.json', 'conventions.json'), @('.ui-verify', 'ui-verify'), @('.dev-standards.json', 'senzu.json'))
+    @('conventions.json', 'conventions.json'), @('.ui-verify', 'ui-verify'), @('.dev-standards.json', 'senzu.json'),
+    # lo que Senzu generaba en docs/ antes de v2.12 (los docs/ PROPIOS del proyecto, como docs/adr, no se tocan)
+    @('docs/auditoria', 'auditoria'), @('docs/entrega', 'entrega'), @('docs/MAPA.md', 'mapa.md'))
 
 function Get-SenzuMarkerPath {
     param([Parameter(Mandatory)][string]$ProjectPath)

@@ -1,6 +1,6 @@
 # Ficha de bounded context: plantilla
 
-Copiar la sección "Plantilla" a `docs/contexts/<contexto>.md`. Una ficha por contexto,
+Copiar la sección "Plantilla" a `senzu/arquitectura/contextos/<contexto>.md`. Una ficha por contexto,
 mantenida por el equipo dueño; se revisa cuando cambia un agregado, un evento publicado o
 una relación con otro contexto. Cabe en una pantalla; el detalle vive en el código y en
 el glosario (`glossary.md`).
@@ -28,7 +28,7 @@ cobra y anula facturas. No gestiona clientes ni ejecuta cobros en pasarela.">
 |---|---|---|
 | <Término> | <definición> | `<Clase/método>` |
 
-Glosario completo: `docs/glossary/<contexto>.md`.
+Glosario completo: `senzu/arquitectura/glosario/<contexto>.md`.
 
 ## 3. Agregados
 

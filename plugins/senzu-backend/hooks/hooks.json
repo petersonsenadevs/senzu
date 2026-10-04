@@ -75,6 +75,11 @@
                                                            "type":  "command",
                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/memoria-archivo.mjs\"",
                                                            "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/tarjeta-guard.mjs\"",
+                                                           "timeout":  30
                                                        }
                                                    ]
                                      }

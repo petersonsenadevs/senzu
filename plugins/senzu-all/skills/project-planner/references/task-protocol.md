@@ -36,13 +36,15 @@ Duración objetivo: una tarea S o M por sesión; nunca dos tareas a medias.
 
 ## Paso 1: leer la tarjeta
 
-Leer la tarjeta completa y responder mentalmente tres preguntas:
+Leer la tarjeta completa y responder mentalmente cuatro preguntas:
 
+- ¿Para qué sirve? ("Para qué": el objetivo del usuario o el hallazgo que resuelve). Si no lo dice, pregúntalo
+  antes de empezar: sin objetivo no se puede saber si está bien hecha.
 - ¿Qué comportamiento observable tengo que producir? ("Hecho cuando")
 - ¿Cómo lo demuestro? ("Verificar")
 - ¿Están `done` todas las dependencias? Si no, la tarea no se empieza.
 
-Si la tarjeta no permite responder a las tres, se corrige la tarjeta antes de tocar código
+Si la tarjeta no permite responder a las cuatro, se corrige la tarjeta antes de tocar código
 (y se anota en "Cambios"). Tarjetas vagas producen trabajo vago.
 
 ## Paso 2: marcar doing
@@ -126,9 +128,15 @@ Actualizar la tarjeta:
 ```markdown
 ### F1-T3 · Crear caso de uso EmitirFactura  [M] [done]
 - ...
+- Verificado: php artisan test --filter=EmitirFactura → 4 passed (11 assertions)
+- Cumple: el pedido cerrado se factura con número correlativo, que era el «Para qué» (facturar sin hojas de cálculo)
 - Devlog: senzu/devlog/2026-08-25/014-f1-t3-emitir-factura.md
 - Notas: tamaño real S. Se añadió `PedidoNoCerrado` como excepción de dominio (no prevista). Archivos extra: app/Facturacion/Domain/Exceptions/PedidoNoCerrado.php.
 ```
+
+**Lo exige un muro (tarjeta-guard)**: la tarjeta no pasa a `[done]` sin «Verificado» (la salida real del
+paso 5, o «no aplica: <motivo>»), «Cumple» (cómo cumple su «Para qué») y un «Devlog» que exista (paso 6
+antes del 7). Si no está terminada, se queda en `[doing]` y se dice qué falta; si no se puede, `[blocked]`.
 
 Desviaciones que siempre se anotan: tamaño real distinto, archivos no previstos, decisiones
 tomadas, supuestos nuevos, cosas que quedaron fuera y por qué. Actualizar la fila de la fase

@@ -182,7 +182,7 @@ motivo) y `## Riesgos y bloqueos` (ver `replanning-and-risks.md`). Existen aunqu
 
 ### F2-T2 · Cerrar fase: resumen de fase y ADR de numeración  [S] [todo]
 - Skill: devlog §Resumen de fase + ddd-hexagonal §templates/docs/adr
-- Archivos: senzu/devlog/<fecha>/NNN-cierre-f2.md, docs/adr/001-numeracion-por-serie.md
+- Archivos: senzu/devlog/<fecha>/NNN-cierre-f2.md, senzu/arquitectura/adr/001-numeracion-por-serie.md
 - Hecho cuando: entrada tipo docs con lo entregado, verificación y retro; ADR enlazado.
 - Verificar: enlaces válidos desde `senzu/devlog/INDEX.md`.
 - Depende de: F2-T1

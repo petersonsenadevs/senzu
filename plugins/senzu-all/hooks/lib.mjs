@@ -92,7 +92,7 @@ export const CARPETA = 'senzu';
 export function esLegado(root) {
     return !fs.existsSync(path.join(root, CARPETA)) && (fs.existsSync(path.join(root, '.dev-standards.json')) || fs.existsSync(path.join(root, 'devlog')));
 }
-const VIEJA = { 'ui-verify': '.ui-verify', 'senzu.json': '.dev-standards.json' };
+const VIEJA = { 'ui-verify': '.ui-verify', 'senzu.json': '.dev-standards.json', auditoria: 'docs/auditoria', entrega: 'docs/entrega', 'mapa.md': 'docs/MAPA.md' };
 export function ruta(root, nombre) {   // 'devlog' | 'plan' | 'design-system' | 'conventions.md' | 'conventions.json' | 'ui-verify' | 'senzu.json'
     const nueva = path.join(root, CARPETA, nombre);
     const vieja = path.join(root, VIEJA[nombre] || nombre);
@@ -111,6 +111,18 @@ export const rutaMarcador = root => ruta(root, 'senzu.json');
 // Solo cuenta el valor booleano true. guard, secrets-guard y protect-files NO se pueden apagar: el push forzado,
 // lo destructivo, los secretos y los archivos protegidos siguen bloqueados siempre.
 export const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files'];
+// Ramas PRINCIPALES: ni commit directo ni push del agente (salvo permiso commitEnMain / pushMain del usuario).
+// Todas las de entorno, no solo main: un push a staging o production también despliega. El usuario puede añadir
+// las suyas en el marcador: "ramasProtegidas": ["demo", "cliente-x"].
+export const RAMAS_PRINCIPALES = ['main', 'master', 'trunk', 'develop', 'development', 'dev', 'staging', 'stage', 'stg',
+    'preprod', 'pre-production', 'production', 'prod', 'live', 'qa', 'uat', 'release'];
+export function ramaProtegida(root, rama) {
+    const r = String(rama || '').trim().replace(/^refs\/heads\//, '').toLowerCase();
+    if (!r) return false;
+    if (RAMAS_PRINCIPALES.includes(r) || /^(release|releases|production|prod|staging|stage)\//.test(r)) return true;
+    const m = getMarkerSeguro(root);
+    return !!(m && Array.isArray(m.ramasProtegidas) && m.ramasProtegidas.map(x => String(x).toLowerCase()).includes(r));
+}
 export function permisosProyecto(root) {
     const m = getMarkerSeguro(root);
     const p = (m && m.permisos && typeof m.permisos === 'object') ? m.permisos : {};

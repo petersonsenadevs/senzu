@@ -1,6 +1,6 @@
 # Glosario de lenguaje ubicuo: plantilla
 
-Copiar la sección "Plantilla" a `docs/glossary/<contexto>.md`. Un glosario **por bounded
+Copiar la sección "Plantilla" a `senzu/arquitectura/glosario/<contexto>.md`. Un glosario **por bounded
 context**: el mismo término puede tener definiciones distintas en dos contextos y ambas
 son correctas dentro de su frontera. El glosario es la fuente de los nombres del código;
 si el código usa un nombre que no está aquí, o se añade al glosario o se renombra el código.
@@ -20,7 +20,7 @@ Reglas de mantenimiento:
 ```markdown
 # Glosario: <Contexto>
 
-- **Contexto**: <nombre> — ficha: `docs/contexts/<contexto>.md`
+- **Contexto**: <nombre> — ficha: `senzu/arquitectura/contextos/<contexto>.md`
 - **Idioma de negocio**: español — **Idioma de código**: inglés
 - **Última revisión**: AAAA-MM-DD
 
@@ -60,7 +60,7 @@ Reglas de mantenimiento:
 ```markdown
 # Glosario: Facturación
 
-- **Contexto**: Facturación (Invoicing) — ficha: `docs/contexts/invoicing.md`
+- **Contexto**: Facturación (Invoicing) — ficha: `senzu/arquitectura/contextos/invoicing.md`
 - **Idioma de negocio**: español — **Idioma de código**: inglés
 - **Última revisión**: 2026-03-12
 

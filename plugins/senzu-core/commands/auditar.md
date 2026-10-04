@@ -14,7 +14,8 @@ Aplica `backend-audit §references/protocolo.md` completo para lo que el usuario
 3. **Lectura dirigida** de lo que las herramientas señalan, recorriendo `references/catalogo-hallazgos.md`.
 4. **Verifica cada hallazgo** antes de reportarlo: sin evidencia (salida, archivo:línea, test que falla
    o medición) va a sospechas, no a hallazgos. Esta tarea NO modifica código de la aplicación.
-5. **Informe** con `references/informe.md` en `docs/auditoria/<fecha>-<area>.md`. Enseña el resumen y
+5. **Informe** con `references/informe.md` en `senzu/auditoria/<fecha>-<area>.md`. Enseña el resumen y
    los 3-5 hallazgos principales y pregunta qué se arregla.
-6. Lo aprobado → tarjetas en `senzu/plan/PLAN.md` con la receta que lo arregla; los cambios de estructura
+6. Lo aprobado → tarjetas en `senzu/plan/PLAN.md` (fase AU: «Para qué» = el hallazgo, «Verificar» = la misma
+   evidencia que lo demostró) que se trabajan con `/siguiente`; los cambios de estructura
    se hacen después con `/refactor`. Devlog con las herramientas ejecutadas y el resultado.

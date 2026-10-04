@@ -96,7 +96,7 @@ En texto plano (README):
 {Shared kernel: Money, Currency, Clock}     usado por todos
 ```
 
-Mantén el mapa en `docs/context-map.md` y actualízalo en el mismo PR que añade o cambia
+Mantén el mapa en `senzu/arquitectura/context-map.md` y actualízalo en el mismo PR que añade o cambia
 una integración. Un mapa desactualizado es peor que ninguno.
 
 ## Ejemplo con cuatro contextos
@@ -217,7 +217,7 @@ Cambiar un patrón (p. ej. conformist -> ACL) es un ADR corto, no una discusión
 
 ## Checklist
 
-- [ ] Existe `docs/context-map.md` con un nodo por contexto y una flecha por integración.
+- [ ] Existe `senzu/arquitectura/context-map.md` con un nodo por contexto y una flecha por integración.
 - [ ] Cada flecha indica patrón, mecanismo y dirección upstream/downstream.
 - [ ] Todo sistema externo se integra mediante ACL (puerto en dominio + adaptador).
 - [ ] Los eventos entre contextos tienen contrato versionado en un lugar compartido.

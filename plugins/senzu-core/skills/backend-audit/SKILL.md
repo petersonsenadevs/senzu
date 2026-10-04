@@ -42,7 +42,7 @@ Cada tipo de hallazgo del catálogo apunta a su receta: diagnóstico y tratamien
    dependencias nuevas). Si no se instalan, dilo en el informe como límite de la auditoría.
 
 ## Salida
-- `docs/auditoria/<AAAA-MM-DD>-<area>.md`: resumen ejecutivo, mapa de riesgo, hallazgos con evidencia,
+- `senzu/auditoria/<AAAA-MM-DD>-<area>.md`: resumen ejecutivo, mapa de riesgo, hallazgos con evidencia,
   sospechas sin confirmar, límites de la auditoría y plan propuesto.
 - Tarjetas en `senzu/plan/PLAN.md` (skill `project-planner`) para lo que el usuario apruebe arreglar.
 - Entrada en `senzu/devlog/` con el resumen y las herramientas ejecutadas.
