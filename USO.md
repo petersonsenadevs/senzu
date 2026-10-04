@@ -61,6 +61,18 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
   `node .claude/skills/devlog/scripts/buscar.mjs "palabras"` (acentos, plurales, erratas y sinónimos)
   y cita la entrada. En un proyecto con historial y sin memoria, la crea en la primera sesión y te la
   enseña para que la confirmes.
+- **Tu memoria personal** (`.config/senzu/memoria.md` en tu carpeta de usuario): lo que vale en TODOS tus
+  proyectos (idioma, cómo quieres los commits, el tono). Llega a cada sesión de cada proyecto; no hay que
+  repetirlo en cada `MEMORIA.md`.
+- **Tus correcciones no se pierden**: si dices «no vuelvas a…», «te dije…» o «a partir de ahora…», el agente
+  tiene que apuntarlo (en el proyecto o en tu memoria personal) y no puede cerrar si no lo hizo. También con
+  `/recordar`.
+- **Memoria por archivo**: antes de tocar un archivo, el agente recibe lo que la memoria y el devlog dicen de
+  él, para no rehacer lo decidido ni repetir lo que no funcionó.
+- **Retomar**: cada sesión deja escrito en qué se quedó (lo que pediste, lo que tocó, lo que quedó sin
+  commitear). La siguiente arranca sabiéndolo; di «sigue» o `/retomar`.
+- **La memoria no se estropea**: al empezar avisa de los pendientes de hace más de 7 días (se escriben con
+  fecha: `- [desde 2026-10-04] …`), de entradas citadas que no existen y de decisiones repetidas.
 - **Permisos por proyecto** (los decides tú, en el menú del instalador o con `--permitir`): por defecto el
   agente no hace push ni commitea en main. En un proyecto puedes darle `push` (ramas que no son main),
   `push-main` (también main) o `commit-main`. El push forzado, lo destructivo y los secretos siguen

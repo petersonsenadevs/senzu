@@ -415,14 +415,14 @@ const BASE_DENY = [
 function hookSet(hasFront) {
     return {
         SessionStart: [{ matcher: null, files: ['session-start.mjs'] }],
-        UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs'] }],
+        UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs', 'memoria-viva.mjs'] }],
         PreToolUse: [
             { matcher: 'Bash|PowerShell', files: ['guard.mjs'] },
-            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
+            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
         ],
         PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs'] }],
-        Stop: [{ matcher: null, files: ['stop-guard.mjs', 'cierre-limpio.mjs'] }],
-        PreCompact: [{ matcher: null, files: ['pre-compact.mjs'] }],
+        Stop: [{ matcher: null, files: ['stop-guard.mjs', 'cierre-limpio.mjs', 'estado-sesion.mjs'] }],
+        PreCompact: [{ matcher: null, files: ['pre-compact.mjs', 'estado-sesion.mjs'] }],
         SessionEnd: [{ matcher: null, files: ['session-end.mjs'] }],
     };
 }
@@ -458,6 +458,9 @@ const HOOKS_ELEGIBLES = [
     ['cierre-limpio', 'No deja cerrar con archivos propios sin commitear; avisa de los de otro agente'],
     ['session-start', 'Contexto del proyecto al arrancar la sesión'],
     ['prompt-router', 'Sugiere la skill adecuada en cada petición'],
+    ['memoria-viva', 'Detecta tus reglas y correcciones y pide apuntarlas en la memoria'],
+    ['memoria-archivo', 'Antes de tocar un archivo, lo que la memoria y el devlog dicen de él'],
+    ['estado-sesion', 'Guarda en qué se quedó la sesión (/retomar) y comprueba que se apuntaron tus correcciones'],
 ];
 const HOOK_COMPANEROS = { 'stop-guard': ['edit-tracker'], 'cierre-limpio': ['edit-tracker'], 'session-start': ['pre-compact'] };
 function hooksPermitidos(sel) {
@@ -543,7 +546,7 @@ async function renderClaude(stack, projectPath, extra, bundles) {
     if (exists(cmdSrc)) {
         const cmdDst = path.join(projectPath, '.claude', 'commands');
         ensureDir(cmdDst);
-        const names = ['instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md',
+        const names = ['instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md',
             ...(hasFront ? ['brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md'] : [])];
         const cmdSel = stack.selection && stack.selection.comandos ? new Set(stack.selection.comandos) : null;
         for (const n of fs.readdirSync(cmdSrc).filter(f => f.endsWith('.md'))) {

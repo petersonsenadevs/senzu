@@ -81,7 +81,9 @@ const SINONIMOS_BASE = [
     ['login', 'auth', 'autenticacion', 'autenticar', 'sesion', 'sanctum', 'jwt', 'oauth', 'passport', 'socialite'],
     ['contrasena', 'password', 'clave', 'recuperar', 'reset'],
     ['cola', 'colas', 'queue', 'job', 'jobs', 'worker', 'horizon', 'supervisor'],
-    ['despliegue', 'desplegar', 'deploy', 'produccion', 'prod', 'forge', 'vercel', 'netlify', 'servidor'],
+    // «desplegamos» y «despliegue» no comparten raíz (verbo irregular): las formas van explícitas
+    ['despliegue', 'desplegar', 'desplegamos', 'desplegado', 'despliego', 'deploy', 'produccion', 'prod', 'forge', 'vercel', 'netlify', 'servidor'],
+    ['caida', 'caidas', 'corte', 'cortes', 'downtime', 'interrupcion', 'zero-downtime', 'disponibilidad'],
     ['migracion', 'migrar', 'migration', 'esquema', 'schema', 'columna', 'tabla'],
     ['correo', 'email', 'mail', 'newsletter', 'smtp', 'mailgun', 'resend'],
     ['cache', 'redis', 'memcached'],

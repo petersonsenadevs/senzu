@@ -6,14 +6,14 @@ function Get-HookSet {
     param([bool]$HasFront)
     $set = [ordered]@{
         SessionStart     = @(@{ matcher = $null; files = @('session-start.mjs') })
-        UserPromptSubmit = @(@{ matcher = $null; files = @('prompt-router.mjs') })
+        UserPromptSubmit = @(@{ matcher = $null; files = @('prompt-router.mjs', 'memoria-viva.mjs') })
         PreToolUse       = @(
             @{ matcher = 'Bash|PowerShell';                   files = @('guard.mjs') },
-            @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }
+            @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }
         )
         PostToolUse      = @(@{ matcher = 'Edit|Write|MultiEdit|apply_patch'; files = @('format-on-save.mjs', 'edit-tracker.mjs') }, @{ matcher = 'Bash|PowerShell'; files = @('depurar-coach.mjs') })
-        Stop             = @(@{ matcher = $null; files = @('stop-guard.mjs', 'cierre-limpio.mjs') })
-        PreCompact       = @(@{ matcher = $null; files = @('pre-compact.mjs') })
+        Stop             = @(@{ matcher = $null; files = @('stop-guard.mjs', 'cierre-limpio.mjs', 'estado-sesion.mjs') })
+        PreCompact       = @(@{ matcher = $null; files = @('pre-compact.mjs', 'estado-sesion.mjs') })
         SessionEnd       = @(@{ matcher = $null; files = @('session-end.mjs') })
     }
     return $set
@@ -111,7 +111,7 @@ function Render-Claude {
     if (Test-Path $cmdSrc) {
         $cmdDst = Join-Path $ProjectPath '.claude\commands'
         Ensure-Dir $cmdDst
-        $names = @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md') + $(if ($hasFront) { @('brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md') } else { @() })
+        $names = @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md') + $(if ($hasFront) { @('brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md') } else { @() })
         $selProp = $Stack.PSObject.Properties['Selection']
         $cmdSel = if ($selProp -and $selProp.Value -and $selProp.Value.PSObject.Properties['comandos']) { @($selProp.Value.comandos) } else { $null }
         foreach ($cf in (Get-ChildItem $cmdSrc -Filter *.md)) {

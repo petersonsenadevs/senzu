@@ -4,10 +4,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar,
+    readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion,
 } from './lib.mjs';
 
-readHookInput();
+const p = readHookInput() || {};
 const root = projectRoot();
 const DL = rutaRel(root, 'devlog'), PL = rutaRel(root, 'plan'), DS = rutaRel(root, 'design-system'), CV = rutaRel(root, 'conventions.md');   // rutas reales (senzu/ o antiguas)
 const marker = getMarker(root);
@@ -73,6 +73,20 @@ L.push(today.length
 const pasos = proximosPasos(root);
 if (pasos) L.push(`- Donde se quedo la ultima entrada: ${pasos}`);
 L.push(...bloqueMemoria(root));
+L.push(...bloqueMemoriaUsuario());
+for (const a of revisarMemoria(root)) L.push(`- Memoria: ${a}`);
+// En qué se quedó la sesión anterior (estado-sesion): para seguir sin que el usuario tenga que contarlo
+const ant = leerUltimaSesion(root);
+const sidActual = p && p.session_id ? String(p.session_id) : '';
+if (ant && ant.sesion !== sidActual) {
+    const partes = [];
+    if (ant.peticiones && ant.peticiones.length) partes.push(`pidió «${ant.peticiones.join('» → «')}»`);
+    if (ant.editados && ant.editados.length) partes.push(`tocó ${ant.editados.slice(-8).join(', ')}`);
+    if (ant.sinCommitear && ant.sinCommitear.length) partes.push(`DEJÓ SIN COMMITEAR ${ant.sinCommitear.join(', ')}`);
+    if (ant.planEnCurso && ant.planEnCurso.length) partes.push(`tarea en curso: ${ant.planEnCurso.join('; ')}`);
+    if (ant.ultimaEntrada) partes.push(`última entrada del devlog: ${ant.ultimaEntrada}`);
+    if (partes.length) L.push(`- Sesión anterior (${String(ant.actualizado).slice(0, 16).replace('T', ' ')}): ${partes.join(' · ')}. Si el usuario dice «sigue» o /retomar, continúa desde ahí; si no, no lo menciones.`);
+}
 const cfg = hookConfig(root);
 if (cfg && cfg.commands) {
     const cm = Object.entries(cfg.commands).map(([k, v]) => `${k}: ${v}`);

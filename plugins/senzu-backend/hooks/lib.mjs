@@ -436,6 +436,89 @@ export function bloqueMemoria(root, maxLineas = 70) {
     return L;
 }
 
+// ---------------------------------------------------------------- memoria del USUARIO (todos sus proyectos)
+// Sus reglas de siempre (idioma, git, estilo), para no repetirlas proyecto a proyecto. Fuera de ~/.senzu: esa
+// carpeta es un clon de git que se actualiza con pull.
+export function rutaMemoriaUsuario() {
+    return envSenzu('MEMORIA_USUARIO') || path.join(os.homedir(), '.config', 'senzu', 'memoria.md');
+}
+export function bloqueMemoriaUsuario(maxLineas = 30) {
+    const f = rutaMemoriaUsuario();
+    const txt = readText(f);
+    if (!txt) return [];
+    const lineas = txt.replace(/\r/g, '').replace(/<!--[\s\S]*?-->/g, '').split('\n').filter(l => l.trim() && !/^#\s/.test(l));
+    if (!lineas.length) return [];
+    const L = [`- MEMORIA DEL USUARIO (${f.replace(/\\/g, '/')}): sus reglas en TODOS sus proyectos. Ganan a tus costumbres; si chocan con la memoria del proyecto, manda la del proyecto:`];
+    for (const l of lineas.slice(0, maxLineas)) L.push('    ' + l.trim());
+    if (lineas.length > maxLineas) L.push(`    (… ${lineas.length - maxLineas} líneas más)`);
+    return L;
+}
+
+// ---------------------------------------------------------------- revisar la memoria del proyecto
+// Avisos (no bloquea): demasiado larga, «ver NNN» que no existe, D-xxx repetido, pendientes caducados.
+// Los pendientes con fecha se escriben «- [desde AAAA-MM-DD] texto».
+export function revisarMemoria(root, { diasPendiente = 7, hoy = new Date() } = {}) {
+    const mem = memoriaProyecto(root);
+    if (!mem.existe) return [];
+    const avisos = [];
+    const cuerpo = mem.lineas.filter(l => !/^#/.test(l.trim()));
+    if (cuerpo.length > 60) avisos.push(`MEMORIA.md tiene ${cuerpo.length} líneas (máximo 60): mueve lo sustituido y lo cerrado a MEMORIA-historico.md.`);
+    const nums = new Set(devlogEntradas(root).map(e => e.num));
+    const rotas = [...new Set(mem.lineas.flatMap(l => [...l.matchAll(/\bver\s+(\d{3,})\b/gi)].map(m => m[1])))].filter(n => nums.size && !nums.has(n));
+    if (rotas.length) avisos.push(`MEMORIA.md cita entradas que no existen en el devlog: ${rotas.map(n => 'ver ' + n).join(', ')}.`);
+    const ids = mem.lineas.map(l => (/^\s*[-*]\s+(D-\d+)\s*·/.exec(l) || [])[1]).filter(Boolean);
+    const repes = [...new Set(ids.filter((d, i) => ids.indexOf(d) !== i))];
+    if (repes.length) avisos.push(`MEMORIA.md repite números de decisión: ${repes.join(', ')} (cada D-xxx es único).`);
+    const pend = seccionMd(mem.lineas.join('\n'), 'Pendientes');
+    const viejos = [];
+    for (const l of pend.split('\n')) {
+        const m = /\[desde (\d{4}-\d{2}-\d{2})\]/.exec(l);
+        if (!m) continue;
+        const dias = Math.floor((hoy - new Date(m[1] + 'T00:00:00')) / 864e5);
+        if (dias >= diasPendiente) viejos.push(`${l.replace(/^\s*[-*]\s*/, '').replace(/\[desde [^\]]+\]\s*/, '').slice(0, 90)} (${dias} días)`);
+    }
+    if (viejos.length) avisos.push(`Pendientes abiertos hace tiempo, pregunta al usuario si siguen vigentes (y ciérralos o pásalos al histórico): ${viejos.join(' · ')}.`);
+    return avisos;
+}
+
+// ---------------------------------------------------------------- memoria por archivo
+// Qué dicen la memoria y el devlog de un archivo concreto (por su ruta o su nombre): lo más reciente primero.
+export function decisionesDeArchivo(root, rel, max = 3) {
+    const base = path.basename(rel);
+    if (base.length < 5) return [];                                    // «a.js», «x.md»: demasiado genérico
+    const sinExt = base.replace(/\.[^.]+$/, '');
+    const genericos = /^(index|main|app|utils?|helpers?|types?|config|readme|package|styles?|global|layout)$/i;
+    const busca = genericos.test(sinExt) ? [rel.replace(/\\/g, '/')] : [rel.replace(/\\/g, '/'), base];
+    const hit = t => busca.some(b => t.includes(b));
+    const out = [];
+    const mem = memoriaProyecto(root);
+    for (const l of mem.lineas) if (/^\s*[-*]\s+\S/.test(l) && hit(l)) out.push(`MEMORIA: ${l.replace(/^\s*[-*]\s*/, '').trim().slice(0, 200)}`);
+    for (const e of devlogEntradas(root).reverse()) {
+        if (out.length >= max) break;
+        const t = readText(e.archivo) || '';
+        if (!hit(t)) continue;
+        const titulo = ((/^#\s+(.+)/m.exec(t) || [])[1] || e.num).trim();
+        const linea = t.split(/\r?\n/).find(x => hit(x) && !/^#/.test(x)) || '';
+        out.push(`${titulo.slice(0, 110)}${linea ? ` — ${linea.replace(/^\s*[-*]\s*/, '').trim().slice(0, 160)}` : ''}`);
+    }
+    return out.slice(0, max);
+}
+
+// ---------------------------------------------------------------- estado de la sesión (para /retomar)
+// En senzu/.estado/ (ignorado por git con su propio .gitignore): no ensucia el repo ni cuenta como cambio.
+export function rutaEstado(root) {
+    const dir = ruta(root, '.estado');
+    try {
+        fs.mkdirSync(dir, { recursive: true });
+        const gi = path.join(dir, '.gitignore');
+        if (!fs.existsSync(gi)) fs.writeFileSync(gi, '*\n');
+    } catch {}
+    return path.join(dir, 'ultima-sesion.json');
+}
+export function leerUltimaSesion(root) {
+    try { return JSON.parse(fs.readFileSync(path.join(ruta(root, '.estado'), 'ultima-sesion.json'), 'utf8')); } catch { return null; }
+}
+
 export function proximosPasos(root) {   // "NNN título: próximos pasos" de la última entrada del devlog
     const e = devlogEntradas(root).pop();
     if (!e) return '';

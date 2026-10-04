@@ -9,6 +9,9 @@ Formato:
   - D-007 · Correos siempre por cola (Horizon + Redis), nunca síncronos · ver 012
   - D-003 · Sanctum, no Passport: no hay terceros que consuman la API · ver 005
   - D-002 · Stripe Elements: sustituida por D-009 · ver 004
+  - [desde 2026-10-04] Textos legales del cliente (en «Pendientes abiertos», siempre con su fecha)
+
+Lo que vale en TODOS los proyectos del usuario no va aquí: va a su memoria personal (/recordar).
 -->
 
 ## Decisiones vigentes

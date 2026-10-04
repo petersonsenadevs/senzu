@@ -25,8 +25,15 @@ se instalan SIEMPRE; el resto solo en stacks con perfil de front.
 | `/lanzar` | [url de preview/producción] | Checklist de lanzamiento — todo lo que se comprueba antes de publicar la web |
 | `/mapa` | [área opcional, p. ej. "pagos"] | Mapa del proyecto — qué es, cómo arrancarlo, estructura, flujos críticos y dónde tocar para cada cosa |
 | `/propuestas` | [página, p. ej. "home" o "landing de escombros"] | Modo propuesta — blueprint aprobable + 2 maquetas A/B visuales antes de construir |
+| `/recordar` | [qué, p. ej. "los commits siempre sin co-autor"] | Apunta algo en la memoria — de este proyecto (decisión, regla, lo que no funcionó, pendiente) o del usuario (todos sus proyectos) |
 | `/refactor` | <objetivo, p. ej. "sacar la lógica de precios de OrderController"> | Refactor seguro — tests de caracterización primero, pasos pequeños verificados y mismo comportamiento demostrado |
 | `/repaso` | [url o página, p. ej. "http://localhost:4321" o "la home"] | Sesión de revisión conversacional — repasamos la web juntos, sección a sección |
+| `/retomar` | — sin argumentos.
+
+Reconstruye dónde se quedó el trabajo SIN pedirle al usuario que lo cuente, y propón el siguiente paso:
+
+1. **La sesión anterior**: el aviso de inicio de sesión («Sesión anterior: pidió…, tocó…, dejó sin commitear…») y,
+   si hace falta el detalle, | Retoma donde se quedó la sesión anterior — qué se pidió, qué se tocó, qué quedó a medias y el siguiente paso |
 | `/revisar-ui` | [url o ruta de la vista, p. ej. http://localhost:5173 o Pages/Home.vue] | Audita la UI (rúbrica + verificación en navegador si hay Chrome disponible) |
 | `/ronda` | [tu opinión de la ronda anterior, o el texto que copia el panel de las maquetas] | Nueva ronda de maquetas — fija lo que te gustó, quita lo que no y propone algo nuevo |
 

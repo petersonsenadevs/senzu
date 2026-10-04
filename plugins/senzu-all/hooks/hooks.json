@@ -18,6 +18,11 @@
                                                                  "type":  "command",
                                                                  "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/prompt-router.mjs\"",
                                                                  "timeout":  30
+                                                             },
+                                                             {
+                                                                 "type":  "command",
+                                                                 "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/memoria-viva.mjs\"",
+                                                                 "timeout":  30
                                                              }
                                                          ]
                                            }
@@ -68,6 +73,11 @@
                                                        },
                                                        {
                                                            "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/memoria-archivo.mjs\"",
+                                                           "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/front-skill-reminder.mjs\"",
                                                            "timeout":  30
                                                        }
@@ -113,6 +123,11 @@
                                                      "type":  "command",
                                                      "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/cierre-limpio.mjs\"",
                                                      "timeout":  30
+                                                 },
+                                                 {
+                                                     "type":  "command",
+                                                     "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/estado-sesion.mjs\"",
+                                                     "timeout":  30
                                                  }
                                              ]
                                }
@@ -123,6 +138,11 @@
                                                        {
                                                            "type":  "command",
                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pre-compact.mjs\"",
+                                                           "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/estado-sesion.mjs\"",
                                                            "timeout":  30
                                                        }
                                                    ]

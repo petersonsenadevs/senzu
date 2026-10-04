@@ -38,6 +38,9 @@ anota la decisión en la primera entrada (o en su diario) y respétala el resto 
 | Algo que no está en la memoria («¿por qué…?», «¿cuándo cambiamos…?») | `node <skills-dir>/devlog/scripts/buscar.mjs "palabras"` → abre SOLO la entrada indicada, por la sección |
 | Crear la memoria en un proyecto con historial | references/memoria.md § Crear la memoria desde un devlog existente |
 | Memoria de más de 60 líneas | Pasa lo sustituido o cerrado a `senzu/devlog/MEMORIA-historico.md` |
+| El usuario da una regla o corrige («no vuelvas a…», «a partir de ahora…») | `/recordar`: al proyecto (MEMORIA.md) o a su memoria personal si vale para todos sus proyectos (references/memoria.md §7) |
+| Retomar la sesión anterior | `/retomar` (references/memoria.md §8) |
+| Revisar la memoria (caducados, «ver NNN» rotos, D repetidos) | `node <skills-dir>/devlog/scripts/memoria-check.mjs` |
 
 Al responder sobre el pasado, cita la entrada (`según la 034…`). Si el buscador no encuentra nada tras
 probar sinónimos, dilo: «no hay nada registrado sobre esto». Nunca lo supongas.

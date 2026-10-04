@@ -71,6 +71,8 @@ $cases = @(
     @{ n = 'cursor personalizado';  prompt = 'quiero un cursor personalizado con estados al pasar por los enlaces'; expect = 'gsap-scrolltrigger' }
     @{ n = 'intro pantalla rota';   prompt = 'quiero una intro donde caiga el logo y se rompa la pantalla'; expect = 'front-activation' }
     @{ n = 'objeto que cae';        prompt = 'que caiga encima de la web nuestro producto y rebote';        expect = 'front-activation' }
+    @{ n = 'donde lo dejamos';      prompt = '¿dónde lo dejamos ayer con lo de los pagos?';                  expect = 'devlog' }
+    @{ n = 'apuntalo en memoria';   prompt = 'apúntalo en la memoria: los commits van sin co-autor';         expect = 'devlog' }
     @{ n = 'la web se parte';       prompt = 'quiero que la web se vea normal y luego se parta como cristal'; expect = 'front-activation' }
     @{ n = 'loader que se agrieta'; prompt = 'haz un loader que se agrieta mientras carga';                 expect = 'front-activation' }
     @{ n = 'before/after';          prompt = 'pon un comparador before after en la galería de reformas';   expect = 'gsap-scrolltrigger' }

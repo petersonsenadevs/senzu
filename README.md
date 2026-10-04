@@ -15,7 +15,7 @@ skills que se activan solas, muros que bloquean de verdad y verificación obliga
 nada por hecho.
 
 <!-- GEN:resumen -->
-![Version](https://img.shields.io/badge/version-v2.10.0-black) ![Skills](https://img.shields.io/badge/skills-43-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Muros](https://img.shields.io/badge/muros-17_hooks-red) ![Comandos](https://img.shields.io/badge/comandos-20-orange) ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
+![Version](https://img.shields.io/badge/version-v2.11.0-black) ![Skills](https://img.shields.io/badge/skills-43-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Muros](https://img.shields.io/badge/muros-20_hooks-red) ![Comandos](https://img.shields.io/badge/comandos-22-orange) ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
 
 | Grupo | Skills | Entra por |
 |---|---|---|
@@ -120,6 +120,10 @@ sección necesaria (disciplina de contexto: nada se lee entero).
 - **Nuevo vs heredado**: proyecto vacío → brief + plan; proyecto con código → `/adoptar` analiza su
   estilo real, lo pacta contigo y lo **sella como inmutable** (un hook bloquea el código que lo viole).
 - **Respeta lo que ya hay**: tu `CLAUDE.md`/`AGENTS.md`, tu diario, tu plan — pregunta antes de adaptarse.
+- **Recuerda**: las decisiones del proyecto llegan a cada sesión; tus reglas de siempre, a todos tus
+  proyectos; si le corriges, lo apunta (o no puede cerrar); antes de tocar un archivo sabe lo que se decidió de
+  él; y la sesión siguiente sabe en qué se quedó la anterior (`/retomar`). Con un devlog real de 88 entradas
+  encuentra la decisión correcta entre las tres primeras en 20 de 20 preguntas hechas a lo bruto.
 
 ## Diseño acompañado (y sin olor a IA)
 

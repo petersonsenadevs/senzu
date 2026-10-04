@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, getMarker, designSystemMaster, todayDevlog, gitBranch, planStatus, devlogNextNumber, outHookJson, pad3, detectVersions, bloqueMemoria, ruta, rutaRel, textoLogos,
+    readHookInput, projectRoot, getMarker, designSystemMaster, todayDevlog, gitBranch, planStatus, devlogNextNumber, outHookJson, pad3, detectVersions, bloqueMemoria, bloqueMemoriaUsuario, ruta, rutaRel, textoLogos,
 } from './lib.mjs';
 
 readHookInput();
@@ -24,6 +24,7 @@ const plan = planStatus(root);
 if (plan.exists) L.push(`- Plan: ${PL}/PLAN.md (${plan.done}/${plan.total})` + (plan.doing.length ? ` | en curso: ${plan.doing.join('; ')}` : ''));
 L.push(`- Siguiente numero de devlog: ${pad3(devlogNextNumber(root))}`);
 L.push(...bloqueMemoria(root, 40));
+L.push(...bloqueMemoriaUsuario(20));
 L.push('- Reglas: sin git push ni operaciones destructivas sin aprobacion; commits Conventional sin co-autor; devlog antes de cerrar.');
 L.push('- Skills: una por tarea, solo su seccion de lectura minima; upstream y references por secciones.');
 outHookJson('PreCompact', { additionalContext: L.join('\n') });

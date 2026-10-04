@@ -138,8 +138,15 @@ se instalan SIEMPRE; el resto solo en stacks con perfil de front.
 | `/lanzar` | [url de preview/producción] | Checklist de lanzamiento — todo lo que se comprueba antes de publicar la web |
 | `/mapa` | [área opcional, p. ej. "pagos"] | Mapa del proyecto — qué es, cómo arrancarlo, estructura, flujos críticos y dónde tocar para cada cosa |
 | `/propuestas` | [página, p. ej. "home" o "landing de escombros"] | Modo propuesta — blueprint aprobable + 2 maquetas A/B visuales antes de construir |
+| `/recordar` | [qué, p. ej. "los commits siempre sin co-autor"] | Apunta algo en la memoria — de este proyecto (decisión, regla, lo que no funcionó, pendiente) o del usuario (todos sus proyectos) |
 | `/refactor` | <objetivo, p. ej. "sacar la lógica de precios de OrderController"> | Refactor seguro — tests de caracterización primero, pasos pequeños verificados y mismo comportamiento demostrado |
 | `/repaso` | [url o página, p. ej. "http://localhost:4321" o "la home"] | Sesión de revisión conversacional — repasamos la web juntos, sección a sección |
+| `/retomar` | — sin argumentos.
+
+Reconstruye dónde se quedó el trabajo SIN pedirle al usuario que lo cuente, y propón el siguiente paso:
+
+1. **La sesión anterior**: el aviso de inicio de sesión («Sesión anterior: pidió…, tocó…, dejó sin commitear…») y,
+   si hace falta el detalle, | Retoma donde se quedó la sesión anterior — qué se pidió, qué se tocó, qué quedó a medias y el siguiente paso |
 | `/revisar-ui` | [url o ruta de la vista, p. ej. http://localhost:5173 o Pages/Home.vue] | Audita la UI (rúbrica + verificación en navegador si hay Chrome disponible) |
 | `/ronda` | [tu opinión de la ronda anterior, o el texto que copia el panel de las maquetas] | Nueva ronda de maquetas — fija lo que te gustó, quita lo que no y propone algo nuevo |
 
@@ -171,6 +178,9 @@ trabajo lo hacen las tablas de activación de las reglas generadas y los githook
 | `front-skill-reminder.mjs` | PreToolUse Edit/Write (front) | Primera edición de UI: BLOQUEA una vez si no hay design system NI brief (obliga a preguntar); después recuerda ui-ux-pro-max, el set de iconos del MASTER y las reglas duras de UI. |
 | `format-on-save.mjs` | PostToolUse | Formatea el archivo guardado con la herramienta del stack (Pint/Prettier/ruff) si existe. Nunca bloquea. |
 | `edit-tracker.mjs` | PostToolUse | Apunta cada archivo que toca la sesión (para cierre-limpio) y marca que se editó código (stop-guard exige verificación posterior). |
+| `memoria-viva.mjs` | UserPromptSubmit | Si dices una regla o una corrección («no vuelvas a…», «te dije…», «a partir de ahora…»), pide al agente apuntarla en la memoria del proyecto o en la tuya (todos tus proyectos). Guarda tus últimas peticiones para /retomar. |
+| `memoria-archivo.mjs` | PreToolUse Edit/Write | La primera vez que se va a tocar un archivo, le pasa al agente lo que la memoria y el devlog dicen de él (decisiones, lo que no funcionó). No bloquea. |
+| `estado-sesion.mjs` | Stop · PreCompact | Guarda en qué se quedó la sesión (peticiones, archivos, lo que quedó sin commitear, tarea en curso) para la siguiente y para /retomar. Al cerrar, BLOQUEA una vez si diste una regla o corrección y no quedó apuntada en la memoria. |
 | `cierre-limpio.mjs` | Stop | BLOQUEA el cierre (una vez) si dejas sin commitear archivos que tocaste en esta sesión: o terminas y commiteas (en una rama), o commiteas y dices qué falta. Los cambios que NO tocaste (otro agente como Codex, otra sesión o el usuario) solo los avisa: no se commitean ni se descartan sin preguntar. |
 | `stop-guard.mjs` | Stop | BLOQUEA el cierre (una vez) si falta: devlog del día, verify-build tras editar código, o ui-verify móvil tras tocar UI. Además avisa de assets pesados añadidos en las últimas 24 h (imágenes de más de 500 KB, fuentes sin woff2, vídeos grandes). |
 | `pre-compact.mjs` | PreCompact | Re-inyecta lo esencial (stack, versiones, design system, plan, reglas) para sobrevivir a la compactación de contexto. |

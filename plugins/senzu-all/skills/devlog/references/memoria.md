@@ -7,6 +7,8 @@
 4. Crear la memoria desde un devlog existente
 5. Buscar en el pasado con `buscar.mjs`
 6. Qué obliga y qué no
+7. Memoria del usuario (todos sus proyectos)
+8. Memoria viva: correcciones, archivos y retomar
 
 ## 1. Tres niveles: memoria, índice, entradas
 | Nivel | Archivo | Cuándo se lee |
@@ -23,7 +25,9 @@ Nada se borra del devlog; viajar atrás siempre es posible.
 - **Decisiones vigentes**: qué se eligió y por qué en media frase (`Sanctum, no Passport: sin terceros`).
 - **Reglas del cliente y del proyecto**: lo que el cliente pidió o vetó, convenciones no escritas.
 - **Lo que no funcionó**: intentos fallidos que nadie debe repetir, con el motivo.
-- **Pendientes abiertos**: lo que está esperando a alguien (textos legales, accesos, una respuesta).
+- **Pendientes abiertos**: lo que está esperando a alguien (textos legales, accesos, una respuesta), CON
+  FECHA: `- [desde 2026-10-04] Textos legales del cliente`. A los 7 días, session-start pregunta si siguen
+  vigentes; cuando se resuelven, se borran de aquí (o pasan al histórico) en la entrada que los cierra.
 
 **No entra**: el detalle de cómo se hizo (va en la entrada), commits, salidas de comandos, lo que ya
 dicen `senzu/conventions.md`, `senzu/design-system/*/gustos.md` o `senzu/plan/PLAN.md` (se enlaza, no se copia).
@@ -89,7 +93,32 @@ node <skills-dir>/devlog/scripts/buscar.mjs "login" --tipo decision
 | Cierre con decisiones nuevas | stop-guard bloquea una vez si MEMORIA.md no se actualizó después | Sí |
 | Memoria de más de 60 líneas | stop-guard recuerda pasar lo viejo al histórico | Aviso |
 | Preguntas sobre el pasado | prompt-router sugiere la skill devlog | Aviso |
-| No contradecir una decisión | Regla del CLAUDE.md/AGENTS.md + memoria en contexto | No hay hook que lo vea |
+| El usuario da una regla o corrige | memoria-viva pide apuntarla; estado-sesion bloquea el cierre una vez si no se apuntó | Sí |
+| Antes de tocar un archivo | memoria-archivo pasa lo que la memoria y el devlog dicen de él | Aviso |
+| Empezar la siguiente sesión | estado-sesion guardó en qué se quedó; session-start lo cuenta (y `/retomar`) | Sí (llega siempre) |
+| Memoria que se estropea | session-start avisa de pendientes caducados, «ver NNN» rotos y D-xxx repetidos; `memoria-check.mjs` lo revisa todo | Aviso |
+| No contradecir una decisión | Regla del CLAUDE.md/AGENTS.md + memoria en contexto + memoria-archivo al tocar el archivo | Aviso |
+
+## 7. Memoria del usuario (todos sus proyectos)
+Lo que vale en TODOS los proyectos del usuario (idioma, cómo quiere los commits, el tono, «nunca hagas push
+sin preguntar») va en su memoria personal, no repetido en cada `MEMORIA.md`: por defecto
+`.config/senzu/memoria.md` en su carpeta de usuario (`SENZU_MEMORIA_USUARIO` la cambia). Una línea por regla.
+session-start y pre-compact la inyectan en cualquier proyecto. Si choca con la memoria de un proyecto, manda
+la del proyecto. Se escribe con `/recordar` (que pregunta si va al proyecto o al usuario cuando no está claro).
+
+## 8. Memoria viva: correcciones, archivos y retomar
+- **Correcciones del usuario**: cuando dice «no vuelvas a…», «te dije…», «a partir de ahora…» o «siempre
+  usa…», el hook memoria-viva pide apuntarlo antes de seguir. Si solo era una corrección del momento, no se
+  apunta y se dice al cerrar. Si era una regla y no se apuntó, el cierre se bloquea una vez.
+- **Por archivo**: la primera vez que se va a tocar un archivo en la sesión, memoria-archivo enseña las
+  decisiones y entradas que lo nombran (por su ruta, o por su nombre si no es genérico como `index.ts`). Por
+  eso conviene nombrar los archivos entre acentos graves en las entradas y en la memoria.
+- **Retomar**: al cerrar o compactar, estado-sesion guarda en `senzu/.estado/ultima-sesion.json` (fuera de git)
+  las últimas peticiones, los archivos tocados, lo que quedó sin commitear y la tarea en curso. La siguiente
+  sesión arranca sabiéndolo; `/retomar` lo resume y propone el siguiente paso.
+- **Revisión**: `node <skills-dir>/devlog/scripts/memoria-check.mjs` (desde la raíz) avisa de memoria de más de
+  60 líneas, `ver NNN` que no existe, D-xxx repetidos, pendientes caducados o sin fecha y rutas que ya no
+  existen. Pásalo al cerrar una tanda grande o cuando session-start avise.
 
 En Codex con el plugin, los mismos hooks hacen lo mismo. Sin plugin (solo `.agents/skills`) no hay hooks:
 AGENTS.md pide leer `senzu/devlog/MEMORIA.md` al empezar y usar el buscador.
