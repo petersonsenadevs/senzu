@@ -89,7 +89,7 @@ $coreSkills = @('devlog', 'project-planner', 'instalar-proyecto', 'code-quality'
 $routerDir  = @((Join-Path $root 'core\skills-plugin\skill-router'))
 
 # --- core: metodologia + TODOS los hooks (menos los de front) ---
-$coreFiles = @('lib.mjs','session-start.mjs','prompt-router.mjs','guard.mjs','protect-files.mjs','secrets-guard.mjs','format-on-save.mjs','edit-tracker.mjs','code-hygiene.mjs','conventions-guard.mjs','backend-guard.mjs','back-skill-reminder.mjs','depurar-coach.mjs','stop-guard.mjs','pre-compact.mjs','session-end.mjs')
+$coreFiles = @('lib.mjs','session-start.mjs','prompt-router.mjs','guard.mjs','protect-files.mjs','secrets-guard.mjs','format-on-save.mjs','edit-tracker.mjs','code-hygiene.mjs','conventions-guard.mjs','backend-guard.mjs','back-skill-reminder.mjs','depurar-coach.mjs','stop-guard.mjs','cierre-limpio.mjs','pre-compact.mjs','session-end.mjs')
 $coreHooks = @{ hooks = (New-HooksJson -HasFront $false -PathPrefix '${CLAUDE_PLUGIN_ROOT}/hooks/') }
 $entries += New-Plugin -Name 'senzu-core' -Description 'Metodología Senzu: skill devlog + skill-router + hooks (guard de git/BD, archivos protegidos, secretos, formateo al guardar, estado de sesión, router de prompts, cierre con devlog, pre-compact).' `
     -Skills $coreSkills -Hooks $coreHooks -HookFiles $coreFiles -ExtraSkillDirs $routerDir -Commands @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md')

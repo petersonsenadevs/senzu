@@ -15,7 +15,7 @@ skills que se activan solas, muros que bloquean de verdad y verificación obliga
 nada por hecho.
 
 <!-- GEN:resumen -->
-![Version](https://img.shields.io/badge/version-v2.9.0-black) ![Skills](https://img.shields.io/badge/skills-43-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Muros](https://img.shields.io/badge/muros-16_hooks-red) ![Comandos](https://img.shields.io/badge/comandos-20-orange) ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
+![Version](https://img.shields.io/badge/version-v2.10.0-black) ![Skills](https://img.shields.io/badge/skills-43-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Muros](https://img.shields.io/badge/muros-17_hooks-red) ![Comandos](https://img.shields.io/badge/comandos-20-orange) ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
 
 | Grupo | Skills | Entra por |
 |---|---|---|
@@ -40,20 +40,22 @@ nada por hecho.
 /plugin install senzu-all@senzu          # TODO el paquete (recomendado)
 #   packs ligeros si no quieres todo: senzu-front, senzu-backend, senzu-core
 
-# 2) ...y desde el plugin, la instalación COMPLETA del proyecto en un comando:
-#    (abre Claude en tu proyecto y escribe)
-/instalar                    # clona el repo si falta, detecta el stack y lo deja todo configurado
+# 2) ...y desde el plugin, la instalación del proyecto en un comando:
+#    (abre Claude o Codex en tu proyecto y escribe)
+/instalar                    # detecta el stack y pregunta qué es el proyecto: web, backend, front,
+                             # agente de IA o librería (un backend no lleva nada de front)
 
 # Skills globales para Codex / Cursor / Windsurf (Windows PowerShell):
 irm https://raw.githubusercontent.com/petersonsenadevs/senzu/main/tools/install.ps1 | iex
 
-# Instalador interactivo: eliges todo, por categorías o a medida (skills, muros y comandos):
-git clone https://github.com/petersonsenadevs/senzu.git && node senzu/tools/init.mjs
-
-# Manual por proyecto (equivalente a /instalar; Node = Windows, WSL, Linux y macOS):
-git clone https://github.com/petersonsenadevs/senzu.git
-node senzu/tools/init.mjs --stack laravel --path /ruta/mi-app --tools claude,codex
+# Desde la terminal, sin agente (menú interactivo o con opciones; Windows, WSL, Linux y macOS):
+git clone https://github.com/petersonsenadevs/senzu.git $HOME/.senzu
+node $HOME/.senzu/tools/init.mjs                                         # menú
+node $HOME/.senzu/tools/init.mjs --path ./mi-api --perfil backend        # sin menú
 ```
+
+El plugin se instala para ti en todos tus proyectos (scope `user`) o para todo el equipo de un repositorio
+(`--scope project`).
 
 Requisitos, actualización y las vías al detalle: **[INSTALL.md](INSTALL.md)**.
 
@@ -79,6 +81,17 @@ desactiva la suite en silencio.
 [BLOQUEADO] Badge de disponibilidad: urgencia falsa que delata web hecha con IA.
 Lista negra: anti-ia.md (qué usar en su lugar).
 ```
+
+Y no se va dejando trabajo a medias, ni pisa el de otro agente:
+
+```text
+[senzu] Dejas sin commitear 2 archivo(s) que has tocado en esta sesión: src/pago.ts, src/pago.test.ts.
+No cierres con trabajo a medias: o terminas la tarea y la commiteas, o la commiteas igualmente y dices
+QUÉ FALTA. Además hay 1 archivo(s) con cambios que NO has tocado en esta sesión (api/informe.py):
+pueden ser de otro agente (Codex o Claude en otra sesión). No los commitees ni los descartes sin preguntar.
+```
+
+Si trabajas con Claude y con Codex a la vez en el mismo repositorio, cada uno sabe qué archivos son suyos.
 
 También: secretos en código, `console.log` nuevos, migraciones ya desplegadas, archivos generados,
 `rm -rf`, `chmod 777`, `curl|bash`, marcadores de conflicto, vetos del cliente en `gustos.md`…
@@ -152,9 +165,14 @@ sin intro para quien pide menos movimiento y probados en móvil.
 
 Tres suites corren en cada commit (el pre-commit no deja pasar nada roto):
 
-- `check-skills.ps1` — 11 checks de conectividad: registro ↔ skills 1:1, límites de tamaño, citas que resuelven.
-- `test-router.ps1` — 51 casos dorados de "frase del usuario → skill correcta".
-- `test-hooks.ps1` — 34 casos de los muros (lo que debe bloquear, bloquea; lo legítimo, pasa).
+- `check-skills.ps1` — conectividad: registro ↔ skills 1:1, límites de tamaño, citas que resuelven, sin cifras
+  escritas a mano y sin nombres privados en lo público.
+- `test-router.ps1` — casos dorados de "frase del usuario → skill correcta".
+- `test-hooks.ps1` — los muros: lo que debe bloquear, bloquea; lo legítimo, pasa.
+
+Y en GitHub (CI, en cada push), además: paridad entre los dos instaladores (incluidos los perfiles), los muros
+en Codex, permisos, memoria, rondas de maquetas, el cierre limpio entre dos agentes, el tráfico, y en un
+navegador real la geometría en píxeles, la versión móvil y los efectos de física.
 
 ## Filosofía en una frase
 

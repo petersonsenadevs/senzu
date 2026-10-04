@@ -59,6 +59,9 @@ jobs:
       - name: test-verify-build (proyectos simples y monorepos)
         run: node tools/test-verify-build.mjs
 
+      - name: test-cierre (no cerrar con archivos propios sin commitear; no tocar los de otro agente)
+        run: node tools/test-cierre.mjs
+
       - name: test-trafico (histórico de clones y visitas, badge de clones)
         run: node tools/test-trafico.mjs
 

@@ -12,7 +12,7 @@ function Get-HookSet {
             @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }
         )
         PostToolUse      = @(@{ matcher = 'Edit|Write|MultiEdit|apply_patch'; files = @('format-on-save.mjs', 'edit-tracker.mjs') }, @{ matcher = 'Bash|PowerShell'; files = @('depurar-coach.mjs') })
-        Stop             = @(@{ matcher = $null; files = @('stop-guard.mjs') })
+        Stop             = @(@{ matcher = $null; files = @('stop-guard.mjs', 'cierre-limpio.mjs') })
         PreCompact       = @(@{ matcher = $null; files = @('pre-compact.mjs') })
         SessionEnd       = @(@{ matcher = $null; files = @('session-end.mjs') })
     }
@@ -148,7 +148,7 @@ function Render-Claude {
     $only = @()
     $selProp = $Stack.PSObject.Properties['Selection']
     if ($selProp -and $selProp.Value -and $selProp.Value.PSObject.Properties['hooks']) {
-        $companeros = @{ 'stop-guard' = @('edit-tracker'); 'session-start' = @('pre-compact') }
+        $companeros = @{ 'stop-guard' = @('edit-tracker'); 'cierre-limpio' = @('edit-tracker'); 'session-start' = @('pre-compact') }
         $permitidos = @('session-end')
         foreach ($h in @($selProp.Value.hooks)) { $permitidos += $h; if ($companeros.ContainsKey($h)) { $permitidos += $companeros[$h] } }
         $only = @($permitidos | Select-Object -Unique | ForEach-Object { "$_.mjs" })

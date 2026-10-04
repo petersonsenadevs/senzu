@@ -20,28 +20,54 @@ senzu/
 │   ├── skills-plugin/        # routers (skill-router, front-activation): tablas GENERADAS del registro
 │   ├── skills-registry.json  # FUENTE ÚNICA de enrutado: grupo, cuándo, keywords, prioridad, requires
 │   ├── commands/             # comandos slash — ver docs/comandos.md
-│   ├── effects-vendor/       # 124 repos MIT de efectos reales (catálogo con código descargado)
+│   ├── effects-vendor/       # repos de efectos con licencia verificada (no van en git: vendor-effects.ps1)
 │   ├── githooks/             # commit-msg, pre-commit, pre-push (capa dura para CUALQUIER herramienta)
+│   ├── perfiles.json         # perfiles de instalación: web, backend, front, agente-ia, librería → grupos
 │   └── bundles.json          # bundles de skills opcionales
-├── plugins/                  # GENERADO: 13 plugins de Claude Code (se versionan para instalar desde GitHub)
+├── plugins/                  # GENERADO: los plugins de Claude Code y Codex (senzu-all, -front, -backend, -core)
 ├── .claude-plugin/           # marketplace.json (GENERADO)
+├── assets/                   # logos y las imágenes de los artículos
+├── docs/                     # GENERADO casi todo (la web los publica): skills, hooks, comandos, stacks y
+│                             # efectos.md + efectos.json (catálogo de efectos y demos, el contrato con la web)
 ├── stacks/                   # UNA carpeta por stack — ver docs/stacks.md
 │   └── <stack>/              # stack.json, systemprompt.md (EVOLUTIVO), best-practices.md,
 │                             # prohibited.md, mcp.json, rules/ (extensible), settings.partial.json
-├── tools/                    # Automatización (PowerShell 5.1, corre en la máquina que mantiene el repo)
-│   ├── init-project.ps1      # BOOTSTRAP de un proyecto con un stack
-│   ├── sync.ps1              # Re-renderiza la config a un proyecto (-Skills / -Bundle / -GitHooks)
+├── tools/
+│   ├── init.mjs              # EL INSTALADOR (Node: Windows, WSL, Linux, macOS): menú, perfiles, selección
+│   ├── init-project.ps1      # El mismo instalador en PowerShell (resultado idéntico: test-init-parity)
+│   ├── sync.ps1              # Re-renderiza la config a un proyecto respetando lo elegido (PowerShell)
 │   ├── vendor.ps1            # Actualiza las skills upstream · vendor-effects.ps1: colección de efectos
 │   ├── build-routers.ps1     # Regenera las tablas de skill-router/front-activation desde el registro
 │   ├── build-plugins.ps1     # Genera plugins/ + marketplace.json
-│   ├── build-docs.ps1        # Genera docs/ + REFERENCIA.md desde las fuentes de verdad
-│   ├── check-skills.ps1      # Verificador (11 checks): falla si algo se desconecta
-│   ├── test-router.ps1       # 51 casos dorados prompt → skill
-│   ├── test-hooks.ps1        # 34 casos de los muros (exit 2 = bloquea)
+│   ├── build-docs.ps1        # Genera docs/, REFERENCIA.md, CHANGELOG.md y los badges del README
+│   ├── build-creditos.mjs    # CREDITOS.md desde los manifiestos de terceros (y comprueba licencias)
+│   ├── build-efectos.mjs     # docs/efectos.md y efectos.json desde el catálogo y las fichas de las demos
+│   ├── trafico.mjs           # clones, visitas y estrellas acumulados por día (workflow diario → rama stats)
+│   ├── check-skills.ps1      # Verificador: falla si algo se desconecta
+│   ├── test-router.ps1       # casos dorados prompt → skill
+│   ├── test-hooks.ps1        # los muros (exit 2 = bloquea)
+│   ├── test-*.mjs            # el resto de suites (memoria, permisos, cierre, rondas, geometría, móvil…)
 │   ├── install-skills.ps1    # Skills globales para Codex/Cursor/Windsurf/Claude
 │   └── renderers/            # claude.ps1 · codex.ps1 · cursor.ps1 · windsurf.ps1 · antigravity.ps1
 └── templates/                # Plantillas (devlog, plan, decisiones)
 ```
+
+Fuera de `main` vive la rama **`stats`**: solo datos (el histórico de tráfico y los badges), la escribe cada día
+el workflow `trafico.yml` y de ahí la leen el README y la web.
+
+## Perfiles de instalación
+`core/perfiles.json` responde «¿qué es el proyecto?» con un conjunto de grupos de skills. Un perfil es una
+selección por categorías con nombre: se guarda en `senzu/senzu.json` y cada actualización la respeta, con
+`init.mjs` o con `sync.ps1`. La regla que importa: **si lo elegido no tiene grupos de front, no se instala nada
+de front** aunque el stack lo traiga (Laravel o Next con perfil backend): ni las skills, ni el muro de diseño,
+ni los comandos de diseño, ni las secciones de front del `CLAUDE.md`/`AGENTS.md`. Los dos instaladores lo hacen
+igual (`seleccionSinFront` / `Test-SeleccionSinFront`) y la prueba de paridad lo comprueba.
+
+## Dos agentes en el mismo repositorio
+`edit-tracker` apunta qué archivos toca cada sesión (en Codex, traduciendo `apply_patch`). Con eso:
+- `cierre-limpio` no deja cerrar con archivos **propios** sin commitear (o se commitea lo hecho y se dice qué
+  falta), y avisa de los **ajenos** sin tocarlos: pueden ser de Codex, de otra sesión de Claude o del usuario.
+- `session-start` nombra al empezar lo que hay a medias, para no trabajar a ciegas encima.
 
 ## Registro único y verificador (todo conectado)
 

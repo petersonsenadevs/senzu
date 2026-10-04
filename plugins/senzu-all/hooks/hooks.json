@@ -108,6 +108,11 @@
                                                      "type":  "command",
                                                      "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/stop-guard.mjs\"",
                                                      "timeout":  30
+                                                 },
+                                                 {
+                                                     "type":  "command",
+                                                     "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/cierre-limpio.mjs\"",
+                                                     "timeout":  30
                                                  }
                                              ]
                                }

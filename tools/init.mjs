@@ -421,7 +421,7 @@ function hookSet(hasFront) {
             { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
         ],
         PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs'] }],
-        Stop: [{ matcher: null, files: ['stop-guard.mjs'] }],
+        Stop: [{ matcher: null, files: ['stop-guard.mjs', 'cierre-limpio.mjs'] }],
         PreCompact: [{ matcher: null, files: ['pre-compact.mjs'] }],
         SessionEnd: [{ matcher: null, files: ['session-end.mjs'] }],
     };
@@ -455,10 +455,11 @@ const HOOKS_ELEGIBLES = [
     ['front-skill-reminder', 'Front: pregunta antes de diseñar y recuerda las reglas de UI'],
     ['format-on-save', 'Formatea cada archivo con la herramienta del stack'],
     ['stop-guard', 'No deja cerrar sin verificar ni documentar'],
+    ['cierre-limpio', 'No deja cerrar con archivos propios sin commitear; avisa de los de otro agente'],
     ['session-start', 'Contexto del proyecto al arrancar la sesión'],
     ['prompt-router', 'Sugiere la skill adecuada en cada petición'],
 ];
-const HOOK_COMPANEROS = { 'stop-guard': ['edit-tracker'], 'session-start': ['pre-compact'] };
+const HOOK_COMPANEROS = { 'stop-guard': ['edit-tracker'], 'cierre-limpio': ['edit-tracker'], 'session-start': ['pre-compact'] };
 function hooksPermitidos(sel) {
     if (!sel || !sel.hooks) return null;                         // null = todos
     const s = new Set(['session-end']);

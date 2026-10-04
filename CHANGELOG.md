@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-04
 
+- **feature** — Cierre limpio: no cerrar con archivos propios sin commitear ni tocar los de otro agente · v2.10.0 (entrada 088)
 - **feature** — Perfiles de instalación (web, backend, front, agente de IA, librería) y scopes de Claude en la guía · v2.9.0 (entrada 087)
 
 ## 2026-10-03

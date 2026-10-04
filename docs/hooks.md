@@ -24,7 +24,8 @@ trabajo lo hacen las tablas de activación de las reglas generadas y los githook
 | `depurar-coach.mjs` | PostToolUse Bash/PowerShell | Si falla un test, build o verificación, activa el método de la skill depurar (reproducir, test que falla, hipótesis, acotar, arreglar la causa). Como mucho una vez cada 20 minutos. |
 | `front-skill-reminder.mjs` | PreToolUse Edit/Write (front) | Primera edición de UI: BLOQUEA una vez si no hay design system NI brief (obliga a preguntar); después recuerda ui-ux-pro-max, el set de iconos del MASTER y las reglas duras de UI. |
 | `format-on-save.mjs` | PostToolUse | Formatea el archivo guardado con la herramienta del stack (Pint/Prettier/ruff) si existe. Nunca bloquea. |
-| `edit-tracker.mjs` | PostToolUse | Marca que se editó código; stop-guard exige verificación posterior. |
+| `edit-tracker.mjs` | PostToolUse | Apunta cada archivo que toca la sesión (para cierre-limpio) y marca que se editó código (stop-guard exige verificación posterior). |
+| `cierre-limpio.mjs` | Stop | BLOQUEA el cierre (una vez) si dejas sin commitear archivos que tocaste en esta sesión: o terminas y commiteas (en una rama), o commiteas y dices qué falta. Los cambios que NO tocaste (otro agente como Codex, otra sesión o el usuario) solo los avisa: no se commitean ni se descartan sin preguntar. |
 | `stop-guard.mjs` | Stop | BLOQUEA el cierre (una vez) si falta: devlog del día, verify-build tras editar código, o ui-verify móvil tras tocar UI. Además avisa de assets pesados añadidos en las últimas 24 h (imágenes de más de 500 KB, fuentes sin woff2, vídeos grandes). |
 | `pre-compact.mjs` | PreCompact | Re-inyecta lo esencial (stack, versiones, design system, plan, reglas) para sobrevivir a la compactación de contexto. |
 | `session-end.mjs` | SessionEnd | Limpia los marcadores de sesión. |

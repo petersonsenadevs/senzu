@@ -8,7 +8,8 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
 
 | Cuándo | Comando |
 |---|---|
-| Una vez por proyecto | `/instalar` en una sesión del agente dentro del proyecto (o `node $HOME/.senzu/tools/init.mjs`, ver [`INSTALL.md`](INSTALL.md)) |
+| Una vez por proyecto | `/instalar` en una sesión del agente dentro del proyecto (o `node $HOME/.senzu/tools/init.mjs`, ver [`INSTALL.md`](INSTALL.md)). Te pregunta qué es el proyecto: web, backend, front, agente de IA o librería |
+| Cambiar lo instalado (p. ej. quitar el front) | `node $HOME/.senzu/tools/init.mjs --path <ruta> --perfil backend` (o `/instalar` y eliges otro perfil) |
 | Stacks disponibles | `laravel` · `next` · `astro` · `vue-ts` · `nuxt` · `sveltekit` · `wordpress` · `node-api` · `python-langgraph` (Go/Java/C# como referencias de code-quality) |
 | Tras cada versión nueva de Senzu | actualiza el plugin y vuelve a escribir `/instalar` en el proyecto **+ sesión nueva del agente** |
 | Catálogo completo (skills, enrutamiento, comandos, muros) | [`REFERENCIA.md`](REFERENCIA.md) (generado, siempre al día) |
@@ -21,6 +22,11 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
   (marca, 2-3 webs que te gusten, objetivo). No inventa la dirección visual.
 - **Cierre bloqueado**: no puede dar nada por terminado sin (a) build/lint/types/tests en verde si tocó
   código, (b) verificación móvil-primero si tocó UI, (c) devlog del día escrito.
+- **Cierre limpio**: tampoco se va con archivos suyos sin commitear. O termina la tarea y la commitea (en una
+  rama), o la commitea igualmente y te dice qué falta. Si el usuario le pidió no commitear, lo dice y cierra.
+- **Dos agentes a la vez** (Claude y Codex en el mismo repositorio): cada sesión sabe qué archivos tocó. Lo que
+  está a medias y no es suyo (de Codex, de otra sesión o tuyo) no lo commitea ni lo descarta: te lo nombra al
+  empezar la sesión y al cerrar. Así puedes preguntarle a Claude por lo que hizo Codex sin que se mezclen.
 - **Guard**: nada destructivo (push, resets, DROP) sin tu aprobación; secretos y archivos protegidos vetados;
   comandos devops peligrosos bloqueados (`curl|bash`, `chmod 777`, `dd` a discos, `mkfs`, `docker prune`,
   parar servicios, vaciar el firewall, `crontab -r`). Los hooks son Node (`.mjs`): funcionan igual en

@@ -257,6 +257,22 @@ export function git(root, args) {
     } catch { return ''; }
 }
 export function gitBranch(root) { return git(root, ['rev-parse', '--abbrev-ref', 'HEAD']); }
+// Archivos con cambios sin commitear (rutas relativas a la raíz, con «/»): modificados, nuevos (uno a uno, también
+// dentro de carpetas nuevas), borrados y renombrados (la ruta nueva). Sin ignorados. [] si no hay git.
+export function gitCambios(root) {
+    // sin git() porque recorta: la primera línea del porcelain puede empezar por espacio (« M archivo»)
+    let o = '';
+    try { o = execFileSync('git', ['-C', root, '-c', 'core.quotePath=false', 'status', '--porcelain', '-uall'], { stdio: ['ignore', 'pipe', 'ignore'], encoding: 'utf8' }); } catch { return []; }
+    return o.split(/\r?\n/).filter(l => l.length > 3).map(l => {
+        let r = l.slice(3);
+        if (r.includes(' -> ')) r = r.split(' -> ').pop();
+        return r.replace(/^"(.*)"$/, '$1').replace(/\\/g, '/');
+    });
+}
+// Archivos que ha tocado ESTA sesión del agente (los apunta edit-tracker): rutas relativas a la raíz, con «/».
+export function editadosSesion(sid) {
+    try { return [...new Set(fs.readFileSync(sessionFlag(sid, 'editados'), 'utf8').split(/\r?\n/).filter(Boolean))]; } catch { return []; }
+}
 export function gitDirty(root) {   // número de archivos con cambios (tracked + untracked, sin ignorados)
     const o = git(root, ['status', '--porcelain']);
     return o ? o.split(/\r?\n/).filter(l => l).length : 0;
