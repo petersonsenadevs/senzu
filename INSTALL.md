@@ -24,6 +24,19 @@ Dentro de Claude Code:
 `senzu-all` es el paquete completo (recomendado). Hay versiones ligeras: `senzu-front`, `senzu-backend`
 y `senzu-core` (lo mínimo: devlog, enrutador y muros).
 
+**¿Dónde se instala? (el scope).** Al instalar, Claude Code te pregunta para quién es el plugin:
+
+| Scope | Dónde queda | Para quién |
+|---|---|---|
+| `user` (recomendado) | tu carpeta de usuario (`~/.claude`) | Tú, en todos tus proyectos |
+| `project` | `.claude/settings.json` del repositorio (va en git) | Todo el equipo que clone el repositorio |
+| `local` | `.claude/settings.local.json` (no va en git) | Solo tú y solo en ese repositorio |
+
+Desde la terminal se elige con `--scope`: `claude plugin install senzu-all@senzu --scope project`.
+Lo normal es `user` y luego `/instalar` en cada proyecto; `project` tiene sentido si quieres que todo tu
+equipo tenga Senzu al abrir el repositorio sin instalar nada. Desinstalar: `claude plugin uninstall
+senzu-all@senzu` (con `--scope` si no era `user`).
+
 ### Codex
 En la app de Codex: añade el marketplace `petersonsenadevs/senzu`, instala `senzu-all` y **aprueba los
 hooks** cuando te lo pida (sin aprobarlos, los muros no actúan).
@@ -39,9 +52,20 @@ El agente:
    dices tú: `/instalar laravel`.
 3. Te pregunta, en una sola pregunta, el stack, las herramientas (Claude, Claude + Codex o solo Codex)
    y qué hacer con tu `CLAUDE.md`, `AGENTS.md` o diario si ya existen (por defecto se respaldan).
-4. Te pregunta **qué instalar**: **todo** (recomendado), **por categorías** (front, animación, 3D, calidad,
-   arquitectura, marketing y SEO, operaciones, diseño gráfico) o **a medida** (skills, muros y comandos
-   uno a uno). El núcleo (plan, devlog, calidad y enrutado) va siempre.
+4. Te pregunta **qué es el proyecto**, y según eso instala lo que tiene sentido:
+
+   | Perfil | Para | Qué instala |
+   |---|---|---|
+   | **Web completa** | webs y apps con interfaz | todo lo del stack |
+   | **Backend** | APIs, servicios, workers, herramientas de servidor (un agente de pentesting, un scraper) | calidad, arquitectura y despliegue; **nada de front**: ni skills, ni muros, ni comandos de diseño |
+   | **Front** | landings, webs de marketing, interfaces sobre una API ajena | diseño, animación, marca, SEO y despliegue (el 3D, aparte: `--bundle core-3d-animation`) |
+   | **Agente de IA** | agentes y apps con LLM (LangGraph, herramientas, RAG) sin interfaz web propia | como backend |
+   | **Librería o CLI** | paquetes que publicas y herramientas de terminal | calidad y despliegue |
+
+   O **eliges tú**: todo, **por categorías** (front, animación, 3D, calidad, arquitectura, marketing y SEO,
+   operaciones, diseño gráfico) o **a medida** (skills, muros y comandos uno a uno). El núcleo (plan,
+   devlog, calidad y enrutado) va siempre, con cualquier opción. Sin front, nada de front: aunque el
+   stack lo tenga (un Laravel con perfil backend no lleva ni el muro de diseño ni `/propuestas`).
 5. Lo instala y te dice qué ha dejado. **Abre una sesión nueva** al terminar: los muros y las skills se
    cargan al arrancar.
 
@@ -70,11 +94,13 @@ Y ejecuta el instalador:
 node $HOME/.senzu/tools/init.mjs
 ```
 Sin argumentos abre un menú que comprueba los requisitos y pregunta la carpeta del proyecto, el stack
-(lo detecta solo; confirmas con Enter), las herramientas y qué instalar (todo, por categorías o a medida).
+(lo detecta solo; confirmas con Enter), las herramientas y qué es el proyecto (los perfiles de arriba, o
+elegir tú).
 
 Sin menú, con los mismos resultados:
 ```
 node $HOME/.senzu/tools/init.mjs --stack astro --path ./mi-proyecto --tools claude,codex
+node $HOME/.senzu/tools/init.mjs --path ./mi-proyecto --perfil backend
 node $HOME/.senzu/tools/init.mjs --path ./mi-proyecto --seleccion categorias --grupos front,motion
 node $HOME/.senzu/tools/init.mjs --help        # todas las opciones
 ```
@@ -150,6 +176,8 @@ Siguen funcionando los nombres viejos: `DEV_STANDARDS_*` (ahora `SENZU_*`) y el 
 |---|---|
 | Instalar el plugin en Claude Code | `/plugin marketplace add petersonsenadevs/senzu` → `/plugin install senzu-all@senzu` |
 | Instalar o actualizar Senzu en un proyecto | `/instalar` en una sesión del proyecto (o `node $HOME/.senzu/tools/init.mjs --path <ruta>`) |
+| Instalar solo backend (sin nada de front) | `node $HOME/.senzu/tools/init.mjs --path <ruta> --perfil backend` (también `agente-ia`, `libreria`, `front`, `web`) |
+| Plugin para todo el equipo del repositorio | `claude plugin install senzu-all@senzu --scope project` |
 | Dejar que el agente haga push (no a main) en este proyecto | `node $HOME/.senzu/tools/init.mjs --path <ruta> --permitir push` (`push-main` y `commit-main` para main) |
 | Apagar un muro en este proyecto | `node $HOME/.senzu/tools/init.mjs --path <ruta> --apagar-hooks format-on-save` (`--encender-hooks` los vuelve a encender) |
 | `CLAUDE.md` compacto (modo ahorro) | `node $HOME/.senzu/tools/init.mjs --path <ruta> --ahorro` |

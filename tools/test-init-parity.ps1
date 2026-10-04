@@ -97,7 +97,10 @@ Compare-Proyectos 'seleccion'
 # Y que la seleccion se aplico de verdad (no solo que coincidan)
 $cmds = @(Get-ChildItem (Join-Path $b '.claude\commands') -Filter *.md | ForEach-Object BaseName | Sort-Object)
 if (($cmds -join ',') -ne 'plan,verificar') { Fail "[seleccion] comandos esperados plan,verificar; hay: $($cmds -join ',')" }
-if (Test-Path (Join-Path $b '.claude\skills\ui-ux-pro-max')) { Fail '[seleccion] ui-ux-pro-max deberia haberse quitado (no esta en motion/ops ni en el nucleo)' }
+# motion es un grupo de front: llega su puerta de entrada (front-activation) y lo que esta requiere (ui-ux-pro-max:
+# el diseno se decide antes que el efecto). Lo que NO se eligio sigue fuera: el 3D.
+if (-not (Test-Path (Join-Path $b '.claude\skills\front-activation'))) { Fail '[seleccion] con motion (front) falta front-activation, la puerta de entrada de front' }
+if (Test-Path (Join-Path $b '.claude\skills\threejs-webgl')) { Fail '[seleccion] threejs-webgl deberia haberse quitado (grupo 3d no elegido)' }
 if (-not (Test-Path (Join-Path $b '.claude\skills\gsap-scrolltrigger'))) { Fail '[seleccion] falta gsap-scrolltrigger (grupo motion)' }
 $hk = Read-Utf8 (Join-Path $b '.claude\settings.json')
 if ($hk -match 'code-hygiene' -or $hk -notmatch 'guard\.mjs' -or $hk -notmatch 'edit-tracker') { Fail '[seleccion] hooks registrados no coinciden con guard + stop-guard (+ edit-tracker y session-end)' }
@@ -113,6 +116,29 @@ $cm = Read-Utf8 (Join-Path $b 'CLAUDE.md'); $ag = Read-Utf8 (Join-Path $b 'AGENT
 if ($cm -notmatch '# Modo ahorro' -or $cm -match '# Skills disponibles') { Fail '[ahorro] CLAUDE.md no esta en modo compacto' }
 if ($ag -notmatch '# Skills disponibles' -or $ag -match '# Modo ahorro') { Fail '[ahorro] AGENTS.md deberia seguir completo' }
 Write-Host ("  AGENTS.md (completo) {0} vs CLAUDE.md (ahorro) {1} caracteres" -f $ag.Length, $cm.Length)
+
+# Escenario 2b: perfil backend sobre un stack CON front (astro). Sin nada de front en los dos instaladores:
+# ni muro de front, ni comandos de diseno, ni secciones de front del stack en CLAUDE.md/AGENTS.md.
+$selPerfil = [ordered]@{ modo = 'categorias'; grupos = @('quality', 'architecture', 'ops'); perfil = 'backend' }
+foreach ($p in $a, $b) {
+    $m = (Read-Utf8 (Join-Path $p 'senzu/senzu.json')) | ConvertFrom-Json
+    $m | Add-Member -NotePropertyName seleccion -NotePropertyValue $selPerfil -Force
+    $m | Add-Member -NotePropertyName ahorro -NotePropertyValue $false -Force
+    Write-Utf8 (Join-Path $p 'senzu/senzu.json') ($m | ConvertTo-Json -Depth 6)
+}
+$env:SENZU_ASSUME_YES = '1'
+& (Join-Path $PSScriptRoot 'sync.ps1') -Path $a *>$null
+node (Join-Path $PSScriptRoot 'init.mjs') --path $b *>$null
+$env:SENZU_ASSUME_YES = ''
+Compare-Proyectos 'perfil-backend'
+foreach ($p in $a, $b) {
+    $st = Read-Utf8 (Join-Path $p '.claude\settings.json')
+    if ($st -match 'front-skill-reminder') { Fail "[perfil-backend] el muro de front sigue conectado ($p)" }
+    foreach ($g in 'CLAUDE.md', 'AGENTS.md') { if ((Read-Utf8 (Join-Path $p $g)) -match '(?m)^#{1,2} Front y dise') { Fail "[perfil-backend] $g conserva una seccion de front ($p)" } }
+    foreach ($c in 'brief', 'propuestas', 'ronda', 'efecto') { if (Test-Path (Join-Path $p ".claude\commands\$c.md")) { Fail "[perfil-backend] sobra el comando /$c ($p)" } }
+    if (Test-Path (Join-Path $p '.claude\skills\ui-ux-pro-max')) { Fail "[perfil-backend] sobra la skill ui-ux-pro-max ($p)" }
+    if (-not (Test-Path (Join-Path $p '.claude\skills\deploy-ops'))) { Fail "[perfil-backend] falta deploy-ops (grupo ops) ($p)" }
+}
 
 # Escenario 3: proyecto ANTIGUO (devlog/, plan/ y .dev-standards.json en la raiz). Los dos instaladores
 # tienen que migrarlo igual a senzu/ y dejar la raiz limpia.

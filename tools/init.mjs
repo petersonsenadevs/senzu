@@ -89,7 +89,26 @@ function resolveSkillDir(stack, name) {
 }
 // Selección (instalador interactivo o flags): todo | categorias (grupos del registro) | a-medida (skills sueltas).
 // El núcleo va SIEMPRE: sin él los hooks (plan, devlog, cierre) no tienen a qué apuntar.
-const NUCLEO = ['skill-router', 'project-planner', 'devlog', 'code-quality'];
+const NUCLEO = ['skill-router', 'project-planner', 'devlog', 'code-quality', 'instalar-proyecto'];   // instalar-proyecto: /instalar depende de ella
+// Perfiles (core/perfiles.json): qué es el proyecto -> grupos de skills. Un perfil es una selección por categorías
+// con nombre (se guarda en el marcador y sync.ps1 la respeta igual).
+const PERFILES = readJson(path.join(ROOT, 'core', 'perfiles.json')).perfiles;
+function seleccionDePerfil(id) {
+    const p = PERFILES.find(x => x.id === id);
+    if (!p) throw new Error(`Perfil '${id}' no existe. Perfiles: ${PERFILES.map(x => x.id).join(', ')}`);
+    return p.grupos === 'todo' ? { modo: 'todo', perfil: p.id } : { modo: 'categorias', grupos: [...p.grupos], perfil: p.id };
+}
+// Una selección sin nada de front instala SIN front (ni muros ni comandos de diseño ni bloque de front en
+// CLAUDE.md), aunque el stack tenga perfil de front. Misma regla que Test-SeleccionSinFront en _lib.ps1.
+function seleccionSinFront(sel) {
+    if (!sel) return false;
+    if (sel.modo === 'categorias') return ![].concat(sel.grupos || []).some(g => FRONT_GROUPS.includes(g));
+    if (sel.modo === 'a-medida') {
+        const front = new Set(registry.skills.filter(s => FRONT_GROUPS.includes(s.group)).map(s => s.name));
+        return ![].concat(sel.skills || []).some(n => front.has(n));
+    }
+    return false;
+}
 
 function getSkillDirs(stack, extra, bundles) {
     const dirs = [];
@@ -97,7 +116,9 @@ function getSkillDirs(stack, extra, bundles) {
     const sel = stack.selection;
     if (sel && (sel.modo === 'categorias' || sel.modo === 'a-medida')) {
         const elegidas = sel.modo === 'categorias'
-            ? registry.skills.filter(s => [].concat(sel.grupos || []).includes(s.group)).map(s => s.name)
+            // con algún grupo de front va también su puerta de entrada (front-activation, grupo routing)
+            ? registry.skills.filter(s => [].concat(sel.grupos || []).includes(s.group)
+                || ([].concat(sel.grupos || []).some(g => FRONT_GROUPS.includes(g)) && s.name === 'front-activation')).map(s => s.name)
             : [].concat(sel.skills || []);
         for (const e of expandRequires([...NUCLEO, ...elegidas, ...(extra || []), ...expandBundles(bundles)])) {
             const d = resolveSkillDir(stack, e);
@@ -284,6 +305,18 @@ const AHORRO_DEVLOG = 'Documenta cada paso relevante en `senzu/devlog/<fecha>/NN
 const AHORRO_GIT = 'Una rama por tarea (nunca commits en main, master ni develop), Conventional Commits de 72 caracteres como máximo y sin co-autores, y nunca `git push` sin aprobación explícita. El hook guard lo hace cumplir.\n';
 const AHORRO_ESTILO = '\n---\n\n# Modo ahorro\n\nRespuestas técnicas en estilo telegráfico: sin preámbulos ni resúmenes repetidos, frases cortas, primero el resultado y el código. Excepciones, en lenguaje normal y completo: `/brief`, `/propuestas`, `/repaso`, `/estimar` y `/entregar`, cualquier texto para el cliente y cualquier explicación que pida el usuario. Las skills cargan sus descripciones solas: abre solo la sección que necesites.\n';
 
+// Sin front (perfil backend…): fuera las secciones de front escritas en el systemprompt del stack.
+// Misma regla que Remove-SeccionesFront en _lib.ps1; conserva los finales de línea (paridad byte a byte).
+const SECCION_FRONT = /^## (Front y diseño|UI \/ estilos|UI)\s*$/;
+function sinSeccionesFront(t) {
+    const out = []; let fuera = false;
+    for (const l of String(t).split('\n')) {
+        const limpia = l.replace(/\r$/, '');
+        if (/^## /.test(limpia)) fuera = SECCION_FRONT.test(limpia);
+        if (!fuera) out.push(l);
+    }
+    return out.join('\n');
+}
 function combinedRules(stack, extra, bundles, relPath) {
     const md = f => readUtf8(f);
     const sd = stack.dir;
@@ -297,7 +330,7 @@ function combinedRules(stack, extra, bundles, relPath) {
         '\n---\n\n# Flujo de Git\n',
         ahorro ? AHORRO_GIT : md(path.join(ROOT, 'core', 'methodology', 'git-workflow.md')),
         '\n---\n',
-        md(path.join(sd, stack.meta.systemprompt)),
+        stack.meta.frontProfile ? md(path.join(sd, stack.meta.systemprompt)) : sinSeccionesFront(md(path.join(sd, stack.meta.systemprompt))),
         '\n---\n\n# Mejores prácticas del stack\n',
         md(path.join(sd, stack.meta.bestPractices)),
         '\n---\n\n# Prohibiciones del stack\n',
@@ -638,7 +671,7 @@ async function seedProject(projectPath) {
 function lista(v) { return String(v || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean); }
 
 function parseArgs(argv) {
-    const a = { path: process.cwd(), tools: null, stack: null, skills: [], bundle: [], seleccion: null, grupos: null, soloSkills: null, hooks: null, comandos: null, interactivo: false, ahorro: null, permitir: null, apagarHooks: null, sinMigrar: false };
+    const a = { path: process.cwd(), tools: null, stack: null, skills: [], bundle: [], perfil: null, seleccion: null, grupos: null, soloSkills: null, hooks: null, comandos: null, interactivo: false, ahorro: null, permitir: null, apagarHooks: null, sinMigrar: false };
     for (let i = 0; i < argv.length; i++) {
         const k = argv[i];
         const next = () => argv[++i];
@@ -647,6 +680,7 @@ function parseArgs(argv) {
         else if (k === '--tools') a.tools = lista(next());
         else if (k === '--skills') a.skills = lista(next());
         else if (k === '--bundle') a.bundle = lista(next());
+        else if (k === '--perfil') a.perfil = next();
         else if (k === '--seleccion') a.seleccion = next();
         else if (k === '--grupos') a.grupos = lista(next());
         else if (k === '--solo-skills') a.soloSkills = lista(next());
@@ -753,12 +787,17 @@ async function modoInteractivo(a) {
         a.stack = stacks[iStack - 1];
         const iTools = await elegirUno(rl, 'Herramientas:', ['Claude Code', 'Claude Code + Codex', 'Solo Codex'], 1);
         a.tools = [['claude'], ['claude', 'codex'], ['codex']][iTools - 1];
-        const iModo = await elegirUno(rl, '¿Qué quieres instalar?', [
+        const iPerfil = await elegirUno(rl, '¿Qué es el proyecto?', [
+            ...PERFILES.map(p => `${p.nombre}: ${p.para}`),
+            'Elegir yo: todo, por categorías o a medida',
+        ], (marker && marker.seleccion && marker.seleccion.perfil) ? PERFILES.findIndex(p => p.id === marker.seleccion.perfil) + 1 : 1);
+        if (iPerfil <= PERFILES.length) a.perfil = PERFILES[iPerfil - 1].id;
+        const iModo = a.perfil ? 0 : await elegirUno(rl, '¿Qué quieres instalar?', [
             'Todo (recomendado): todas las skills del stack, muros y comandos',
             'Por categorías: eliges grupos de skills (front, animación, 3D, backend…)',
             'A medida: eliges skills, muros y comandos uno a uno',
         ], 1);
-        a.seleccion = ['todo', 'categorias', 'a-medida'][iModo - 1];
+        if (!a.perfil) a.seleccion = ['todo', 'categorias', 'a-medida'][iModo - 1];
         if (a.seleccion === 'categorias') {
             const grupos = Object.entries(registry.groups).filter(([g]) => !['routing', 'planning', 'docs'].includes(g))
                 .map(([g, label]) => [g, `${label} (${registry.skills.filter(s => s.group === g).length} skills)`]);
@@ -789,6 +828,7 @@ async function main() {
     if (a.help) {
         log('Uso: node tools/init.mjs                       -> instalador interactivo (sin argumentos, en terminal)');
         log('     node tools/init.mjs --stack <nombre> --path <ruta> [--tools claude,codex]');
+        log(`       [--perfil ${PERFILES.map(p => p.id).join('|')}]   (qué es el proyecto: sin front en backend, agente-ia y libreria)`);
         log('       [--seleccion todo|categorias|a-medida] [--grupos front,motion,3d,quality,architecture,growth,ops,design]');
         log('       [--solo-skills a,b] [--hooks guard,stop-guard,...] [--comandos plan,verificar,...] [--skills a,b] [--bundle x] [--ahorro|--sin-ahorro]');
         log('       [--permitir push,push-main,commit-main | --sin-permisos] [--apagar-hooks format-on-save,... | --encender-hooks] [--sin-migrar]');
@@ -818,7 +858,11 @@ async function main() {
 
     // Selección: la de los flags o el menú; si no hay, la guardada en el marcador (sync la respeta).
     let seleccion = null;
-    if (a.seleccion) {
+    if (a.perfil) {
+        seleccion = seleccionDePerfil(a.perfil);
+        if (a.hooks) seleccion.hooks = a.hooks;
+        if (a.comandos) seleccion.comandos = a.comandos;
+    } else if (a.seleccion) {
         if (!['todo', 'categorias', 'a-medida'].includes(a.seleccion)) throw new Error(`--seleccion debe ser todo, categorias o a-medida (recibido: ${a.seleccion})`);
         if (a.seleccion !== 'todo' || a.hooks || a.comandos) {
             seleccion = { modo: a.seleccion };
@@ -831,12 +875,18 @@ async function main() {
         seleccion = marker.seleccion;
     }
     stack.selection = seleccion;
+    // Lo elegido no tiene front (perfil backend, agente-ia…): fuera el perfil de front del stack, y con él los
+    // muros y comandos de diseño y el bloque de front del CLAUDE.md
+    if (stack.meta.frontProfile && seleccionSinFront(seleccion)) {
+        stack.meta.frontProfile = null;
+        log(`Sin front: ${seleccion.perfil ? `perfil ${seleccion.perfil}` : 'la selección'} no incluye skills de front`);
+    }
     stack.ahorro = a.ahorro !== null ? a.ahorro : !!(marker && marker.ahorro);
 
     log('== Senzu :: init (Node, agnóstico de OS) ==');
     log(`Stack: ${stack.name}`);
     log(`Proyecto: ${projectPath}`);
-    if (seleccion) log(`Selección: ${seleccion.modo}${seleccion.grupos ? ` (${seleccion.grupos.join(', ')})` : ''}${seleccion.hooks ? ` · hooks: ${seleccion.hooks.length}` : ''}${seleccion.comandos ? ` · comandos: ${seleccion.comandos.length}` : ''}`);
+    if (seleccion) log(`Selección: ${seleccion.perfil ? `perfil ${seleccion.perfil} · ` : ''}${seleccion.modo}${seleccion.grupos ? ` (${seleccion.grupos.join(', ')})` : ''}${seleccion.hooks ? ` · hooks: ${seleccion.hooks.length}` : ''}${seleccion.comandos ? ` · comandos: ${seleccion.comandos.length}` : ''}`);
     if (!marker) await seedProject(projectPath);
 
     log(`Sincronizando '${stack.name}' en ${projectPath}`);

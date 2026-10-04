@@ -105,6 +105,11 @@ $validTools = @{
 Write-Host "Sincronizando '$($stackObj.Name)' en $Path"
 Write-Host "Herramientas: $($Tools -join ', ')"
 $fpSource = $null
+if ($stackObj.Meta.frontProfile -and (Test-SeleccionSinFront $selection)) {
+    $stackObj.Meta.frontProfile = $null   # lo elegido no tiene front (p. ej. perfil backend): sin nada de front
+    $nomPerfil = if ($selection.perfil) { "perfil $($selection.perfil)" } else { 'la seleccion' }
+    Write-Host "Sin front: $nomPerfil no incluye skills de front"
+}
 if ($stackObj.Meta.frontProfile) {
     $eff = Get-EffectiveFrontProfile -Stack $stackObj -ProjectPath $Path -Marker $marker
     $stackObj.Meta.frontProfile = $eff.profile

@@ -194,7 +194,7 @@ function Resolve-SkillDir {
 # Carpetas de skills a instalar para un stack:
 #   - declaradas en stack.json -> "skills" (rutas relativas al stack, nombres o carpeta contenedora "skills")
 #   - opcionales: -Skills (nombres) y -Bundles (expandidos con core\bundles.json)
-$script:Nucleo = @('skill-router', 'project-planner', 'devlog', 'code-quality')   # va siempre, con cualquier seleccion
+$script:Nucleo = @('skill-router', 'project-planner', 'devlog', 'code-quality', 'instalar-proyecto')   # va siempre, con cualquier seleccion (instalar-proyecto: /instalar depende de ella)
 
 function Get-SkillDirs {
     param([Parameter(Mandatory)]$Stack, [string[]]$Extra = @(), [string[]]$Bundles = @())
@@ -204,7 +204,9 @@ function Get-SkillDirs {
     if ($sel -and $sel.Value -and $sel.Value.modo -in @('categorias', 'a-medida')) {
         $s = $sel.Value
         $elegidas = if ($s.modo -eq 'categorias') {
-            @($script:Registry.skills | Where-Object { @($s.grupos) -contains $_.group } | ForEach-Object { $_.name })
+            # con algun grupo de front va tambien su puerta de entrada (front-activation, grupo routing)
+            $conFront = @(@($s.grupos) | Where-Object { $script:FrontGroups -contains $_ }).Count -gt 0
+            @($script:Registry.skills | Where-Object { (@($s.grupos) -contains $_.group) -or ($conFront -and $_.name -eq 'front-activation') } | ForEach-Object { $_.name })
         } else { @($s.skills) }
         foreach ($e in (Expand-Requires -Names (@($script:Nucleo) + $elegidas + @($Extra) + (Expand-Bundles -Bundles $Bundles)))) {
             if (-not $e) { continue }
@@ -349,6 +351,35 @@ function Get-SkillRegistry {
 }
 $script:Registry = Get-SkillRegistry
 $script:FrontGroups = @('front', 'motion', '3d', 'design')
+
+# Una seleccion (perfil, categorias o a medida) que no incluye nada de front: el proyecto se instala SIN front
+# (ni muros ni comandos de diseno ni bloque de front en CLAUDE.md), aunque el stack tenga perfil de front.
+# Misma regla que seleccionSinFront() en init.mjs (paridad).
+# Sin front: fuera las secciones de front escritas en el systemprompt del stack (misma regla que
+# sinSeccionesFront en init.mjs; conserva los finales de linea para la paridad byte a byte).
+function Remove-SeccionesFront([string]$Texto) {
+    $out = New-Object System.Collections.Generic.List[string]
+    $fuera = $false
+    foreach ($l in ($Texto -split "`n")) {
+        $limpia = $l.TrimEnd("`r")
+        if ($limpia -match '^## ') { $fuera = $limpia -match '^## (Front y diseño|UI / estilos|UI)\s*$' }
+        if (-not $fuera) { $out.Add($l) }
+    }
+    return ($out -join "`n")
+}
+function Test-SeleccionSinFront($Sel) {
+    if (-not $Sel) { return $false }
+    $modo = [string]$Sel.modo
+    if ($modo -eq 'categorias') {
+        $g = @($Sel.grupos)
+        return -not (@($g | Where-Object { $script:FrontGroups -contains $_ }).Count)
+    }
+    if ($modo -eq 'a-medida') {
+        $front = @($script:Registry.skills | Where-Object { $script:FrontGroups -contains $_.group } | ForEach-Object { $_.name })
+        return -not (@(@($Sel.skills) | Where-Object { $front -contains $_ }).Count)
+    }
+    return $false
+}
 $script:CoreGroups  = @('planning', 'routing', 'quality', 'architecture', 'growth', 'ops', 'docs')
 
 # Protocolo de carga (texto común)
@@ -475,7 +506,7 @@ function Get-CombinedRules {
         "`n---`n`n# Flujo de Git`n",
         $(if ($ahorro) { $script:AhorroGit } else { Read-Md (Join-Path $root 'core\methodology\git-workflow.md') }),
         "`n---`n",
-        (Read-Md (Join-Path $sd $Stack.Meta.systemprompt)),
+        $(if ($Stack.Meta.frontProfile) { Read-Md (Join-Path $sd $Stack.Meta.systemprompt) } else { Remove-SeccionesFront (Read-Md (Join-Path $sd $Stack.Meta.systemprompt)) }),
         "`n---`n`n# Mejores prácticas del stack`n",
         (Read-Md (Join-Path $sd $Stack.Meta.bestPractices)),
         "`n---`n`n# Prohibiciones del stack`n",

@@ -1,6 +1,6 @@
 ---
 name: instalar-proyecto
-description: "Instala o actualiza Senzu COMPLETO en el proyecto actual (clona el paquete, detecta el stack, pregunta todo, por categorías o a medida y ejecuta el instalador). Úsala con /instalar o cuando pidan instalar o actualizar Senzu."
+description: "Instala o actualiza Senzu en el proyecto actual (clona el paquete, detecta el stack, pregunta qué es el proyecto: web, backend, front, agente de IA o librería, o a medida, y ejecuta el instalador). Úsala con /instalar o al pedir instalar Senzu."
 ---
 
 # instalar-proyecto (Senzu)
@@ -29,17 +29,23 @@ actualiza respetando la selección guardada. No toques nada más del proyecto en
 3. **Confirma en una sola pregunta**: stack, herramientas (Claude, Claude + Codex o solo Codex) y, si el
    proyecto ya tiene CLAUDE.md, AGENTS.md o diario propio, qué hacer con ellos (respaldar e importar es
    lo sensato por defecto).
-4. **Pregunta qué instalar** (opciones cerradas; si ya lo dijo, no preguntes):
-   - **Todo** (recomendado): todas las skills del stack, muros y comandos.
-   - **Por categorías**: front, animación, 3D, calidad, arquitectura, marketing y SEO, operaciones,
-     diseño gráfico. El núcleo (plan, devlog, calidad y enrutado) va siempre.
-   - **A medida**: skills, muros y comandos uno a uno. Si no conoce los nombres, enséñale la lista con
-     una frase por elemento (`docs/skills.md`, `docs/hooks.md` y `docs/comandos.md` del paquete).
-   Si prefiere un menú, que ejecute él mismo en una terminal `node <paquete>/tools/init.mjs` sin argumentos.
+4. **Pregunta qué es el proyecto** (opciones cerradas, de `core/perfiles.json` del paquete; si ya lo
+   dijo, no preguntes; propón la que encaje con lo que ves):
+   - **Web completa** (front y backend): todo lo del stack.
+   - **Backend** (API, servicios, herramientas de servidor sin interfaz web propia, como un agente de
+     pentesting o un scraper): sin nada de front, ni skills, ni muros, ni comandos de diseño.
+   - **Front** (landing, web de marketing, interfaz sobre una API ajena).
+   - **Agente de IA** (LangGraph, herramientas, RAG) sin interfaz web propia.
+   - **Librería, paquete o CLI**.
+   - **Elegir yo**: todo, por categorías (front, animación, 3D, calidad, arquitectura, marketing y SEO,
+     operaciones, diseño gráfico) o a medida (skills, muros y comandos uno a uno; si no conoce los nombres,
+     enséñale `docs/skills.md`, `docs/hooks.md` y `docs/comandos.md` del paquete, una frase por elemento).
+   El núcleo (plan, devlog, calidad y enrutado) va siempre. Si prefiere un menú, que ejecute él mismo en
+   una terminal `node <paquete>/tools/init.mjs` sin argumentos.
 5. **Ejecuta el instalador** (Node, igual en Windows, WSL, Linux y macOS):
    `node "<paquete>/tools/init.mjs" --stack <stack> --path "<raíz-del-proyecto>" --tools claude`
-   y, según lo elegido: nada (todo) · `--seleccion categorias --grupos front,motion` ·
-   `--seleccion a-medida --solo-skills a,b --hooks guard,stop-guard --comandos plan,verificar`.
+   y, según lo elegido: `--perfil web|backend|front|agente-ia|libreria` · `--seleccion categorias --grupos
+   front,motion` · `--seleccion a-medida --solo-skills a,b --hooks guard,stop-guard --comandos plan,verificar`.
    Añade `,codex` en `--tools` si usa Codex. Para cambiar una selección guardada, pasa la nueva.
    Cursor y Windsurf solo con la versión PowerShell en Windows (`tools/sync.ps1`). No inventes otros
    caminos ni scripts.

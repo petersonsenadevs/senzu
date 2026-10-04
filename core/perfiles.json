@@ -1,0 +1,10 @@
+{
+  "_comentario": "Perfiles de instalación: qué es el proyecto -> qué grupos de skills (core/skills-registry.json) se instalan. Un perfil sin grupos de front (front, motion, 3d, design) instala SIN nada de front: ni skills, ni muros, ni comandos de diseño, ni el bloque de front del CLAUDE.md, aunque el stack tenga perfil de front. El núcleo (plan, devlog, calidad y enrutado) va siempre. Lo leen tools/init.mjs, tools/_lib.ps1 y la skill instalar-proyecto.",
+  "perfiles": [
+    { "id": "web", "nombre": "Web completa (front y backend)", "para": "Webs, apps y plataformas con interfaz: todo lo del stack", "grupos": "todo" },
+    { "id": "backend", "nombre": "Backend (API, servicios, herramientas de servidor)", "para": "APIs, servicios, workers, scripts y herramientas sin interfaz web propia (un agente de pentesting, un scraper)", "grupos": ["quality", "architecture", "ops"] },
+    { "id": "front", "nombre": "Front (web, landing, diseño)", "para": "Landings, webs de marketing, interfaces sobre una API que no es tuya", "grupos": ["front", "motion", "design", "growth", "ops"], "nota": "El 3D (Three.js, R3F, Babylon…) no va por defecto: --bundle core-3d-animation o la categoría 3d" },
+    { "id": "agente-ia", "nombre": "Agente de IA", "para": "Agentes y apps con LLM (LangGraph, herramientas, RAG) sin interfaz web propia", "grupos": ["quality", "architecture", "ops"] },
+    { "id": "libreria", "nombre": "Librería, paquete o CLI", "para": "Paquetes que publicas y herramientas de línea de comandos", "grupos": ["quality", "ops"] }
+  ]
+}

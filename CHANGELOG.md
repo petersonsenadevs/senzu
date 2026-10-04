@@ -4,6 +4,10 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-04
+
+- **feature** — Perfiles de instalación (web, backend, front, agente de IA, librería) y scopes de Claude en la guía · v2.9.0 (entrada 087)
+
 ## 2026-10-03
 
 - **feature** — Cuántas veces se clona Senzu: histórico diario en la rama stats, badge y datos para la web · v2.8.0 (entrada 086)
