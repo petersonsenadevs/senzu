@@ -1,0 +1,11 @@
+{
+  "_que_es": "Novedades que session-start enseña a quien tiene una versión anterior de Senzu (las 3 más recientes; primero las importantes). Una línea por versión, en llano: qué gana el usuario al actualizar.",
+  "novedades": [
+    { "version": "2.15.0", "importante": false, "texto": "aviso de versión desactualizada al empezar la sesión, y muros que ya no frenan sin motivo (leer el marcador, scripts temporales, leer un test)" },
+    { "version": "2.14.0", "importante": true, "texto": "ARREGLO DE SEGURIDAD: las convenciones selladas (/adoptar) no se protegían si la ruta llegaba en otro formato (C:/ o /c/); ahora tampoco se alteran desde la terminal ni con un commit" },
+    { "version": "2.13.0", "importante": false, "texto": "arranque guiado: el paso del método que falta (instalar, adoptar) antes de escribir código; sin plan, el agente pregunta qué se va a hacer" },
+    { "version": "2.12.0", "importante": false, "texto": "todo lo que genera Senzu dentro de senzu/, tarjetas que no se cierran sin pruebas, y ni commit ni push a ramas principales" },
+    { "version": "2.11.0", "importante": false, "texto": "memoria viva: tus correcciones se apuntan solas, memoria por archivo y /retomar" },
+    { "version": "2.10.0", "importante": true, "texto": "cierre limpio: el agente no se va dejando archivos sin commitear ni toca los de otro agente (Claude y Codex a la vez)" }
+  ]
+}

@@ -49,6 +49,11 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
 - **Memoria de gustos**: tus opiniones de diseño van a `senzu/design-system/<slug>/gustos.md`; un veto no se re-propone.
 - **Consciente de versiones**: al arrancar la sesión detecta las versiones reales (PHP/Laravel/Node/framework)
   y avisa si algo está sin soporte (EOL); el agente aplica las prácticas de ESA versión, no de la última.
+- **Te avisa si Senzu está desactualizado**: al empezar la sesión, en una frase, con qué hacer (abrir una
+  sesión nueva si ya instalaste la nueva, `/plugin update`, o actualizar el marketplace) y qué te pierdes
+  (`core/novedades.json`: los arreglos importantes primero). Mira primero lo que ya hay en tu equipo; GitHub,
+  como mucho una vez al día y 1,5 s. `SENZU_SIN_RED=1` lo deja sin red. Con los hooks copiados al proyecto,
+  los compara con el repo del que se instalaron y te propone `/instalar`.
 - **El método antes que el código**: al empezar la sesión te dice el **siguiente paso** que falta y por qué:
   `/instalar` si Senzu no está en el proyecto; `/adoptar` si hay código previo sin convenciones selladas. El muro
   `arranque-guard` los hace cumplir: la primera vez que el agente va a escribir código sin ellos, lo para y te lo

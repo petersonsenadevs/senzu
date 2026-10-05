@@ -6,9 +6,10 @@
 // que contiene el match lleva "senzu-allow", se permite (para scripts CLI legítimos).
 
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, findFirstFile, testIntroduced, ruta,
+    readHookInput, projectRoot, findFirstFile, testIntroduced, ruta, relDelProyecto,
 } from './lib.mjs';
 
 const p = readHookInput();
@@ -16,6 +17,9 @@ if (!p || !['Edit', 'Write', 'MultiEdit'].includes(p.tool_name)) process.exit(0)
 const file = p.tool_input && p.tool_input.file_path ? String(p.tool_input.file_path) : '';
 if (!file) process.exit(0);
 if (!/\.(ts|tsx|js|jsx|mjs|cjs|vue|astro|svelte|php|html|css|blade\.php)$/i.test(file)) process.exit(0);
+// Un script en la carpeta temporal del agente (fuera del proyecto) no es código que se vaya a entregar. Solo eso:
+// el código de fuera del proyecto en otro sitio (un paquete hermano de un monorepo) se sigue revisando.
+if (relDelProyecto(projectRoot(), file) === null && relDelProyecto(os.tmpdir(), file) !== null) process.exit(0);
 const isExcluded = /(\.config\.|vite\.config|astro\.config|tailwind\.config|[\\/](scripts?|tools|\.claude|devlog|design-system|node_modules|vendor)[\\/])/i.test(file);
 const isTest = /(test|spec)/i.test(file);
 

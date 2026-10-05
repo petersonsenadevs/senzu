@@ -9,8 +9,11 @@ import { readHookInput, sessionFlag, outHookJson } from './lib.mjs';
 const p = readHookInput();
 if (!p || !['Bash', 'PowerShell'].includes(p.tool_name)) process.exit(0);
 const cmd = String((p.tool_input && p.tool_input.command) || '');
-const esVerificacion = /\b(test|tests|pest|phpunit|vitest|jest|pytest|go\s+test|dotnet\s+test|mvn|gradle|artisan\s+test|tsc|build|lint|verify-build|phpstan|mypy|ruff)\b/i.test(cmd);
-if (!esVerificacion) process.exit(0);
+// Solo cuando se EJECUTA una verificación (un runner, un script de test o de build), no cuando se lee un archivo
+// que se llama test-algo: `sed -n 1,60p tools/test-x.mjs` imprimía «FAIL» del código fuente y saltaba el aviso.
+const RUNNER = /(\b(npm|pnpm|yarn|bun)\s+(run\s+)?(test|build|lint|check|verify)\b|\b(npx\s+)?(pest|phpunit|vitest|jest|pytest|tsc|phpstan|mypy|ruff|eslint|playwright\s+test)\b|\b(go|cargo|dotnet)\s+test\b|\bartisan\s+test\b|\b(mvn|gradle)\w*\s|\b(node|deno|python3?|py|bash|sh)\s+(-\S+\s+)*\S*(test|spec|verify|check|build)[\w.-]*\.(m?js|cjs|ts|py|sh)\b|-File\s+\S*(test|verify|check|build)[\w.-]*\.ps1\b|verify-build)/i;
+const segmentos = cmd.split(/&&|\|\||;|\n/);
+if (!segmentos.some(s => RUNNER.test(s))) process.exit(0);
 
 const r = p.tool_response || {};
 const salida = typeof r === 'string' ? r : [r.stdout, r.stderr, r.output, r.error].filter(Boolean).join('\n');

@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion, ramaProtegida, siguientePaso,
+    readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion, ramaProtegida, siguientePaso, estadoVersion,
 } from './lib.mjs';
 
 const p = readHookInput() || {};
@@ -14,6 +14,15 @@ const marker = getMarker(root);
 const L = [];
 L.push('[senzu] Estado del proyecto al iniciar la sesion:');
 L.push('- Idioma: responde en castellano (o en el idioma en que te escriba el usuario), también en un proyecto vacío. Y trabaja con el método de Senzu, no a tu manera: skills, comandos y muros se apoyan entre sí.');
+// Senzu desactualizado: el usuario tiene que saberlo antes que nada (los arreglos no le llegan)
+try {
+    const ver = await estadoVersion(root);
+    if (ver) {
+        L.push(`- SENZU DESACTUALIZADO: ${ver.mensaje}. Díselo al usuario al empezar, en una frase.`
+            + (ver.novedades.length ? ' Lo que se pierde:' : ''));
+        for (const n of ver.novedades) L.push(`    · ${n.version}${n.importante ? ' (importante)' : ''}: ${n.texto}`);
+    }
+} catch { }
 // El paso del método que falta va lo primero: es lo que el usuario tiene que ver antes de nada (arranque-guard lo hace cumplir)
 const paso = siguientePaso(root);
 if (paso && paso.bloquea) {

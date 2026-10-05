@@ -785,3 +785,85 @@ export function testIntroduced(pattern, neu, old) {
     }
     return null;
 }
+
+// ---------------------------------------------------------------- ¿Senzu al día?
+// Un proyecto que sigue con una versión vieja no recibe los arreglos (el de las convenciones selladas se
+// descubrió en uno con la 2.2.2). session-start avisa con QUÉ hacer y qué se pierde. Tres casos, del más barato
+// al más caro: (1) hay una versión nueva instalada y la sesión sigue con la vieja; (2) el marketplace ya la trae;
+// (3) GitHub tiene una más nueva (red: caché de 24 h, 1,5 s como mucho, SENZU_SIN_RED=1 la apaga). Con los hooks
+// copiados al proyecto (.claude/hooks) se comparan con el repo de origen (standardsRoot), sin red.
+export function cmpVer(a, b) {
+    const x = String(a || '').split('.').map(n => parseInt(n, 10) || 0), y = String(b || '').split('.').map(n => parseInt(n, 10) || 0);
+    for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0);
+    return 0;
+}
+const leerJsonSeguro = f => { try { return JSON.parse(stripBom(fs.readFileSync(f, 'utf8'))); } catch { return null; } };
+const maxVer = vs => vs.filter(Boolean).reduce((m, v) => (!m || cmpVer(v, m) > 0 ? v : m), null);
+const textoNormal = f => { try { return fs.readFileSync(f, 'utf8').replace(/\r\n/g, '\n'); } catch { return null; } };
+
+async function ultimaDeGithub(repo, home) {
+    const cache = path.join(home, '.config', 'senzu', 'ultima-version.json');
+    const c = leerJsonSeguro(cache);
+    if (c && Date.now() - (c.fecha || 0) < 24 * 3600 * 1000) return c;
+    const out = { fecha: Date.now(), version: null, novedades: [] };
+    const traer = async rel => {
+        const ac = new AbortController(); const t = setTimeout(() => ac.abort(), 1500);
+        try { const r = await fetch(`https://raw.githubusercontent.com/${repo}/main/${rel}`, { signal: ac.signal }); return r.ok ? await r.json() : null; }
+        catch { return null; } finally { clearTimeout(t); }
+    };
+    const mk = await traer('.claude-plugin/marketplace.json');
+    if (mk) out.version = maxVer([].concat(mk.plugins || []).map(p => p.version));
+    const nv = out.version ? await traer('core/novedades.json') : null;
+    if (nv) out.novedades = [].concat(nv.novedades || []);
+    try { fs.mkdirSync(path.dirname(cache), { recursive: true }); fs.writeFileSync(cache, JSON.stringify(out)); } catch { }
+    return out;
+}
+
+function novedadesDesde(lista, actual, ultima) {   // las que gana al pasar de actual a ultima (ni más viejas ni más nuevas)
+    return [].concat(lista || []).filter(n => n && n.version && (!actual || cmpVer(n.version, actual) > 0) && (!ultima || cmpVer(n.version, ultima) <= 0))
+        .sort((a, b) => (b.importante === true) - (a.importante === true) || cmpVer(b.version, a.version)).slice(0, 3);
+}
+
+export async function estadoVersion(root, { hooksDir = path.dirname(process.argv[1] || ''), home = os.homedir(), red = true } = {}) {
+    const plugin = leerJsonSeguro(path.join(hooksDir, '..', '.claude-plugin', 'plugin.json'));
+    if (!plugin) {
+        // Hooks copiados al proyecto: ¿son los mismos que los del repo del que se instalaron?
+        const m = getMarkerSeguro(root) || {};
+        const origen = [m.standardsRoot, process.env.SENZU_HOME].filter(Boolean).find(d => fs.existsSync(path.join(d, 'core', 'hooks', 'lib.mjs')));
+        if (!origen || relDelProyecto(path.join(origen, 'core', 'hooks'), hooksDir) !== null) return null;   // sin origen, o los hooks SON el origen
+        const fuente = path.join(origen, 'core', 'hooks');
+        const distintos = fs.readdirSync(fuente).filter(f => f.endsWith('.mjs')).filter(f => textoNormal(path.join(fuente, f)) !== textoNormal(path.join(hooksDir, f)));
+        if (!distintos.length) return null;
+        const ultima = (leerJsonSeguro(path.join(origen, 'plugins', 'senzu-core', '.claude-plugin', 'plugin.json')) || {}).version || null;
+        return { modo: 'proyecto', actual: null, ultima, accion: 'instalar', distintos,
+            mensaje: `los hooks de este proyecto (.claude/hooks) son anteriores a los de Senzu${ultima ? ' ' + ultima : ''} (${distintos.length} distintos, p. ej. ${distintos.slice(0, 3).join(', ')}): actualízalos con /instalar`,
+            novedades: [] };
+    }
+    const nombre = plugin.name, actual = plugin.version;
+    const id = `${nombre}@senzu`;
+    // (1) instalada más nueva que la que corre esta sesión
+    const inst = leerJsonSeguro(path.join(home, '.claude', 'plugins', 'installed_plugins.json')) || {};
+    const registrada = maxVer([].concat(((inst.plugins || inst)[id]) || []).map(e => e && e.version));
+    // (2) la que trae el marketplace descargado
+    const mks = leerJsonSeguro(path.join(home, '.claude', 'plugins', 'known_marketplaces.json')) || {};
+    const mk = mks.senzu || {};
+    const clon = mk.installLocation || null;
+    const enClon = clon ? ([].concat((leerJsonSeguro(path.join(clon, '.claude-plugin', 'marketplace.json')) || {}).plugins || []).find(p => p.name === nombre) || {}).version : null;
+    const novClon = clon ? (leerJsonSeguro(path.join(clon, 'core', 'novedades.json')) || {}).novedades : null;
+    let r = null;
+    if (registrada && cmpVer(registrada, actual) > 0) {
+        r = { accion: 'sesion', ultima: registrada, mensaje: `esta sesión usa Senzu ${actual}, pero ya está instalada la ${registrada}: abre una sesión nueva para usarla` };
+    } else if (enClon && cmpVer(enClon, maxVer([actual, registrada])) > 0) {
+        r = { accion: 'update', ultima: enClon, mensaje: `Senzu ${actual} está desactualizado: tu marketplace ya trae la ${enClon}. Actualiza con /plugin update ${id} (o desde /plugin) y abre una sesión nueva` };
+    }
+    let nov = novClon;
+    // (3) GitHub, solo si lo local no ha encontrado nada
+    if (!r && red && process.env.SENZU_SIN_RED !== '1' && !(mk.source && mk.source.source && mk.source.source !== 'github')) {
+        const gh = await ultimaDeGithub((mk.source && mk.source.repo) || 'petersonsenadevs/senzu', home);
+        if (gh.version && cmpVer(gh.version, maxVer([actual, registrada, enClon])) > 0) {
+            r = { accion: 'marketplace', ultima: gh.version, mensaje: `Senzu ${actual} está desactualizado: la última es la ${gh.version}. Actualiza con /plugin marketplace update senzu y después /plugin update ${id}, y abre una sesión nueva` };
+            nov = gh.novedades;
+        }
+    }
+    return r ? { modo: 'plugin', actual, ...r, novedades: novedadesDesde(nov, actual, r.ultima) } : null;
+}

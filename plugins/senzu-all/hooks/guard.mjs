@@ -9,8 +9,9 @@
 // Si no coincide, sale con 0 (permite continuar el flujo de permisos normal).
 // Se usa como capa "inteligente" además de permissions.deny (capa simple) en settings.json.
 
+import os from 'node:os';
 import { execFileSync } from 'node:child_process';
-import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida, convencionesSelladas } from './lib.mjs';
+import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida, convencionesSelladas, relDelProyecto, rutaNativa } from './lib.mjs';
 
 const p = readHookInput();
 if (!p) process.exit(0);
@@ -80,18 +81,23 @@ function deny(lines) {
 // --- Los permisos y los hooks apagados los decide SOLO el usuario ---
 // El agente no puede escribir el marcador (senzu/senzu.json o el antiguo .dev-standards.json) desde la terminal (redirecciones, tee, sed -i, Set-Content, cp/mv…)
 // ni lanzar el instalador con los flags que dan permisos o apagan hooks: eso lo ejecuta el usuario (menú o "!").
-// ¿El comando escribe, mueve o borra archivos? (redirecciones, tee, sed -i, Set-Content, cp/mv/rm, git checkout…)
-const ESCRIBE = /(>>?|\|\s*tee\b|\btee\s|\bsed\s+(-\w*\s+)*-i|\bperl\s+(-\w*\s+)*-i|\b(set|add|clear)-content\b|\bout-file\b|\bnew-item\b|\btruncate\b|\b(cp|mv|copy-item|move-item|rm|del|remove-item|ren|rename-item)\b|writeFile|\.write\(|unlink|open\([^)]*['"][wa]|\bgit\s+(checkout|restore|stash|reset)\b)/i;
-const escribeArchivos = s => ESCRIBE.test(s.replace(/2>&1|>\s*\/dev\/null|>\s*\$null|2>\s*nul/gi, ''));
-if (/\.dev-standards\.json|\bsenzu\.json\b/i.test(c)) {
-    if (escribeArchivos(c)) {
-        deny(['[BLOQUEADO por Senzu] El marcador del proyecto (senzu/senzu.json) guarda los permisos del proyecto y solo lo cambia el usuario (o el instalador lanzado por el usuario). Léelo si lo necesitas, pero no lo escribas.']);
-    }
+// ¿El comando ESCRIBE, mueve o borra ESE archivo? Se mira el destino, trozo a trozo (;, &&, ||, |, saltos de
+// línea): leer el marcador y escribir en otro sitio en el mismo comando no es escribirlo. Antes bastaba con que
+// el comando tuviera un «>» o un «.write(» en cualquier parte (process.stdout.write al leer el marcador → bloqueo).
+const VERBOS_ESCRIBEN = /(\btee\b|\bsed\s+(-\w*\s+)*-i|\bperl\s+(-\w*\s+)*-i|\b(set|add|clear)-content\b|\bout-file\b|\bnew-item\b|\btruncate\b|\b(cp|mv|copy-item|move-item|rm|del|remove-item|ren|rename-item|unlink)\b|write(File|FileSync)\b|append(File|FileSync)\b|\b(rmSync|renameSync|copyFileSync|copyFile)\b|open\([^)]*['"][wa]|\bgit\s+(checkout|restore|stash|reset|rm|mv)\b)/i;
+function escribeEn(cmdTxt, archivo) {
+    const limpio = cmdTxt.replace(/\d?>&\d|\d?>\s*\/dev\/null|\d?>\s*\$null|\d?>\s*nul\b/gi, '');
+    const redir = new RegExp(`>>?\\|?\\s*["']?[^\\s"'|;&<>]*(?:${archivo.source})`, 'i');   // > senzu.json, >> "x/senzu.json"
+    if (redir.test(limpio)) return true;
+    return limpio.split(/&&|\|\||;|\n|\|/).some(s => archivo.test(s) && VERBOS_ESCRIBEN.test(s));
+}
+if (escribeEn(c, /\.dev-standards\.json|\bsenzu\.json\b/i)) {
+    deny(['[BLOQUEADO por Senzu] El marcador del proyecto (senzu/senzu.json) guarda los permisos del proyecto y solo lo cambia el usuario (o el instalador lanzado por el usuario). Léelo si lo necesitas, pero no lo escribas.']);
 }
 // --- Convenciones SELLADAS (/adoptar): tampoco desde la terminal ---
 // protect-files para las ediciones; esto, para los comandos (sed -i, >, rm, mv, Set-Content, git checkout…).
 // No hay escape para el agente: si el usuario decide cambiarlas, lo hace él (o las borra y re-ejecuta /adoptar).
-if (/\bconventions\.(md|json)\b/i.test(c) && convencionesSelladas(root) && escribeArchivos(c)) {
+if (/\bconventions\.(md|json)\b/i.test(c) && convencionesSelladas(root) && escribeEn(c, /\bconventions\.(md|json)\b/i)) {
     deny(['[BLOQUEADO por Senzu] Las convenciones del proyecto están SELLADAS como inmutables (/adoptar): no se escriben, mueven, borran ni restauran desde el agente, por ningún camino.',
         'Léelas y escribe el código como dicen. Si el usuario quiere cambiarlas, que lo haga él: borra conventions.md y conventions.json y re-ejecuta /adoptar.']);
 }
@@ -99,10 +105,16 @@ if (/\b(SENZU|DEV_STANDARDS)_ALLOW_CONVENCIONES\b/i.test(c)) {
     deny(['[BLOQUEADO por Senzu] SENZU_ALLOW_CONVENCIONES es la llave del usuario para commitear un cambio de las convenciones selladas: no la usa el agente.']);
 }
 // El menú del instalador es para el usuario: el agente no le pasa respuestas por tubería ni redirección
-if (/\|\s*(node|npx)\b[^|;&]*\binit\.mjs\b|\binit\.mjs\b[^|;&]*<\s*\S|\binit\.mjs\b[^|;&]*\s(-i|--interactivo)\b/i.test(c)) {
+// (dentro de la MISMA orden: sin cruzar saltos de línea; el «-i» de un sed en la línea siguiente no es el menú)
+if (/\|\s*(node|npx)\b[^|;&\n]*\binit\.mjs\b|\b(node|npx)\s[^|;&\n]*\binit\.mjs\b[^|;&\n]*<\s*\S|\b(node|npx)\s[^|;&\n]*\binit\.mjs\b[^|;&\n]*\s(-i|--interactivo)\b/i.test(c)) {
     deny(['[BLOQUEADO por Senzu] El menú del instalador lo responde el usuario (ahí se dan permisos y se apagan hooks). Para instalar sin menú usa los flags de selección (--seleccion, --grupos...); el menú, que lo abra él en su terminal.']);
 }
-if (/(^|\s)(--permitir|-permitir|--apagar-hooks|-apagarhooks|--sin-permisos|-sinpermisos|--encender-hooks|-encenderhooks|--omitir-paso|--sin-omitir)\b/i.test(c)) {
+// Instalar en la carpeta temporal (proyectos de prueba que se tiran) con esos flags no da permisos a nadie
+const rutasDestino = [...c.matchAll(/(?:^|\s)-{1,2}path\s+("[^"]+"|'[^']+'|[^\s;&|]+)/gi)].map(m => m[1].replace(/^["']|["']$/g, ''));
+// (en temp Y fuera del proyecto actual: «--path .» es este proyecto aunque él mismo viva en temp)
+const soloEnTemporal = rutasDestino.length > 0 && rutasDestino.every(r => !/[$%]/.test(r)
+    && relDelProyecto(os.tmpdir(), rutaNativa(r, root)) !== null && relDelProyecto(root, rutaNativa(r, root)) === null);
+if (!soloEnTemporal && /(^|\s)(--permitir|-permitir|--apagar-hooks|-apagarhooks|--sin-permisos|-sinpermisos|--encender-hooks|-encenderhooks|--omitir-paso|--sin-omitir)\b/i.test(c)) {
     deny(['[BLOQUEADO por Senzu] Dar permisos, apagar hooks u omitir pasos del método lo decide el usuario: que lo ejecute él (en Claude Code, escribiendo "!" delante del comando) o desde el menú del instalador.']);
 }
 

@@ -74,6 +74,12 @@ jobs:
       - name: test-convenciones (las selladas no se alteran por ningún camino ni formato de ruta)
         run: node tools/test-convenciones.mjs
 
+      - name: test-falsos-positivos (los muros no frenan lo legítimo y siguen frenando el ataque)
+        run: node tools/test-falsos-positivos.mjs
+
+      - name: test-version (aviso de Senzu desactualizado, sin red)
+        run: node tools/test-version.mjs
+
       - name: test-trafico (histórico de clones y visitas, badge de clones)
         run: node tools/test-trafico.mjs
 

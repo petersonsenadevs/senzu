@@ -119,6 +119,19 @@ borra lo sellado sin `SENZU_ALLOW_CONVENCIONES=1`, la llave del usuario que el g
 de Git Bash, con barra final); compararlas como texto hizo que estos dos muros no bloquearan nada (092).
 `test-convenciones` prueba todas las combinaciones.
 
+## Versión al día y muros sin falsos positivos
+`estadoVersion()` (lib.mjs) compara la versión que corre la sesión (el `plugin.json` junto a los hooks) con, por
+orden: la registrada en `installed_plugins.json` (→ abrir una sesión nueva), la del marketplace descargado
+(→ `/plugin update`) y la de GitHub (→ actualizar el marketplace; caché de 24 h en `~/.config/senzu/`, 1,5 s,
+`SENZU_SIN_RED=1`). Las novedades que enseña son las de `core/novedades.json` entre la versión actual y la
+ofrecida; `test-version` exige una línea por versión publicada.
+
+Un muro que frena sin motivo enseña al agente a rodearlo. `test-falsos-positivos` guarda cada bloqueo injusto
+visto (y el ataque que el arreglo no debe abrir): el guard mira el DESTINO de cada orden (leer el marcador no es
+escribirlo), el menú del instalador se reconoce dentro de la misma línea, los flags de permisos se aceptan solo
+en proyectos de prueba en la carpeta temporal, depurar-coach solo salta al EJECUTAR una verificación y
+code-hygiene no revisa los scripts temporales del agente.
+
 ## Perfiles de instalación
 `core/perfiles.json` responde «¿qué es el proyecto?» con un conjunto de grupos de skills. Un perfil es una
 selección por categorías con nombre: se guarda en `senzu/senzu.json` y cada actualización la respeta, con
