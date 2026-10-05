@@ -71,6 +71,9 @@ jobs:
       - name: test-arranque (el paso del método que falta antes de escribir código)
         run: node tools/test-arranque.mjs
 
+      - name: test-convenciones (las selladas no se alteran por ningún camino ni formato de ruta)
+        run: node tools/test-convenciones.mjs
+
       - name: test-trafico (histórico de clones y visitas, badge de clones)
         run: node tools/test-trafico.mjs
 

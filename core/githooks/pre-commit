@@ -7,6 +7,18 @@ case "$branch" in
     echo "[senzu] No se commitea en '$branch'. Crea una rama (git switch -c feat/...)." >&2
     exit 1 ;;
 esac
+# Convenciones SELLADAS por /adoptar: ningún commit las cambia ni las borra, venga de donde venga el cambio
+# (agente, script, otra herramienta). Solo el usuario, si lo decide: SENZU_ALLOW_CONVENCIONES=1 git commit ...
+if [ "${SENZU_ALLOW_CONVENCIONES:-$DEV_STANDARDS_ALLOW_CONVENCIONES}" != "1" ]; then
+  for f in senzu/conventions.md senzu/conventions.json conventions.md conventions.json; do
+    if git cat-file -e "HEAD:$f" 2>/dev/null && git show "HEAD:$f" 2>/dev/null | grep -qE '(senzu|dev-standards):inmutable' \
+       && ! git diff --cached --quiet -- "$f"; then
+      echo "[senzu] $f está SELLADO (/adoptar) y este commit lo cambia o lo borra. No se commitea." >&2
+      echo "  Si eres el usuario y quieres cambiar las convenciones: SENZU_ALLOW_CONVENCIONES=1 git commit ..." >&2
+      exit 1
+    fi
+  done
+fi
 if [ "${SENZU_SKIP_DEVLOG:-$DEV_STANDARDS_SKIP_DEVLOG}" != "1" ]; then
   today=$(date +%Y-%m-%d)
   # senzu/devlog (proyectos actuales) o devlog/ (proyectos sin migrar)

@@ -59,7 +59,12 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
   castellano también en un proyecto vacío. Si el proyecto ya lleva su diario (CHANGELOG, ADRs) o su CLAUDE.md, **pregunta antes de
   adaptarse** — puedes dejar tu CLAUDE.md intacto (las reglas van a `CLAUDE.dev-standards.md`).
 - **Convenciones adoptadas** (`/adoptar`): en proyectos heredados, las convenciones se analizan, se pactan
-  contigo y se sellan como inmutables; el hook `conventions-guard` bloquea el código que las viole.
+  contigo y se sellan como inmutables; el hook `conventions-guard` bloquea el código que las viole. Selladas,
+  **no se alteran por ningún camino**: ni editándolas (`protect-files`), ni desde la terminal (`guard`: `sed -i`,
+  `>`, `rm`, `mv`, `Set-Content`, `git checkout`…), ni con un commit (githook `pre-commit`, si instalaste los
+  githooks), ni apagando esos hooks (no se pueden apagar). Si quieres cambiarlas, lo haces tú: borras
+  `conventions.md` y `conventions.json` y re-ejecutas `/adoptar` (para commitear el cambio a mano:
+  `SENZU_ALLOW_CONVENCIONES=1 git commit …`, una llave que el agente no puede usar).
 - **Muros de backend**: bloquea migraciones que borran o renombran columnas y tablas en la parte `up`
   (lo destructivo va con tu aprobación), `env('…')` de Laravel fuera de `config/` (con la caché de config
   devuelve null) y logs con datos personales (`$request->all()`, `req.body`, contraseñas o tokens). La

@@ -9,7 +9,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { readHookInput, projectRoot, hookConfig, git, readText } from './lib.mjs';
+import { readHookInput, projectRoot, hookConfig, git, readText, relDelProyecto, rutaNativa } from './lib.mjs';
 
 const p = readHookInput();
 if (!p || !['Edit', 'Write', 'MultiEdit', 'NotebookEdit'].includes(p.tool_name)) process.exit(0);
@@ -19,12 +19,9 @@ if (!file && p.tool_input && p.tool_input.notebook_path) file = String(p.tool_in
 if (!file) process.exit(0);
 
 const root = projectRoot();
-let rel = file;
-try {
-    const full = path.resolve(file);
-    if (full.toLowerCase().startsWith(String(root).toLowerCase())) rel = full.slice(String(root).length).replace(/^[\\/]+/, '');
-} catch {}
-rel = rel.replace(/\\/g, '/');
+// Relativa a la raíz con «/», llegue la ruta como llegue (C:\, C:/, /c/…); fuera del proyecto, la absoluta
+let rel = relDelProyecto(root, file);
+if (rel === null) rel = rutaNativa(file, root).replace(/\\/g, '/');
 const exists = fs.existsSync(file);
 
 function deny(why) {

@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-05
 
+- **fix** — Convenciones selladas blindadas: rutas normalizadas, terminal, commit y no apagables · v2.14.0 (entrada 092)
 - **feature** — Arranque guiado: el siguiente paso del método, anunciado y exigido antes del código · v2.13.0 (entrada 091)
 - **feature** — Todo dentro de senzu/, tarjetas que se cierran con pruebas y ramas principales protegidas · v2.12.0 (entrada 090)
 

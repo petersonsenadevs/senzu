@@ -72,8 +72,8 @@ $stackObj | Add-Member -NotePropertyName Selection -NotePropertyValue $selection
 $ahorroVal = if ($SinAhorro) { $false } elseif ($Ahorro) { $true } else { [bool]($marker -and $marker.ahorro) }
 $stackObj | Add-Member -NotePropertyName Ahorro -NotePropertyValue $ahorroVal -Force
 # Permisos y hooks apagados (los decide el usuario). Sin parametros se conservan los del marcador.
-# guard, secrets-guard y protect-files no se pueden apagar. Mismo resultado que init.mjs.
-$hooksNoApagables = @('guard', 'secrets-guard', 'protect-files')
+# guard, secrets-guard, protect-files y conventions-guard no se pueden apagar. Mismo resultado que init.mjs.
+$hooksNoApagables = @('guard', 'secrets-guard', 'protect-files', 'conventions-guard')
 $permisosVal = [ordered]@{}
 if ($SinPermisos) { }
 elseif ($PSBoundParameters.ContainsKey('Permitir')) {

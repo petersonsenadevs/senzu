@@ -10,7 +10,7 @@
 // Se usa como capa "inteligente" además de permissions.deny (capa simple) en settings.json.
 
 import { execFileSync } from 'node:child_process';
-import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida } from './lib.mjs';
+import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida, convencionesSelladas } from './lib.mjs';
 
 const p = readHookInput();
 if (!p) process.exit(0);
@@ -80,11 +80,23 @@ function deny(lines) {
 // --- Los permisos y los hooks apagados los decide SOLO el usuario ---
 // El agente no puede escribir el marcador (senzu/senzu.json o el antiguo .dev-standards.json) desde la terminal (redirecciones, tee, sed -i, Set-Content, cp/mv…)
 // ni lanzar el instalador con los flags que dan permisos o apagan hooks: eso lo ejecuta el usuario (menú o "!").
+// ¿El comando escribe, mueve o borra archivos? (redirecciones, tee, sed -i, Set-Content, cp/mv/rm, git checkout…)
+const ESCRIBE = /(>>?|\|\s*tee\b|\btee\s|\bsed\s+(-\w*\s+)*-i|\bperl\s+(-\w*\s+)*-i|\b(set|add|clear)-content\b|\bout-file\b|\bnew-item\b|\btruncate\b|\b(cp|mv|copy-item|move-item|rm|del|remove-item|ren|rename-item)\b|writeFile|\.write\(|unlink|open\([^)]*['"][wa]|\bgit\s+(checkout|restore|stash|reset)\b)/i;
+const escribeArchivos = s => ESCRIBE.test(s.replace(/2>&1|>\s*\/dev\/null|>\s*\$null|2>\s*nul/gi, ''));
 if (/\.dev-standards\.json|\bsenzu\.json\b/i.test(c)) {
-    const escribe = /(>>?|\|\s*tee\b|\btee\s|\bsed\s+(-\w*\s+)*-i|\bperl\s+(-\w*\s+)*-i|\b(set|add)-content\b|\bout-file\b|\b(cp|mv|copy-item|move-item|rm|del|remove-item|ren|rename-item)\b|writeFile|\.write\(|open\([^)]*['"]w|\bgit\s+(checkout|restore)\b)/i;
-    if (escribe.test(c.replace(/2>&1|>\s*\/dev\/null|>\s*\$null|2>\s*nul/gi, ''))) {
+    if (escribeArchivos(c)) {
         deny(['[BLOQUEADO por Senzu] El marcador del proyecto (senzu/senzu.json) guarda los permisos del proyecto y solo lo cambia el usuario (o el instalador lanzado por el usuario). Léelo si lo necesitas, pero no lo escribas.']);
     }
+}
+// --- Convenciones SELLADAS (/adoptar): tampoco desde la terminal ---
+// protect-files para las ediciones; esto, para los comandos (sed -i, >, rm, mv, Set-Content, git checkout…).
+// No hay escape para el agente: si el usuario decide cambiarlas, lo hace él (o las borra y re-ejecuta /adoptar).
+if (/\bconventions\.(md|json)\b/i.test(c) && convencionesSelladas(root) && escribeArchivos(c)) {
+    deny(['[BLOQUEADO por Senzu] Las convenciones del proyecto están SELLADAS como inmutables (/adoptar): no se escriben, mueven, borran ni restauran desde el agente, por ningún camino.',
+        'Léelas y escribe el código como dicen. Si el usuario quiere cambiarlas, que lo haga él: borra conventions.md y conventions.json y re-ejecuta /adoptar.']);
+}
+if (/\b(SENZU|DEV_STANDARDS)_ALLOW_CONVENCIONES\b/i.test(c)) {
+    deny(['[BLOQUEADO por Senzu] SENZU_ALLOW_CONVENCIONES es la llave del usuario para commitear un cambio de las convenciones selladas: no la usa el agente.']);
 }
 // El menú del instalador es para el usuario: el agente no le pasa respuestas por tubería ni redirección
 if (/\|\s*(node|npx)\b[^|;&]*\binit\.mjs\b|\binit\.mjs\b[^|;&]*<\s*\S|\binit\.mjs\b[^|;&]*\s(-i|--interactivo)\b/i.test(c)) {

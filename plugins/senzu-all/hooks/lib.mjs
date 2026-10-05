@@ -108,9 +108,9 @@ export const rutaMarcador = root => ruta(root, 'senzu.json');
 // En .dev-standards.json (protegido: el agente no puede editarlo, lo decide el usuario):
 //   "permisos": { "push": true, "pushMain": true, "commitEnMain": true }
 //   "hooksApagados": ["format-on-save", "front-skill-reminder"]
-// Solo cuenta el valor booleano true. guard, secrets-guard y protect-files NO se pueden apagar: el push forzado,
+// Solo cuenta el valor booleano true. guard, secrets-guard, protect-files y conventions-guard NO se pueden apagar: el push forzado,
 // lo destructivo, los secretos y los archivos protegidos siguen bloqueados siempre.
-export const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files'];
+export const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard'];   // las convenciones selladas tampoco se apagan
 // Ramas PRINCIPALES: ni commit directo ni push del agente (salvo permiso commitEnMain / pushMain del usuario).
 // Todas las de entorno, no solo main: un push a staging o production también despliega. El usuario puede añadir
 // las suyas en el marcador: "ramasProtegidas": ["demo", "cliente-x"].
@@ -147,11 +147,20 @@ export function readHookInput() {
     if (hookApagado(projectRoot(), path.basename(process.argv[1] || '', '.mjs'))) process.exit(0);
     const esParche = p.tool_name === 'apply_patch'
         || (!/^(Bash|PowerShell)$/.test(String(p.tool_name || '')) && p.tool_input && typeof p.tool_input.command === 'string' && /^\*\*\* Begin Patch/m.test(p.tool_input.command));
-    if (!esParche) return p;
+    if (!esParche) return normalizarRutas(p);
     const entradas = entradasDesdeParche(p);
     if (!entradas.length) return null;
-    if (entradas.length === 1) return entradas[0];
+    if (entradas.length === 1) return normalizarRutas(entradas[0]);
     ejecutarPorArchivo(entradas);   // no vuelve
+}
+
+// El archivo de la herramienta llega como ruta nativa absoluta (relativa → desde la raíz del proyecto)
+function normalizarRutas(p) {
+    const ti = p && p.tool_input;
+    if (ti && typeof ti === 'object') {
+        for (const k of ['file_path', 'notebook_path']) if (typeof ti[k] === 'string' && ti[k].trim()) ti[k] = rutaNativa(ti[k], projectRoot());
+    }
+    return p;
 }
 
 function leerEntradaCruda() {
@@ -177,7 +186,35 @@ export function psRegex(pattern, flags = 'i') {
     return new RegExp(String(pattern).replace(/\(\?i\)/g, ''), flags);
 }
 
-export function projectRoot() { return process.env.CLAUDE_PROJECT_DIR || process.cwd(); }
+// Una ruta en cualquier formato → ruta nativa absoluta. En Windows llegan mezcladas: C:\a, C:/a, c:\a, con barra
+// final, /c/a (Git Bash, MSYS) o /mnt/c/a (WSL). Compararlas como texto hacía que protect-files y
+// conventions-guard no reconocieran el archivo y no bloquearan nada (ver 092). Todo hook compara rutas con esto.
+export function rutaNativa(p, base) {
+    let s = String(p || '').trim();
+    if (!s) return s;
+    if (process.platform === 'win32') {
+        const m = /^\/(?:mnt\/)?([a-zA-Z])(?:\/(.*))?$/.exec(s);
+        if (m) s = m[1].toUpperCase() + ':/' + (m[2] || '');
+    }
+    s = path.resolve(base || process.cwd(), s);
+    if (process.platform === 'win32' && /^[a-z]:/.test(s)) s = s[0].toUpperCase() + s.slice(1);
+    return s;
+}
+// Ruta relativa a la raíz del proyecto, con «/». null si el archivo está fuera (otra carpeta u otra unidad).
+export function relDelProyecto(root, file) {
+    const r = rutaNativa(root), f = rutaNativa(file, r);
+    const rel = path.relative(r, f);   // en Windows path.relative ya compara sin distinguir mayúsculas
+    if (rel === '') return '';
+    if (rel === '..' || rel.startsWith('..' + path.sep) || path.isAbsolute(rel)) return null;
+    return rel.replace(/\\/g, '/');
+}
+
+// ¿El proyecto tiene convenciones SELLADAS por /adoptar? (conventions.md o .json con la marca senzu:inmutable)
+export function convencionesSelladas(root) {
+    return ['conventions.md', 'conventions.json'].some(n => /(senzu|dev-standards):inmutable/.test(readText(ruta(root, n)) || ''));   // compat-dev-standards
+}
+
+export function projectRoot() { return rutaNativa(process.env.CLAUDE_PROJECT_DIR || process.cwd()); }
 
 export function sessionFlag(sid, name) {
     const s = String(sid || '').replace(/[^a-zA-Z0-9_-]/g, '') || 'default';

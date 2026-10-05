@@ -11,7 +11,7 @@
 
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, psRegex, testIntroduced, readText, ruta, rutaRel,
+    readHookInput, projectRoot, psRegex, testIntroduced, readText, ruta, rutaRel, relDelProyecto, rutaNativa,
 } from './lib.mjs';
 
 const p = readHookInput();
@@ -26,12 +26,9 @@ try { conv = JSON.parse(readText(ruta(root, 'conventions.json'))); } catch { pro
 const rules = [].concat((conv && conv.rules) || []).filter(r => r && r.forbid);
 if (!rules.length) process.exit(0);
 
-let rel = file;
-try {
-    const full = path.resolve(file);
-    if (full.toLowerCase().startsWith(String(root).toLowerCase())) rel = full.slice(String(root).length).replace(/^[\\/]+/, '');
-} catch {}
-rel = rel.replace(/\\/g, '/');
+// Relativa a la raíz con «/», llegue la ruta como llegue (C:\, C:/, /c/…); fuera del proyecto, la absoluta
+let rel = relDelProyecto(root, file);
+if (rel === null) rel = rutaNativa(file, root).replace(/\\/g, '/');
 if (/(^|\/)(vendor|node_modules|\.git|dist|build)\//i.test(rel) || /(^|\/)conventions\.(md|json)$/i.test(rel)) process.exit(0);
 
 const ti = p.tool_input || {};

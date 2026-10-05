@@ -436,7 +436,7 @@ const PERMISOS = [
     ['push-main', 'Hacer git push también a main, master y develop', 'pushMain'],
     ['commit-main', 'Commitear directamente en main, master o develop', 'commitEnMain'],
 ];
-const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files'];
+const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard'];
 function permisosDesde(lista) {   // ['push', 'push-main'] -> { push: true, pushMain: true }
     const o = {};
     for (const [id, , clave] of PERMISOS) if (lista.includes(id)) o[clave] = true;

@@ -107,6 +107,18 @@ ha dicho claro, hablarlo con él antes de programar; `/plan` solo si es algo gra
 usuario no quiere en un proyecto van en `"omitirPasos"` del marcador (`init.mjs --omitir-paso`); el guard no
 deja que el agente lo pase, y los dos instaladores lo conservan al reinstalar (como `ramasProtegidas`).
 
+## Convenciones selladas: inmutables por cualquier camino
+Lo sellado por `/adoptar` (`conventions.md` y `conventions.json` con `senzu:inmutable`) tiene cuatro capas:
+`protect-files` (edición, también `apply_patch` de Codex), `conventions-guard` (el código que viola una regla),
+`guard` (la terminal: escribir, mover, borrar o restaurar) y el githook `pre-commit` (ningún commit cambia ni
+borra lo sellado sin `SENZU_ALLOW_CONVENCIONES=1`, la llave del usuario que el guard no deja usar al agente).
+`protect-files` y `conventions-guard` no se pueden apagar desde el marcador.
+
+**Rutas**: toda ruta que compara un hook pasa por `rutaNativa()` / `relDelProyecto()` de `lib.mjs` (y
+`readHookInput()` ya entrega `file_path` normalizado). En Windows llegan mezcladas (`C:\`, `C:/`, `c:\`, `/c/`
+de Git Bash, con barra final); compararlas como texto hizo que estos dos muros no bloquearan nada (092).
+`test-convenciones` prueba todas las combinaciones.
+
 ## Perfiles de instalación
 `core/perfiles.json` responde «¿qué es el proyecto?» con un conjunto de grupos de skills. Un perfil es una
 selección por categorías con nombre: se guarda en `senzu/senzu.json` y cada actualización la respeta, con
