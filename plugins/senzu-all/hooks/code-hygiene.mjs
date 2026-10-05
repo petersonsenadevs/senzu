@@ -70,7 +70,8 @@ const debugPatterns = [
 ];
 for (const pair of pairs) {
     for (const dp of debugPatterns) {
-        const hit = testIntroduced(dp.p, pair[0], pair[1]);
+        // solo el código: un string o un comentario que la MENCIONA no es una llamada de depuración
+        const hit = testIntroduced(dp.p, pair[0], pair[1], { strings: true, almohadilla: /\.php$/i.test(file) });
         if (hit) {
             process.stderr.write(`[BLOQUEADO por Senzu] Estas introduciendo ${dp.m}: '${hit}'. Usa el logger del proyecto o eliminalo antes de guardar. Si es intencional (script CLI), anade 'senzu-allow' como comentario en esa linea.\n`);
             process.exit(2);

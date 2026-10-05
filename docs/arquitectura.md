@@ -132,6 +132,16 @@ escribirlo), el menú del instalador se reconoce dentro de la misma línea, los 
 en proyectos de prueba en la carpeta temporal, depurar-coach solo salta al EJECUTAR una verificación y
 code-hygiene no revisa los scripts temporales del agente.
 
+**Citar no es hacer.** El guard mira el comando sin el texto que solo es dato (`sinTextoCitado()` en lib.mjs):
+mensajes de `-m`/`--body`/`--title`, heredocs que van a `cat`/`tee`, argumentos de `echo`, `printf`, `grep` o
+`git log`, y here-strings de PowerShell usados como mensaje. Se conserva todo lo que se ejecuta: heredocs y
+`echo` que alimentan a un intérprete (bash, node, python, psql…), `bash -c`, `eval`, cadenas con `$(…)` o
+comillas invertidas, y la ruta tras una redirección. El mensaje del commit (formato y Co-Authored-By) se valida
+sobre el comando original. En archivos, `testIntroduced(…, codigo)` busca en el código sin comentarios
+(`soloCodigo()`): code-hygiene además sin strings (pero con el código de `${…}` de las plantillas);
+conventions-guard y backend-guard conservan los strings, porque sus reglas pueden ir sobre ellos (SQL crudo,
+`env('X')`). secrets-guard no cambia: una clave real en un comentario sigue siendo una fuga.
+
 ## Perfiles de instalación
 `core/perfiles.json` responde «¿qué es el proyecto?» con un conjunto de grupos de skills. Un perfil es una
 selección por categorías con nombre: se guarda en `senzu/senzu.json` y cada actualización la respeta, con

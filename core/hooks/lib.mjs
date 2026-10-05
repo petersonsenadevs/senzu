@@ -772,10 +772,14 @@ export function eolWarnings(versions) {
 
 // Patron introducido: casa en lo NUEVO y no estaba en lo VIEJO. Escape: la linea lleva 'senzu-allow'.
 // Compartido por code-hygiene (debug + vetos de gustos.md) y conventions-guard (convenciones adoptadas).
-export function testIntroduced(pattern, neu, old) {
+// codigo: { strings, almohadilla } → busca solo en el CÓDIGO (sin comentarios ni, si se pide, strings: citar no es usar);
+// soloCodigo conserva la longitud, así que la línea que se enseña y la de «senzu-allow» son las originales.
+export function testIntroduced(pattern, neu, old, codigo = null) {
     if (!neu) return null;
     const rx = new RegExp(pattern.source, pattern.flags.includes('g') ? pattern.flags : pattern.flags + 'g');
-    for (const m of neu.matchAll(rx)) {
+    const ver = t => (codigo && t ? soloCodigo(t, codigo) : t);
+    old = ver(old);
+    for (const m of ver(neu).matchAll(rx)) {
         let start = neu.lastIndexOf('\n', Math.max(m.index - 1, 0)); if (start < 0) start = 0;
         let end = neu.indexOf('\n', m.index); if (end < 0) end = neu.length;
         const line = neu.substring(start, end);
@@ -866,4 +870,93 @@ export async function estadoVersion(root, { hooksDir = path.dirname(process.argv
         }
     }
     return r ? { modo: 'plugin', actual, ...r, novedades: novedadesDesde(nov, actual, r.ultima) } : null;
+}
+
+// ---------------------------------------------------------------- texto CITADO frente a lo que se ejecuta
+// Los muros buscan patrones («git push», «rm -rf», funciones de depuración) en el texto. Si el agente solo los
+// CITA (un mensaje de commit, un heredoc que va a un archivo, un echo, un grep, un string o un comentario), no hace
+// nada peligroso y bloquearlo le enseña a rodear el muro (ver 094). Estas funciones quitan el texto que es SOLO
+// dato y dejan todo lo que se puede ejecutar: un heredoc o un echo que alimentan a bash/node/python, el texto de
+// bash -c y las cadenas con $(…) o comillas invertidas (se ejecutan) se conservan siempre.
+const INTERPRETES = /(^|[\s|;&(])(bash|sh|zsh|dash|ksh|fish|pwsh|powershell(\.exe)?|cmd(\.exe)?|node|deno|bun|python[0-9.]*|py|ruby|perl|php|psql|mysql|sqlite3|mongosh|redis-cli|ssh|eval|source|xargs|iex|invoke-expression|docker|kubectl|npx|env|sudo|exec|time|nohup)(\s|$)/i;
+const CMD_TEXTO = /^(echo|printf|write-host|write-output|grep|egrep|fgrep|rg|ag|ack|findstr|select-string|sls)$/i;
+const OPC_TEXTO = /^(-m|--message|--title|--body|--notes|--subject|--description|--grep|-message|-body|-title|-subject)$/i;
+const OPC_TEXTO_PEGADA = /(?:^|\s)(--message|--title|--body|--notes|--subject|--description|--grep)=$/i;
+
+export function sinTextoCitado(cmd) {
+    let s = String(cmd || '').replace(/\r\n/g, '\n');
+    // 1. heredocs (<<EOF … EOF, <<-'EOF' …): fuera el cuerpo salvo que la línea lo dé a un intérprete
+    s = s.replace(/^(.*?)<<-?[ \t]*(['"]?)([A-Za-z_][\w-]*)\2(.*)\n([\s\S]*?)\n[ \t]*\3[ \t]*$/gm, (todo, antes, _q, fin, despues) => {
+        const linea = antes + ' ' + despues;
+        if (INTERPRETES.test(linea.replace(/^\s*(cat|tee)\b/i, ''))) return todo;
+        return `${antes}<<${fin}${despues}\n${fin}`;
+    });
+    // 2. here-strings de PowerShell (@' … '@, @" … "@): fuera salvo que el comando los ejecute
+    if (!/\b(iex|invoke-expression|-command|-encodedcommand|\[scriptblock\]|start-process|powershell|pwsh|bash)\b/i.test(s)) {
+        s = s.replace(/@'\n[\s\S]*?\n'@/g, "@''@").replace(/@"\n[\s\S]*?\n"@/g, m => (/\$\(|`/.test(m) ? m : '@""@'));
+    }
+    // 3. cadenas entre comillas que son argumentos de texto, orden a orden
+    let out = '', i = 0, palabras = [], inicioOrden = 0;
+    const restoDeLinea = j => { const k = s.indexOf('\n', j); return s.slice(j, k < 0 ? s.length : k); };
+    while (i < s.length) {
+        const ch = s[i];
+        if (ch === '\n' || ch === ';' || ch === '&' || ch === '|') {   // fin de orden
+            out += ch; i++; palabras = []; inicioOrden = out.length; continue;
+        }
+        if (ch === "'" || ch === '"') {
+            let j = i + 1;
+            while (j < s.length && s[j] !== ch) { if (ch === '"' && s[j] === '\\') j++; j++; }
+            const cuerpo = s.slice(i + 1, j), cierre = j < s.length ? ch : '';
+            const cabeza = (palabras[0] || '').replace(/^.*[\\/]/, '');
+            const sub = palabras[1] || '';
+            const previa = palabras[palabras.length - 1] || '';
+            const pegada = OPC_TEXTO_PEGADA.test(out.slice(inicioOrden));
+            const ejecuta = ch === '"' && /\$\(|`/.test(cuerpo);
+            const resto = restoDeLinea(j + 1);
+            const alimentaInterprete = /\|/.test(resto) && INTERPRETES.test(resto.slice(resto.indexOf('|')));
+            const esDestino = /[<>]\s*$/.test(out);   // > "archivo", >> 'archivo', < "entrada": es una ruta, no texto
+            const esTexto = !ejecuta && !alimentaInterprete && !esDestino && (OPC_TEXTO.test(previa) || pegada || CMD_TEXTO.test(cabeza)
+                || (/^git$/i.test(cabeza) && /^(log|grep|show|shortlog)$/i.test(sub)));
+            out += esTexto ? ch + cierre : ch + cuerpo + cierre;
+            palabras.push(esTexto ? '""' : cuerpo);
+            i = j + 1; continue;
+        }
+        if (/\s/.test(ch)) { out += ch; i++; continue; }
+        let j = i; while (j < s.length && !/[\s'";&|\n]/.test(s[j])) j++;
+        const w = s.slice(i, j);
+        if (!(palabras.length === 0 && /^\w+=/.test(w))) palabras.push(w);   // VAR=x cmd: la cabeza es cmd
+        out += w; i = j;
+    }
+    return out;
+}
+
+// Código sin comentarios (y, si se pide, sin strings) en JS/TS/PHP/CSS y parecidos, con los saltos de línea
+// intactos para que las líneas «senzu-allow» sigan cuadrando. Para buscar CÓDIGO (una llamada de depuración, un
+// «: any» que se usa), no texto que lo menciona.
+export function soloCodigo(txt, { strings = true, almohadilla = false } = {}) {   // almohadilla: «# …» es comentario (PHP, Python, shell; no CSS ni JS)
+    const s = String(txt || ''); let out = '', i = 0;
+    const blanco = t => t.replace(/[^\n]/g, ' ');
+    while (i < s.length) {
+        const c2 = s.slice(i, i + 2);
+        if (c2 === '/*') { const j = s.indexOf('*/', i + 2); const k = j < 0 ? s.length : j + 2; out += blanco(s.slice(i, k)); i = k; continue; }
+        if (c2 === '//' && s[i - 1] !== ':') { const j = s.indexOf('\n', i); const k = j < 0 ? s.length : j; out += blanco(s.slice(i, k)); i = k; continue; }   // («https://» no es comentario)
+        if (almohadilla && s[i] === '#' && (i === 0 || s[i - 1] === '\n' || /\s/.test(s[i - 1])) && s[i + 1] !== '[' && s[i + 1] !== '!') {   // PHP/Python «# …» (no «#[atributo]» ni «#!»)
+            const j = s.indexOf('\n', i); const k = j < 0 ? s.length : j; out += blanco(s.slice(i, k)); i = k; continue;
+        }
+        if (s[i] === "'" || s[i] === '"' || s[i] === '`') {   // los strings se saltan siempre (un «//» dentro no es comentario)
+            const q = s[i]; let j = i + 1, cuerpo = '';
+            while (j < s.length && s[j] !== q && !(q !== '`' && s[j] === '\n')) {
+                if (s[j] === '\\') { cuerpo += strings ? '  ' : s.slice(j, j + 2); j += 2; continue; }
+                if (q === '`' && s[j] === '$' && s[j + 1] === '{') {   // ${…} de una plantilla ES código: se conserva tal cual
+                    let k = j + 2, prof = 1;
+                    while (k < s.length && prof) { if (s[k] === '{') prof++; else if (s[k] === '}') prof--; k++; }
+                    cuerpo += soloCodigo(s.slice(j, k), { strings, almohadilla }); j = k; continue;
+                }
+                cuerpo += strings ? (s[j] === '\n' ? '\n' : ' ') : s[j]; j++;
+            }
+            out += q + cuerpo + (j < s.length ? s[j] : ''); i = j + 1; continue;
+        }
+        out += s[i]; i++;
+    }
+    return out;
 }

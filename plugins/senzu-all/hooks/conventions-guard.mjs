@@ -45,7 +45,8 @@ for (const r of rules) {
     } catch { continue; }   // regla malformada: no bloquear por ella
     if (filesRx && !filesRx.test(rel)) continue;
     for (const pair of pairs) {
-        const hit = testIntroduced(forbidRx, pair[0], pair[1]);
+        // sin comentarios (citar la convención no la viola); los strings se miran: una regla puede ser sobre ellos
+        const hit = testIntroduced(forbidRx, pair[0], pair[1], { strings: false, almohadilla: /\.(php|py|rb|sh)$/i.test(rel) });
         if (hit) {
             const why = r.why ? String(r.why) : `patron prohibido por convencion: ${r.forbid}`;
             process.stderr.write(`[BLOQUEADO por Senzu] Convencion del proyecto (conventions.json): ${why}. Linea: '${hit}'.\n`);

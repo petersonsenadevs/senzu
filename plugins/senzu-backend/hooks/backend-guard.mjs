@@ -28,11 +28,14 @@ function bloquear(msg, linea) {
     process.exit(2);
 }
 
+// Se mira el CÓDIGO sin comentarios (citar «no usar env()» no lo usa); los strings se conservan: SQL crudo, env('X')
+const COD = { strings: false, almohadilla: /\.(php|py|rb)$/i.test(file) };
+
 // 1. Migraciones destructivas (solo la parte que se aplica al migrar)
 if (/(database\/migrations|migrations|alembic\/versions|prisma\/migrations)\//i.test(file)) {
     const parteUp = t => t.split(/(function\s+down\s*\(|def\s+downgrade\s*\(|exports\.down\b|async\s+down\s*\(|public\s+async\s+down\s*\()/i)[0];
     const destructivo = /(->dropColumn\s*\(|->renameColumn\s*\(|Schema::(drop|dropIfExists|rename)\s*\(|->dropIfExists\s*\(|\bDROP\s+(TABLE|COLUMN)\b|\bRENAME\s+(COLUMN|TO)\b|op\.drop_(column|table)\s*\(|new_column_name\s*=|\.dropColumn\s*\(|\.dropTable\s*\(|\.renameColumn\s*\()/i;
-    const hit = testIntroduced(destructivo, parteUp(despues), parteUp(antes));
+    const hit = testIntroduced(destructivo, parteUp(despues), parteUp(antes), COD);
     if (hit) bloquear('Migración destructiva (borrar o renombrar columnas o tablas) en la parte que se aplica al migrar. '
         + 'En producción pierde datos o rompe la versión que sigue desplegada. Haz expandir → migrar datos → contraer en despliegues '
         + 'separados (code-quality references/database-design.md, migraciones seguras) y confirma con el usuario que hay backup.', hit);
@@ -40,14 +43,14 @@ if (/(database\/migrations|migrations|alembic\/versions|prisma\/migrations)\//i.
 
 // 2. env() fuera de config/ (Laravel)
 if (/\.php$/i.test(file) && !/(^|\/)config\//i.test(file)) {
-    const hit = testIntroduced(/(?<![\w>$:])env\s*\(\s*['"]/, despues, antes);
+    const hit = testIntroduced(/(?<![\w>$:])env\s*\(\s*['"]/, despues, antes, COD);
     if (hit) bloquear('env() fuera de config/: con la configuración cacheada (php artisan config:cache, lo normal en producción) '
         + 'devuelve null y falla solo en producción. Define la clave en config/<archivo>.php y usa config(\'archivo.clave\').', hit);
 }
 
 // 3. Datos personales en logs
 const pii = /((Log::\w+|logger\s*\(|->(info|debug|warning|error|notice)\s*\()[^\n]*\$request->(all|input)\s*\(\s*\)|(logger|log|console)\.(info|debug|warn|error|log)\s*\([^\n]*\breq\.(body|headers|query)\b|(logger|logging|log)\.\w+\s*\([^\n]*\brequest\.(json|body|form|headers|data)\b|(Log::\w+|logger\s*\(|\blog(ger)?\.\w+\s*\()[^\n]*(password|contrase[nñ]a|passwd|api[_-]?key|access[_-]?token|secret)\b)/i;
-const hitPii = testIntroduced(pii, despues, antes);
+const hitPii = testIntroduced(pii, despues, antes, COD);
 if (hitPii) bloquear('Estás registrando en logs la petición completa o un dato sensible (contraseña, token, clave). '
     + 'Los logs se guardan, se copian y los lee más gente: eso es una fuga de datos personales (RGPD). '
     + 'Registra solo identificadores y los campos necesarios (code-quality references/errors-logging.md).', hitPii);

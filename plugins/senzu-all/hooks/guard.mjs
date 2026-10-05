@@ -11,7 +11,7 @@
 
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
-import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida, convencionesSelladas, relDelProyecto, rutaNativa } from './lib.mjs';
+import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida, convencionesSelladas, relDelProyecto, rutaNativa, sinTextoCitado } from './lib.mjs';
 
 const p = readHookInput();
 if (!p) process.exit(0);
@@ -19,7 +19,9 @@ if (!['Bash', 'PowerShell'].includes(p.tool_name)) process.exit(0);
 
 const cmd = p.tool_input && p.tool_input.command ? String(p.tool_input.command) : '';
 if (!cmd.trim()) process.exit(0);
-const c = cmd;
+// Las reglas miran lo que se EJECUTA: el texto citado (mensajes de commit, heredocs a un archivo, echo, grep…) fuera.
+// El mensaje del commit (formato, Co-Authored-By) se valida sobre el comando original, cmd.
+const c = sinTextoCitado(cmd);
 const root = projectRoot();
 const permisos = permisosProyecto(root);
 // ramas principales (main, staging, production…): lista única en lib.mjs (ramaProtegida)
@@ -124,14 +126,14 @@ if (/\bgit\s+commit\b/i.test(c)) {
     if (ramaProtegida(root, branch) && !permisos.commitEnMain) {
         deny([`[BLOQUEADO por Senzu] No se commitea en '${branch}'. Crea una rama (git switch -c feat/...) y commitea ahi. (Si el usuario lo quiere permitir en este proyecto: "permisos": { "commitEnMain": true } en senzu/senzu.json.)`]);
     }
-    if (/co-authored-by/i.test(c)) {
+    if (/co-authored-by/i.test(cmd)) {
         deny(['[BLOQUEADO por Senzu] Los commits no llevan Co-Authored-By (regla del equipo).']);
     }
     // Mensaje: -m "..." o -m '...'  (se valida solo el primer -m)
     let msg = null;
-    let m = /-m\s+"([^"]*)"/is.exec(c);
+    let m = /-m\s+"([^"]*)"/is.exec(cmd);
     if (m) msg = m[1];
-    else { m = /-m\s+'([^']*)'/is.exec(c); if (m) msg = m[1]; }
+    else { m = /-m\s+'([^']*)'/is.exec(cmd); if (m) msg = m[1]; }
     if (msg) {
         const first = msg.split(/\r?\n/)[0].trim();
         if (!/^(feat|fix|refactor|docs|test|chore|perf|build|ci|style|revert)(\([\w\-\./ ]+\))?!?:\s\S/.test(first)) {
