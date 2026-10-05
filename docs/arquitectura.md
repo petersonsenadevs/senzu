@@ -99,8 +99,11 @@ anuncia lo primero) y el muro `arranque-guard` (no deja escribir código sin él
 **siguiente** (hay tarjetas: solo se anuncia). Las plantillas que deja el instalador no cuentan: una tarjeta
 «X-T1 …» o «<Verbo + objeto>» no es un plan, ni un brief con «…» en el Objetivo.
 
-El muro para una vez por paso y sesión, solo código y manifiestos (nunca `senzu/`, `CLAUDE.md`, `AGENTS.md`,
-`.claude/` ni la documentación): así obliga a proponer el paso sin dejar al usuario atascado. Los pasos que el
+Dos niveles. **instalar** y **adoptar** bloquean: el muro para una vez por paso y sesión, solo código y
+manifiestos (nunca `senzu/`, `CLAUDE.md`, `AGENTS.md`, `.claude/` ni la documentación), así obliga a proponer el
+paso sin dejar al usuario atascado. **brief** y **plan** no bloquean (no todo proyecto los necesita): la sesión y
+la primera edición de código le recuerdan al agente que tiene que saber qué se va a hacer y, si el usuario no lo
+ha dicho claro, hablarlo con él antes de programar; `/plan` solo si es algo grande o el usuario lo quiere. Los pasos que el
 usuario no quiere en un proyecto van en `"omitirPasos"` del marcador (`init.mjs --omitir-paso`); el guard no
 deja que el agente lo pase, y los dos instaladores lo conservan al reinstalar (como `ramasProtegidas`).
 

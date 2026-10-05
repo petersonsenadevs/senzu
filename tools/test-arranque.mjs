@@ -66,28 +66,39 @@ const escribe = (d, sid, file, tool = 'Write') => hook(d, { session_id: sid, too
 const bloquea = (r, n, re) => ok(r.status === 2 && (!re || re.test(r.stderr)), `bloquea: ${n}`, `exit ${r.status} ${r.stderr.slice(0, 200)}`);
 const deja = (r, n) => ok(r.status === 0, `deja: ${n}`, `exit ${r.status} ${r.stderr.slice(0, 200)}`);
 
+// plan y brief NO se imponen: sin plan no bloquea, recuerda (una vez) que hay que saber qué se hace o preguntarlo
 const nb = proyecto('muro-back', { marker: BACK });
-bloquea(escribe(nb, `a-${RUN}`, 'src/index.ts'), 'primer código sin plan', /\/plan[\s\S]*Por qué[\s\S]*--omitir-paso plan/);
-deja(escribe(nb, `a-${RUN}`, 'src/otro.ts'), 'la segunda vez en la misma sesión (el usuario ya está avisado)');
-bloquea(escribe(nb, `b-${RUN}`, 'src/index.ts', 'Edit'), 'en otra sesión vuelve a avisar (Edit)');
-bloquea(escribe(nb, `c-${RUN}`, 'package.json'), 'el manifiesto también es código');
+const r0 = escribe(nb, `a-${RUN}`, 'src/index.ts');
+deja(r0, 'sin plan no bloquea');
+ok(/no lo sabes[\s\S]*háblalo con él[\s\S]*\/plan solo si es algo grande/.test(r0.stdout), 'sin plan: recuerda saber qué se hace o preguntarlo', r0.stdout.slice(0, 300));
+ok(escribe(nb, `a-${RUN}`, 'src/otro.ts').stdout === '', 'el recordatorio sale una sola vez por sesión');
+const rb = escribe(proyecto('muro-front', { marker: FRONT }), `a2-${RUN}`, 'src/index.astro');
+ok(rb.status === 0 && /\/brief/.test(rb.stdout), 'nuevo con interfaz: tampoco bloquea, menciona /brief', rb.stdout.slice(0, 200));
+// adoptar (proyecto con código) sí frena, una vez por sesión
+const ne = proyecto('muro-adoptar', { marker: BACK, archivos: { 'src/a.ts': 'x' } });
+bloquea(escribe(ne, `a3-${RUN}`, 'src/b.ts'), 'primer código sin adoptar', /\/adoptar[\s\S]*Por qué[\s\S]*--omitir-paso adoptar/);
+deja(escribe(ne, `a3-${RUN}`, 'src/c.ts'), 'la segunda vez en la misma sesión (el usuario ya está avisado)');
+bloquea(escribe(ne, `b-${RUN}`, 'src/b.ts', 'Edit'), 'en otra sesión vuelve a avisar (Edit)');
+bloquea(escribe(ne, `c-${RUN}`, 'package.json'), 'el manifiesto también es código');
 for (const f of ['senzu/plan/PLAN.md', 'senzu/plan/brief.md', 'CLAUDE.md', 'AGENTS.md', 'README.md', 'docs/guia.md', '.claude/settings.json'])
-    deja(escribe(nb, `d-${RUN}`, f), `lo del método y la documentación: ${f}`);
-deja(escribe(nb, `d2-${RUN}`, '../fuera/app.ts'), 'archivos fuera del proyecto');
+    deja(escribe(ne, `d-${RUN}`, f), `lo del método y la documentación: ${f}`);
+deja(escribe(ne, `d2-${RUN}`, '../fuera/app.ts'), 'archivos fuera del proyecto');
 deja(escribe(conPlan, `e-${RUN}`, 'src/index.ts'), 'con plan real no bloquea');
 bloquea(escribe(proyecto('muro-sin', {}), `f-${RUN}`, 'src/index.ts'), 'sin Senzu instalado: /instalar', /\/instalar/);
 ok(!/omitir-paso/.test(escribe(proyecto('muro-sin2', {}), `f2-${RUN}`, 'app.py').stderr), 'instalar no se puede omitir');
 bloquea(escribe(proyecto('muro-exist', { marker: BACK, archivos: { 'src/a.ts': 'x' } }), `g-${RUN}`, 'src/b.ts'), 'proyecto existente: /adoptar', /\/adoptar/);
 deja(escribe(proyecto('muro-apagado', { marker: { ...BACK, hooksApagados: ['arranque-guard'] } }), `h-${RUN}`, 'src/index.ts'), 'apagado por el usuario en el marcador');
 const parche = '*** Begin Patch\n*** Add File: src/main.py\n+print(1)\n*** End Patch\n';
-const nc = proyecto('muro-codex', { marker: BACK });
+const nc = proyecto('muro-codex', { marker: BACK, archivos: { 'app/x.py': 'x' } });
 const rc = hook(nc, { session_id: `i-${RUN}`, tool_name: 'apply_patch', tool_input: { command: parche }, cwd: nc });
 bloquea(rc, 'Codex (apply_patch) también');
 
 // 4. session-start anuncia el paso y el idioma
 const ss = spawnSync(process.execPath, [path.join(HOOKS, 'session-start.mjs')], { input: JSON.stringify({ session_id: `s-${RUN}`, hook_event_name: 'SessionStart' }), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: nb } });
 let ctx = ''; try { ctx = JSON.parse(ss.stdout).hookSpecificOutput.additionalContext; } catch { }
-ok(/SIGUIENTE PASO DEL MÉTODO: \/plan/.test(ctx), 'session-start: siguiente paso', ctx.slice(0, 300));
+ok(!/SIGUIENTE PASO DEL MÉTODO/.test(ctx) && /tienes que saber qué se va a hacer[\s\S]*háblalo con él/.test(ctx), 'session-start: sin plan pide saber qué se hace, no impone /plan', ctx.slice(0, 400));
+const ssA = spawnSync(process.execPath, [path.join(HOOKS, 'session-start.mjs')], { input: JSON.stringify({ session_id: `s3-${RUN}`, hook_event_name: 'SessionStart' }), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: ne } });
+ok(/SIGUIENTE PASO DEL MÉTODO: \/adoptar/.test(ssA.stdout), 'session-start: con código anuncia /adoptar');
 ok(/Idioma: responde en castellano/.test(ctx), 'session-start: idioma');
 ok(!/Empieza por \/brief/.test(ctx), 'session-start: sin interfaz no propone /brief');
 ok(/todavía la plantilla/.test(ctx), 'session-start: plan de plantilla = por hacer');

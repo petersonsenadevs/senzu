@@ -606,10 +606,12 @@ export function siguientePaso(root) {
     if (!mat.existing && !plan.total) {
         const briefTxt = readText(path.join(ruta(root, 'plan'), 'brief.md')) || '';
         const hayBrief = tieneContenido(seccionMd(briefTxt, 'Objetivo'));
-        if (marker.frontProfile && !hayBrief && !omitir.has('brief') && !omitir.has('plan')) return { paso: 'brief', comando: '/brief y después /plan', bloquea: true,
-            motivo: 'proyecto nuevo con interfaz: primero qué quiere el usuario (marca, referencias, objetivo), después el plan' };
-        if (!omitir.has('plan')) return { paso: 'plan', comando: '/plan', bloquea: true,
-            motivo: 'proyecto nuevo sin plan: primero el objetivo, el alcance (qué entra y qué no) y las tarjetas, y el OK del usuario' };
+        // Plan y brief NO se imponen: no todo proyecto los necesita. Lo obligatorio es saber qué se va a hacer;
+        // si el usuario no lo ha dicho claro, se habla con él antes de programar (decisión del usuario, ver 091).
+        if (marker.frontProfile && !hayBrief && !omitir.has('brief') && !omitir.has('plan')) return { paso: 'brief', comando: '/brief y después /plan', bloquea: false, conversar: true,
+            motivo: 'proyecto nuevo con interfaz y sin brief ni plan' };
+        if (!omitir.has('plan')) return { paso: 'plan', comando: '/plan', bloquea: false, conversar: true,
+            motivo: 'proyecto nuevo sin plan' };
     }
     if (plan.doing.length || plan.next.length) return { paso: 'siguiente', comando: '/siguiente', bloquea: false,
         motivo: plan.doing.length ? `tarea en curso: ${plan.doing[0]}` : `siguiente tarjeta: ${plan.next[0]}` };

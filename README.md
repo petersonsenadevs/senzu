@@ -132,7 +132,8 @@ sección necesaria (disciplina de contexto: nada se lee entero).
   prácticas de ESA versión — con aviso si algo está sin soporte (EOL).
 - **Nuevo vs heredado**: proyecto vacío → brief (si tiene interfaz) + plan; proyecto con código → `/adoptar`
   analiza su estilo real, lo pacta contigo y lo **sella como inmutable** (un hook bloquea el código que lo viole).
-  Y no se salta: un muro para la primera línea de código si falta el paso (instalar, adoptar, brief o plan).
+  Y no se salta: un muro para la primera línea de código si falta instalar o adoptar. Plan y brief no se
+  imponen: si el agente no sabe qué se va a hacer, te lo pregunta antes de programar.
 - **Respeta lo que ya hay**: tu `CLAUDE.md`/`AGENTS.md`, tu diario, tu plan — pregunta antes de adaptarse.
 - **Recuerda**: las decisiones del proyecto llegan a cada sesión; tus reglas de siempre, a todos tus
   proyectos; si le corriges, lo apunta (o no puede cerrar); antes de tocar un archivo sabe lo que se decidió de

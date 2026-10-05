@@ -18,6 +18,8 @@ L.push('- Idioma: responde en castellano (o en el idioma en que te escriba el us
 const paso = siguientePaso(root);
 if (paso && paso.bloquea) {
     L.push(`- SIGUIENTE PASO DEL MÉTODO: ${paso.comando} — ${paso.motivo}. Propónselo al usuario ANTES de escribir código; el muro arranque-guard te parará la primera vez que lo intentes sin él.`);
+} else if (paso && paso.conversar) {
+    L.push(`- ${paso.motivo[0].toUpperCase() + paso.motivo.slice(1)}: no todo necesita un plan, pero tienes que saber qué se va a hacer. Si el usuario no te lo ha dicho claro, háblalo con él antes de programar (objetivo, alcance, qué entra y qué no); propón ${paso.comando} solo si es algo grande o él lo quiere.`);
 }
 if (marker) {
     L.push(`- Stack: ${marker.stack}` + (marker.frontProfile ? ` | Perfil de front: ${marker.frontProfile.label} (stacks del buscador: ${[].concat(marker.frontProfile.stacks || []).join(', ')})` : ''));
@@ -31,8 +33,8 @@ if (mat.existing && !mat.hasConventions) {
     L.push('- Proyecto EXISTENTE' + (mat.commits ? ` (${mat.commits} commits)` : '') + ': hay codigo previo con su propio estilo y SIN convenciones selladas. Antes de escribir codigo nuevo, propon /adoptar (analiza el estilo real y lo sella); mientras tanto imita el codigo vecino, no tu preferencia.'
         + (mat.ownGuide ? ' Lee CLAUDE.project.md (guia propia del proyecto: manda sobre lo generico).' : ''));
 } else if (!mat.existing) {
-    L.push('- Proyecto NUEVO/vacio: no asumas nada del usuario. '
-        + (marker && marker.frontProfile ? 'Empieza por /brief (qué quiere, en llano: marca, referencias, objetivo) y después /plan' : 'Empieza por /plan (objetivo, alcance y tarjetas, con su OK); /brief es para proyectos con interfaz')
+    L.push('- Proyecto NUEVO/vacio: no asumas nada del usuario; si no sabes qué se va a hacer, pregúntaselo. Si es algo grande: '
+        + (marker && marker.frontProfile ? '/brief (qué quiere, en llano: marca, referencias, objetivo) y después /plan' : '/plan (objetivo, alcance y tarjetas, con su OK); /brief es para proyectos con interfaz')
         + '; si quiere fijar convenciones desde el principio, /adoptar en modo entrevista.');
 }
 if (mat.ownDiary) {

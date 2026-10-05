@@ -43,5 +43,5 @@ Reconstruye dónde se quedó el trabajo SIN pedirle al usuario que lo cuente, y 
 - **Cualquier feature**: `/plan` → `/siguiente` (una tarjeta cada vez) → `/verificar` antes de cerrar.
 - **Proyecto nuevo sin interfaz** (API, backend, agente): `/plan` directamente; `/brief` es para lo que tiene pantallas.
 - **Proyecto heredado**: `/adoptar` la primera sesión (analiza y sella sus convenciones) y después lo normal.
-- El paso que falta lo anuncia la sesión y lo exige el muro `arranque-guard` antes de la primera línea de código.
+- `/instalar` y `/adoptar` los exige el muro `arranque-guard` antes de la primera línea de código; plan y brief no se imponen: si no está claro qué se hace, el agente pregunta.
 - **Efecto concreto** ("quiero un parallax/marquee/cursor"): `/efecto <nombre>` va directo al catálogo con receta y coste móvil.

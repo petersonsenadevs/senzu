@@ -50,10 +50,11 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
 - **Consciente de versiones**: al arrancar la sesión detecta las versiones reales (PHP/Laravel/Node/framework)
   y avisa si algo está sin soporte (EOL); el agente aplica las prácticas de ESA versión, no de la última.
 - **El método antes que el código**: al empezar la sesión te dice el **siguiente paso** que falta y por qué:
-  `/instalar` si Senzu no está en el proyecto; `/adoptar` si hay código previo sin convenciones selladas; en uno
-  vacío, `/brief` y después `/plan` si tiene interfaz, o directamente `/plan` si es backend, una API o un agente.
-  El muro `arranque-guard` lo hace cumplir: la primera vez que el agente va a escribir código sin ese paso, lo
-  para y te lo propone (una vez por paso y sesión; si le dices que siga, sigue). Si en un proyecto no quieres un
+  `/instalar` si Senzu no está en el proyecto; `/adoptar` si hay código previo sin convenciones selladas. El muro
+  `arranque-guard` los hace cumplir: la primera vez que el agente va a escribir código sin ellos, lo para y te lo
+  propone (una vez por paso y sesión; si le dices que siga, sigue). **El plan y el brief no se imponen**: no todo
+  proyecto los necesita. Lo obligatorio es que el agente sepa qué se va a hacer; si no se lo has dicho claro, te
+  pregunta antes de programar, y propone `/plan` (o `/brief`, si hay interfaz) solo si es algo grande o lo quieres. Si en un proyecto no quieres un
   paso, quítalo tú: `init.mjs --omitir-paso adoptar|plan|brief` (y `--sin-omitir` para volver). Responde en
   castellano también en un proyecto vacío. Si el proyecto ya lleva su diario (CHANGELOG, ADRs) o su CLAUDE.md, **pregunta antes de
   adaptarse** — puedes dejar tu CLAUDE.md intacto (las reglas van a `CLAUDE.dev-standards.md`).
