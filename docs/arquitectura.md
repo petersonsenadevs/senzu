@@ -91,6 +91,19 @@ session-start, la misma en los githooks. Solo el usuario lo abre con `pushMain` 
 Fuera de `main` vive la rama **`stats`**: solo datos (el histórico de tráfico y los badges), la escribe cada día
 el workflow `trafico.yml` y de ahí la leen el README y la web.
 
+## Arranque guiado: el siguiente paso del método
+`siguientePaso()` en `lib.mjs` responde «¿en qué punto está este proyecto?» y lo comparten `session-start` (lo
+anuncia lo primero) y el muro `arranque-guard` (no deja escribir código sin él). Orden: **instalar** (no hay
+`senzu/senzu.json`) → **adoptar** (hay código o historia, ≥5 commits, y ninguna convención sellada) → **brief**
+(proyecto nuevo con perfil de front y sin brief real) → **plan** (proyecto nuevo sin tarjetas reales) →
+**siguiente** (hay tarjetas: solo se anuncia). Las plantillas que deja el instalador no cuentan: una tarjeta
+«X-T1 …» o «<Verbo + objeto>» no es un plan, ni un brief con «…» en el Objetivo.
+
+El muro para una vez por paso y sesión, solo código y manifiestos (nunca `senzu/`, `CLAUDE.md`, `AGENTS.md`,
+`.claude/` ni la documentación): así obliga a proponer el paso sin dejar al usuario atascado. Los pasos que el
+usuario no quiere en un proyecto van en `"omitirPasos"` del marcador (`init.mjs --omitir-paso`); el guard no
+deja que el agente lo pase, y los dos instaladores lo conservan al reinstalar (como `ramasProtegidas`).
+
 ## Perfiles de instalación
 `core/perfiles.json` responde «¿qué es el proyecto?» con un conjunto de grupos de skills. Un perfil es una
 selección por categorías con nombre: se guarda en `senzu/senzu.json` y cada actualización la respeta, con

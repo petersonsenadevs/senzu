@@ -418,7 +418,7 @@ function hookSet(hasFront) {
         UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs', 'memoria-viva.mjs'] }],
         PreToolUse: [
             { matcher: 'Bash|PowerShell', files: ['guard.mjs'] },
-            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
+            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
         ],
         PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs'] }],
         Stop: [{ matcher: null, files: ['stop-guard.mjs', 'cierre-limpio.mjs', 'estado-sesion.mjs'] }],
@@ -457,6 +457,7 @@ const HOOKS_ELEGIBLES = [
     ['stop-guard', 'No deja cerrar sin verificar ni documentar'],
     ['cierre-limpio', 'No deja cerrar con archivos propios sin commitear; avisa de los de otro agente'],
     ['tarjeta-guard', 'Una tarjeta del plan no pasa a done sin Verificado, Cumple y su devlog'],
+    ['arranque-guard', 'No deja escribir código sin el paso del método que falta (instalar, adoptar, brief o plan)'],
     ['session-start', 'Contexto del proyecto al arrancar la sesión'],
     ['prompt-router', 'Sugiere la skill adecuada en cada petición'],
     ['memoria-viva', 'Detecta tus reglas y correcciones y pide apuntarlas en la memoria'],
@@ -678,7 +679,7 @@ async function seedProject(projectPath) {
 function lista(v) { return String(v || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean); }
 
 function parseArgs(argv) {
-    const a = { path: process.cwd(), tools: null, stack: null, skills: [], bundle: [], perfil: null, seleccion: null, grupos: null, soloSkills: null, hooks: null, comandos: null, interactivo: false, ahorro: null, permitir: null, apagarHooks: null, sinMigrar: false };
+    const a = { path: process.cwd(), tools: null, stack: null, skills: [], bundle: [], perfil: null, seleccion: null, grupos: null, soloSkills: null, hooks: null, comandos: null, interactivo: false, ahorro: null, permitir: null, apagarHooks: null, sinMigrar: false, omitirPasos: null };
     for (let i = 0; i < argv.length; i++) {
         const k = argv[i];
         const next = () => argv[++i];
@@ -701,6 +702,8 @@ function parseArgs(argv) {
         else if (k === '--apagar-hooks') a.apagarHooks = lista(next());
         else if (k === '--encender-hooks') a.apagarHooks = [];
         else if (k === '--sin-migrar') a.sinMigrar = true;
+        else if (k === '--omitir-paso') a.omitirPasos = lista(next());
+        else if (k === '--sin-omitir') a.omitirPasos = [];
         else if (k === '--help' || k === '-h') { a.help = true; }
         else warn(`Flag desconocido: ${k}`);
     }
@@ -839,6 +842,7 @@ async function main() {
         log('       [--seleccion todo|categorias|a-medida] [--grupos front,motion,3d,quality,architecture,growth,ops,design]');
         log('       [--solo-skills a,b] [--hooks guard,stop-guard,...] [--comandos plan,verificar,...] [--skills a,b] [--bundle x] [--ahorro|--sin-ahorro]');
         log('       [--permitir push,push-main,commit-main | --sin-permisos] [--apagar-hooks format-on-save,... | --encender-hooks] [--sin-migrar]');
+        log('       [--omitir-paso adoptar,plan,brief | --sin-omitir]   (pasos del método que el muro arranque-guard no exigirá en este proyecto)');
         log('Stacks: ' + fs.readdirSync(path.join(ROOT, 'stacks')).join(', '));
         return;
     }
@@ -930,6 +934,14 @@ async function main() {
     if (noApagables.length) warn(`No se pueden apagar: ${noApagables.join(', ')} (se ignoran).`);
     apagados = [...new Set(apagados.filter(h => !HOOKS_NO_APAGABLES.includes(h)))];
     if (apagados.length) markerObj.hooksApagados = apagados;
+    // Ajustes que solo pone el usuario y se conservan al reinstalar: sus ramas protegidas y los pasos omitidos
+    const ramasPropias = [].concat((marker && marker.ramasProtegidas) || []).map(String);
+    if (ramasPropias.length) markerObj.ramasProtegidas = ramasPropias;
+    let omitir = a.omitirPasos !== null ? a.omitirPasos : [].concat((marker && marker.omitirPasos) || []);
+    const pasosValidos = ['adoptar', 'plan', 'brief'];
+    for (const x of omitir.filter(o => !pasosValidos.includes(o))) warn(`Paso desconocido: ${x} (válidos: ${pasosValidos.join(', ')})`);
+    omitir = [...new Set(omitir.filter(o => pasosValidos.includes(o)))];
+    if (omitir.length) markerObj.omitirPasos = omitir;
     writeUtf8(markerPath, JSON.stringify(markerObj, null, 2));
     log('Listo. Config regenerada. Abre una sesión NUEVA del agente para que cargue todo.');
 }

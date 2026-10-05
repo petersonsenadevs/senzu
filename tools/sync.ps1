@@ -157,6 +157,9 @@ if ($selection) { $markerObj.seleccion = $selection }
 if ($ahorroVal) { $markerObj.ahorro = $true }
 if ($permisosVal.Count) { $markerObj.permisos = $permisosVal }
 if ($apagadosVal.Count) { $markerObj.hooksApagados = @($apagadosVal) }
+# Ajustes que solo pone el usuario y se conservan al reinstalar (igual que init.mjs): ramas protegidas y pasos omitidos
+if ($marker -and $marker.ramasProtegidas) { $markerObj.ramasProtegidas = @($marker.ramasProtegidas | ForEach-Object { [string]$_ }) }
+if ($marker -and $marker.omitirPasos) { $markerObj.omitirPasos = @($marker.omitirPasos | Where-Object { @('adoptar', 'plan', 'brief') -contains $_ } | Select-Object -Unique) }
 if ($stackObj.Meta.frontProfile) {
     $markerObj.frontProfile = $stackObj.Meta.frontProfile
     if ($fpSource) { $markerObj.frontProfileSource = $fpSource }

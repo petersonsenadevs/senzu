@@ -80,6 +80,11 @@
                                                            "type":  "command",
                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/tarjeta-guard.mjs\"",
                                                            "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/arranque-guard.mjs\"",
+                                                           "timeout":  30
                                                        }
                                                    ]
                                      }

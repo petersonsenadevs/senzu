@@ -90,8 +90,8 @@ if (/\.dev-standards\.json|\bsenzu\.json\b/i.test(c)) {
 if (/\|\s*(node|npx)\b[^|;&]*\binit\.mjs\b|\binit\.mjs\b[^|;&]*<\s*\S|\binit\.mjs\b[^|;&]*\s(-i|--interactivo)\b/i.test(c)) {
     deny(['[BLOQUEADO por Senzu] El menú del instalador lo responde el usuario (ahí se dan permisos y se apagan hooks). Para instalar sin menú usa los flags de selección (--seleccion, --grupos...); el menú, que lo abra él en su terminal.']);
 }
-if (/(^|\s)(--permitir|-permitir|--apagar-hooks|-apagarhooks|--sin-permisos|-sinpermisos|--encender-hooks|-encenderhooks)\b/i.test(c)) {
-    deny(['[BLOQUEADO por Senzu] Dar permisos o apagar hooks lo decide el usuario: que lo ejecute él (en Claude Code, escribiendo "!" delante del comando) o desde el menú del instalador.']);
+if (/(^|\s)(--permitir|-permitir|--apagar-hooks|-apagarhooks|--sin-permisos|-sinpermisos|--encender-hooks|-encenderhooks|--omitir-paso|--sin-omitir)\b/i.test(c)) {
+    deny(['[BLOQUEADO por Senzu] Dar permisos, apagar hooks u omitir pasos del método lo decide el usuario: que lo ejecute él (en Claude Code, escribiendo "!" delante del comando) o desde el menú del instalador.']);
 }
 
 // --- Reglas de git commit: rama protegida, Conventional Commits, sin co-autores ---

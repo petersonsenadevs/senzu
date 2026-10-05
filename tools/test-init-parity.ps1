@@ -85,6 +85,9 @@ foreach ($p in $a, $b) {
     # Permisos y hooks apagados del usuario: se conservan al reinstalar; 'guard' no se puede apagar
     $m | Add-Member -NotePropertyName permisos -NotePropertyValue ([ordered]@{ push = $true; commitEnMain = $true }) -Force
     $m | Add-Member -NotePropertyName hooksApagados -NotePropertyValue @('format-on-save', 'guard', 'prompt-router') -Force
+    # Ramas protegidas propias y pasos del método omitidos: solo los pone el usuario y se conservan ('raro' no es un paso)
+    $m | Add-Member -NotePropertyName ramasProtegidas -NotePropertyValue @('entrega') -Force
+    $m | Add-Member -NotePropertyName omitirPasos -NotePropertyValue @('adoptar', 'raro') -Force
     Write-Utf8 (Join-Path $p 'senzu/senzu.json') ($m | ConvertTo-Json -Depth 6)
     # Un MCP propio del proyecto (como laravel-boost) debe sobrevivir a la reinstalacion
     Write-Utf8 (Join-Path $p '.mcp.json') '{ "mcpServers": { "laravel-boost": { "command": "php", "args": ["artisan", "boost:mcp"] } } }'
@@ -108,6 +111,8 @@ foreach ($p in $a, $b) {
     $mk = (Read-Utf8 (Join-Path $p 'senzu/senzu.json')) | ConvertFrom-Json
     if (-not ($mk.permisos -and $mk.permisos.push -eq $true -and $mk.permisos.commitEnMain -eq $true)) { Fail "[permisos] la reinstalacion perdio los permisos ($p)" }
     if ((@($mk.hooksApagados) -join ',') -ne 'format-on-save,prompt-router') { Fail "[permisos] hooksApagados esperados format-on-save,prompt-router (guard no se apaga); hay: $(@($mk.hooksApagados) -join ',') ($p)" }
+    if ((@($mk.ramasProtegidas) -join ',') -ne 'entrega') { Fail "[marcador] la reinstalacion perdio ramasProtegidas; hay: $(@($mk.ramasProtegidas) -join ',') ($p)" }
+    if ((@($mk.omitirPasos) -join ',') -ne 'adoptar') { Fail "[marcador] omitirPasos esperado adoptar (sin el invalido); hay: $(@($mk.omitirPasos) -join ',') ($p)" }
     $mj = (Read-Utf8 (Join-Path $p '.mcp.json')) | ConvertFrom-Json
     if (-not $mj.mcpServers.'laravel-boost') { Fail "[mcp] la reinstalacion borro el servidor MCP propio del proyecto ($p)" }
 }

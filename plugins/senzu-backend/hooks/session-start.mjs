@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion, ramaProtegida,
+    readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion, ramaProtegida, siguientePaso,
 } from './lib.mjs';
 
 const p = readHookInput() || {};
@@ -13,19 +13,27 @@ const DL = rutaRel(root, 'devlog'), PL = rutaRel(root, 'plan'), DS = rutaRel(roo
 const marker = getMarker(root);
 const L = [];
 L.push('[senzu] Estado del proyecto al iniciar la sesion:');
+L.push('- Idioma: responde en castellano (o en el idioma en que te escriba el usuario), también en un proyecto vacío. Y trabaja con el método de Senzu, no a tu manera: skills, comandos y muros se apoyan entre sí.');
+// El paso del método que falta va lo primero: es lo que el usuario tiene que ver antes de nada (arranque-guard lo hace cumplir)
+const paso = siguientePaso(root);
+if (paso && paso.bloquea) {
+    L.push(`- SIGUIENTE PASO DEL MÉTODO: ${paso.comando} — ${paso.motivo}. Propónselo al usuario ANTES de escribir código; el muro arranque-guard te parará la primera vez que lo intentes sin él.`);
+}
 if (marker) {
     L.push(`- Stack: ${marker.stack}` + (marker.frontProfile ? ` | Perfil de front: ${marker.frontProfile.label} (stacks del buscador: ${[].concat(marker.frontProfile.stacks || []).join(', ')})` : ''));
     const inst = [].concat(marker.extraSkills || []).concat([].concat(marker.bundles || []).map(b => `bundle:${b}`));
     if (inst.length) L.push(`- Skills/bundles opcionales instalados: ${inst.join(', ')}`);
 } else {
-    L.push('- Sin .dev-standards.json: detecta el stack (composer.json / package.json / pyproject.toml) antes de asumir nada.');
+    L.push('- Senzu no está instalado en este proyecto (no hay senzu/senzu.json): propón /instalar; mientras, detecta el stack (composer.json / package.json / pyproject.toml) antes de asumir nada.');
 }
 const mat = projectMaturity(root);
 if (mat.existing && !mat.hasConventions) {
     L.push('- Proyecto EXISTENTE' + (mat.commits ? ` (${mat.commits} commits)` : '') + ': hay codigo previo con su propio estilo y SIN convenciones selladas. Antes de escribir codigo nuevo, propon /adoptar (analiza el estilo real y lo sella); mientras tanto imita el codigo vecino, no tu preferencia.'
         + (mat.ownGuide ? ' Lee CLAUDE.project.md (guia propia del proyecto: manda sobre lo generico).' : ''));
 } else if (!mat.existing) {
-    L.push('- Proyecto NUEVO/vacio: no asumas nada del usuario. Empieza por /brief (que quiere, en llano) y /plan; si quiere fijar convenciones desde el principio, /adoptar en modo entrevista.');
+    L.push('- Proyecto NUEVO/vacio: no asumas nada del usuario. '
+        + (marker && marker.frontProfile ? 'Empieza por /brief (qué quiere, en llano: marca, referencias, objetivo) y después /plan' : 'Empieza por /plan (objetivo, alcance y tarjetas, con su OK); /brief es para proyectos con interfaz')
+        + '; si quiere fijar convenciones desde el principio, /adoptar en modo entrevista.');
 }
 if (mat.ownDiary) {
     L.push(`- Diario propio del proyecto detectado (${mat.ownDiary}): antes de usar el devlog de Senzu, pregunta UNA vez al usuario que prefiere (su formato, devlog, o ambos) y respeta su decision el resto del proyecto.`);
@@ -57,7 +65,9 @@ const sinRegistrar = logosSinRegistrar(root);
 if (sinRegistrar.length) L.push(`- Hay logo final sin registrar (${sinRegistrar.map(l => l.maestro).join(', ')}): anótalo en «Fijado» de gustos.md (con su ruta) y como decisión en la memoria del devlog, para que cualquier agente lo sepa.`);
 else if (marker && marker.frontProfile) L.push(`- No hay ${DS}/*/MASTER.md: genera uno con ui-ux-pro-max antes de maquetar.`);
 const plan = planStatus(root);
-if (plan.exists) {
+if (plan.exists && !plan.total) {
+    L.push(`- ${PL}/PLAN.md es todavía la plantilla, sin tarjetas reales: el plan está por hacer (/plan).`);
+} else if (plan.exists) {
     L.push(`- Plan del proyecto: ${PL}/PLAN.md (${plan.done}/${plan.total} tareas hechas).`
         + (plan.doing.length ? ` EN CURSO: ${plan.doing.join('; ')}.` : '')
         + (plan.next.length ? ` Siguientes: ${plan.next.join('; ')}.` : '')

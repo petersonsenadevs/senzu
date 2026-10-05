@@ -563,7 +563,7 @@ export function planStatus(root) {
     r.exists = true;
     for (const line of txt.split(/\r?\n/)) {
         const m = /^###\s+([A-Z]+\d*-T\d+[a-z]?)\s*[·\-]\s*(.+?)\s*\[(S|M|L)\]\s*\[(todo|doing|blocked|done)\]/.exec(line);
-        if (m) {
+        if (m && !/^(…|\.\.\.|<)/.test(m[2])) {   // las tarjetas de ejemplo de la plantilla («X-T1 …», «<Verbo + objeto>») no cuentan
             r.total++;
             const [, id, title, , st] = m;
             if (st === 'done') r.done++;
@@ -576,11 +576,54 @@ export function planStatus(root) {
 
 export function pad3(n) { return String(n).padStart(3, '0'); }
 
+// ¿Archivos de código en la raíz o un nivel por debajo? (sin node_modules, .git, senzu, .claude, .agents…)
+const EXT_CODIGO = /\.(php|ts|tsx|js|jsx|mjs|cjs|py|go|rs|rb|java|kt|cs|vue|svelte|astro|ps1|sh)$/i;
+const NO_MIRAR = new Set(['node_modules', '.git', 'senzu', '.claude', '.agents', 'vendor', 'dist', 'build', '.venv', 'venv', '__pycache__']);
+function hayCodigoSuelto(root) {
+    const mira = (dir, nivel) => {
+        let ents = []; try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch { return false; }
+        if (ents.some(e => e.isFile() && EXT_CODIGO.test(e.name))) return true;
+        return nivel < 1 && ents.some(e => e.isDirectory() && !NO_MIRAR.has(e.name) && !e.name.startsWith('.') && mira(path.join(dir, e.name), nivel + 1));
+    };
+    return mira(root, 0);
+}
+export function esArchivoDeCodigo(rel) { return EXT_CODIGO.test(String(rel || '')); }
+
+// ---------------------------------------------------------------- el SIGUIENTE PASO del método
+// Una sola respuesta a «¿en qué punto está este proyecto?» que comparten session-start (lo anuncia), el muro
+// arranque-guard (no deja escribir código hasta darlo) y prompt-router. Orden: instalar → adoptar (si hay código
+// sin convenciones) → brief (solo con interfaz) y plan (si es nuevo) → siguiente tarjeta. El usuario puede omitir
+// adoptar, plan o brief por proyecto: "omitirPasos" en el marcador (init.mjs --omitir-paso; el agente no puede).
+export function siguientePaso(root) {
+    const marker = getMarkerSeguro(root);
+    if (!marker) return { paso: 'instalar', comando: '/instalar', bloquea: true,
+        motivo: 'Senzu no está instalado en este proyecto: sin eso solo hay skills sueltas, no el método (perfil, plan, devlog, memoria y los muros del proyecto)' };
+    const omitir = new Set([].concat(marker.omitirPasos || []).map(String));
+    const mat = projectMaturity(root);
+    if (mat.existing && !mat.hasConventions && !omitir.has('adoptar')) return { paso: 'adoptar', comando: '/adoptar', bloquea: true,
+        motivo: 'hay código con su propio estilo y ninguna convención sellada: sin /adoptar escribirías a tu manera, no a la del proyecto' };
+    const plan = planStatus(root);
+    if (!mat.existing && !plan.total) {
+        const briefTxt = readText(path.join(ruta(root, 'plan'), 'brief.md')) || '';
+        const hayBrief = tieneContenido(seccionMd(briefTxt, 'Objetivo'));
+        if (marker.frontProfile && !hayBrief && !omitir.has('brief') && !omitir.has('plan')) return { paso: 'brief', comando: '/brief y después /plan', bloquea: true,
+            motivo: 'proyecto nuevo con interfaz: primero qué quiere el usuario (marca, referencias, objetivo), después el plan' };
+        if (!omitir.has('plan')) return { paso: 'plan', comando: '/plan', bloquea: true,
+            motivo: 'proyecto nuevo sin plan: primero el objetivo, el alcance (qué entra y qué no) y las tarjetas, y el OK del usuario' };
+    }
+    if (plan.doing.length || plan.next.length) return { paso: 'siguiente', comando: '/siguiente', bloquea: false,
+        motivo: plan.doing.length ? `tarea en curso: ${plan.doing[0]}` : `siguiente tarjeta: ${plan.next[0]}` };
+    return null;
+}
+
 export function projectMaturity(root) {
     // ¿Proyecto nuevo o existente? Guía la puerta de entrada: /adoptar (existente) vs /brief + /plan (nuevo).
     const commits = parseInt(git(root, ['rev-list', '--count', 'HEAD']) || '0', 10) || 0;
+    // Existente = hay código o historia. Antes solo miraba carpetas típicas (src/, app/…) y un repo con cientos de
+    // commits y su código en tools/ o core/ salía como «nuevo».
     const hasCode = ['src', 'app', 'apps', 'lib', 'resources', 'components', 'pages', 'packages'].some(d => fs.existsSync(path.join(root, d)))
-        || ['composer.json', 'package.json', 'pyproject.toml', 'go.mod', 'pom.xml'].some(f => fs.existsSync(path.join(root, f)));
+        || ['composer.json', 'package.json', 'pyproject.toml', 'go.mod', 'pom.xml', 'Cargo.toml', 'Gemfile'].some(f => fs.existsSync(path.join(root, f)))
+        || commits >= 5 || hayCodigoSuelto(root);
     const ownDiary = ['CHANGELOG.md', path.join('docs', 'decisions'), path.join('docs', 'adr'), 'HISTORY.md']
         .find(f => fs.existsSync(path.join(root, f))) || null;
     return {
