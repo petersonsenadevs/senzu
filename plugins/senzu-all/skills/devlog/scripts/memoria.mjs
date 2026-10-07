@@ -9,7 +9,7 @@
 //   node memoria.mjs --lista [--todo] | --olvidar <id>
 //   node memoria.mjs --nada [--motivo "…"]              revisado: nada estable que guardar en esta sesión
 //   node memoria.mjs --enlazar <dimensión A> <dimensión B>  (o --enlaces A,B al guardar): al recordar uno, llega el otro
-//   node memoria.mjs --cortex [--cliente] [--salida <carpeta>]   la memoria en un HTML local (senzu/cortex/), sin red
+//   node memoria.mjs --cortex [--cliente] [--salida <carpeta>] [--idioma es|en|pt|fr|de|it]   la memoria en un HTML local, sin red
 // Dimensiones: «familia.tema» libre (identidad.nombre, proyecto.stack, preferencia.gestor-paquetes, restriccion.presupuesto…).
 // Un valor nuevo en la misma dimensión SUSTITUYE al anterior (queda en el histórico); objetivo.*, pendiente.*, nota.*,
 // hecho.* y aprendizaje.* acumulan. --duda: el usuario no lo afirmó del todo («creo que…»): se guarda sin sustituir.
@@ -124,7 +124,7 @@ if (opt('--cortex')) {   // Cortex: la memoria en un HTML local, sin red; --clie
     const gi = path.join(dir, '.gitignore');
     if (!fs.existsSync(gi)) fs.writeFileSync(gi, '# Cortex: memoria privada del proyecto, generada. No se versiona.\n*\n');
     const file = path.join(dir, cliente ? 'cliente.html' : 'index.html');
-    fs.writeFileSync(file, htmlCortex(datos, { cli: fileURLToPath(import.meta.url) }));
+    fs.writeFileSync(file, htmlCortex(datos, { cli: fileURLToPath(import.meta.url), idioma: opt('--idioma') && opt('--idioma') !== true ? String(opt('--idioma')).slice(0, 2).toLowerCase() : null }));
     const n = Object.values(datos.zonas).reduce((s, l) => s + l.length, 0);
     out(`Cortex${cliente ? ' (vista para el cliente)' : ''}: ${file}`);
     out(`  ${n} recuerdos · ${datos.cambios.length} cambios en 7 días · ${datos.abiertos.length} abiertos. Ábrelo en el navegador (funciona sin red).`);

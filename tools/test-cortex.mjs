@@ -92,7 +92,8 @@ const INTERNO = ['--olvidar', '--resolver', '"ultimo_uso"', '"usos"', '"devlog":
 const dc = m.datosCortex(P, { ahora: AHORA, cliente: true });
 const htmlC = htmlCortex(dc, { cli: CLI });
 for (const s of PRIVADO) ok(!htmlC.includes(s), `cliente: el ARCHIVO no contiene «${s}»`);
-const sinCodigo = htmlC.replace(/<script>[\s\S]*?<\/script>/, '');
+// (los textos de la interfaz son públicos e iguales para todos: lo interno se busca en los DATOS y en el HTML visible)
+const sinCodigo = htmlC.replace(/<script[^>]*id="textos-cortex"[^>]*>[^<]*<\/script>/, '').replace(/<script>[\s\S]*?<\/script>/, '');
 for (const s of INTERNO) ok(!sinCodigo.includes(s), `cliente: ni los datos ni el HTML llevan «${s}»`);
 ok(htmlC.includes('Laravel Forge') && htmlC.includes('Vender 200 piezas al mes') && htmlC.includes('Los pagos, solo por Stripe'), 'cliente: sí lleva el proyecto, los objetivos y las decisiones');
 ok(datosDe(htmlC).cli === null && /<html[^>]*data-cliente/.test(htmlC) && !htmlC.includes('id="cliente"'), 'cliente: sin comandos, en modo cliente y sin el interruptor');
@@ -121,7 +122,7 @@ process.env.SENZU_MEMORIA_USUARIO = antes;
 ok(Object.values(dv.zonas).every(l => !l.length) && !dv.cambios.length && !dv.abiertos.length, 'una memoria vacía no rompe nada');
 ok(/La memoria está vacía/.test(htmlCortex(dv)), 'y la página lo dice en llano');
 const cli = (...a) => spawnSync(process.execPath, [CLI, '--path', P, ...a], { encoding: 'utf8', env: process.env });
-let r = cli('--cortex');
+let r = cli('--cortex', '--idioma', 'es');
 const dir = path.join(P, 'senzu', 'cortex');
 ok(r.status === 0 && fs.existsSync(path.join(dir, 'index.html')) && /Cortex: .*index\.html/.test(r.stdout) && /--cortex --cliente/.test(r.stdout), 'CLI --cortex: senzu/cortex/index.html y aviso de que es privado', r.stdout + r.stderr);
 ok(/^\*$/m.test(fs.readFileSync(path.join(dir, '.gitignore'), 'utf8')), 'la carpeta se ignora a sí misma en git (la memoria es privada)');
@@ -165,6 +166,13 @@ if (process.env.PLAYWRIGHT) {
         await p.locator('[data-ir="3d"]').click(); await p.waitForTimeout(300);
         const pinta = await p.evaluate(() => { const c = document.getElementById('lienzo3d'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let k = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) k++; return k; });
         ok(pinta > 2000, `${ancho}: el 3D pinta`, String(pinta));
+        // la interfaz en otro idioma (los datos, como se guardaron)
+        await p.locator('#idioma').selectOption('en');
+        ok(/Memory of ceramicas/.test(await p.locator('h1').innerText()) && (await p.locator('.chips [data-region="parietal"] span').innerText()) === 'The project' && (await p.locator('html').getAttribute('lang')) === 'en', `${ancho}: la interfaz cambia a inglés (título, zonas y lang)`);
+        ok(/Laravel Forge/.test(await p.locator('#lista').innerText()), `${ancho}: los datos no se traducen`);
+        await p.reload();
+        ok((await p.locator('#idioma').inputValue()) === 'en', `${ancho}: el idioma elegido se recuerda`);
+        await p.locator('#idioma').selectOption('es');
         ok(await p.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${ancho}: sin desborde horizontal`);
         ok(!errores.length, `${ancho}: sin errores en la consola`, errores.join(' | '));
         await p.close();

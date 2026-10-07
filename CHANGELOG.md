@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **fix** — Cortex: multiidioma, 3D anatómico con flujo de neuronas, 2D afinado y modo claro (entrada 121)
 - **feature** — Cortex: la memoria en un HTML local, 2D/3D por zonas, y vista de cliente sin nada privado (F7-T3) (entrada 120)
 - **design** — Design system de Cortex por rondas: Nocturno + 2D neón, giro 3D libre (F7-T2) (entrada 119)
 - **docs** — Brief de Cortex aprobado: 2D y 3D, colores votados, modo cliente (F7-T1) (entrada 118)

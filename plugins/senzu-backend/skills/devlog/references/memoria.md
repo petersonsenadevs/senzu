@@ -122,7 +122,9 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   `--olvidar` uno si es lo mismo; «contradice» otro valor vigente que no se sustituye → pregunta cuál vale.
 - **Verla (Cortex)**: `memoria.mjs --cortex` genera `senzu/cortex/index.html`, un HTML local sin red con un cerebro
   2D/3D por zonas (lo que se quiere conseguir, el proyecto, normas y decisiones, quién eres y lo vivido), qué cambió
-  esta semana, lo abierto, el buscador y el detalle con su historia, procedencia y enlaces. Es privado: la carpeta
+  esta semana, lo abierto, el buscador y el detalle con su historia, procedencia y enlaces; en el 3D, impulsos
+  entre neuronas según el uso de cada zona. La interfaz habla el idioma del navegador (es, en, pt, fr, de, it;
+  selector y --idioma); los datos se enseñan como se guardaron. Es privado: la carpeta
   se ignora en git. `--cortex --cliente` genera `cliente.html` para enseñarlo: sin lo personal, lo deducido, lo
   dudoso, lo aprendido, el devlog ni los comandos (no van ni dentro del archivo).
 - **Uso y enfriamiento**: lo que llega al agente (al hablar, al editar, `--buscar`, `--recordar`) suma un uso; lo
