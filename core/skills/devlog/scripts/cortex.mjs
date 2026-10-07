@@ -440,6 +440,7 @@ const APP = String.raw`
         punto(q, a, (q.p.s ? 1.5 : 2.5) * q.f);
       });
       hipo.forEach(function (q) { punto(q, (claro ? 0.85 : 0.9) * zonaA(q.p), 2.2 * q.f); });
+      visibles = delante.concat(hipo);   // para elegir zona con un toque (X-T7)
       // conexiones, impulsos y destellos: luz que se suma en oscuro; en claro, tinta
       ctx.globalCompositeOperation = claro ? 'source-over' : 'lighter';
       var pn = nodos.map(function (n) { return proyectar(n, w, h, esc, c, sn, cp, sp); });
@@ -497,6 +498,19 @@ const APP = String.raw`
       latir(); dibujar(); requestAnimationFrame(paso);
     }
     cv.tabIndex = 0;
+    // un toque (sin arrastrar) elige la zona del punto visible más cercano, como en el 2D; otro toque la suelta
+    var visibles = [], inicio = null;
+    function elegirEn(x, y) {
+      var mejor = null, d = 196;   // 14 px como mucho
+      visibles.forEach(function (q) { if (q.p.r === 'neutro' || !zonaVisible(q.p.r)) return; var dd = (q.x - x) * (q.x - x) + (q.y - y) * (q.y - y); if (dd < d) { d = dd; mejor = q.p.r; } });
+      if (!mejor) return;
+      region = region === mejor ? null : mejor; limite = PAGINA; todo();
+    }
+    cv.addEventListener('pointerdown', function (e) { inicio = { x: e.clientX, y: e.clientY }; });
+    cv.addEventListener('click', function (e) {
+      if (inicio && Math.abs(e.clientX - inicio.x) + Math.abs(e.clientY - inicio.y) > 5) return;   // fue un arrastre
+      var c = cv.getBoundingClientRect(); elegirEn(e.clientX - c.left, e.clientY - c.top);
+    });
     cv.addEventListener('pointerdown', function (e) { arr = { x: e.clientX, y: e.clientY }; vx = vy = 0; cv.setPointerCapture(e.pointerId); });
     cv.addEventListener('pointermove', function (e) {
       if (!arr) return;

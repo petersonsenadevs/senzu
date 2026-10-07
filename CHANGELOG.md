@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **feature** — Cortex vivo: se regenera al cerrar y el 3D elige zona (X-T7) (entrada 127)
 - **feature** — Contradicciones de la memoria al empezar la sesión (X-T6) (entrada 126)
 - **feature** — Registro del uso real de la memoria y --informe (X-T4) (entrada 125)
 - **feature** — Convención de claves: la misma dimensión para lo mismo en cualquier idioma (X-T3) (entrada 124)

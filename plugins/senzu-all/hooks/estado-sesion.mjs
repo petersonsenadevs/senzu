@@ -6,11 +6,12 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import {
     readHookInput, projectRoot, sessionFlag, testOnce, editadosSesion, gitCambios, gitBranch, planStatus,
     devlogEntradas, readText, rutaEstado, memoriaProyecto, rutaMemoriaUsuario, ruta, rutaRel,
 } from './lib.mjs';
-import { todosLosHechos, marcarUsoSesion, textosDelAgente } from './hechos.mjs';
+import { todosLosHechos, marcarUsoSesion, textosDelAgente, rutaBuscador } from './hechos.mjs';   // la de hechos.mjs: ruta REAL junto al hook
 
 const p = readHookInput() || {};
 const root = projectRoot();
@@ -49,6 +50,20 @@ if (peticiones.length || editados.length || hechosGuardados.length) {
 // 1b. uso real de la memoria (X-T4): lo que se inyectó en esta sesión, ¿lo usó el agente? Se mira en la conversación
 // (transcript_path); sin ella queda «sin datos», nunca se supone
 try { marcarUsoSesion(root, sid, p.transcript_path ? textosDelAgente(p.transcript_path) : []); } catch {}
+
+// 1c. Cortex vivo (X-T7): si el usuario ya lo generó y la memoria cambió desde entonces, se regenera solo (con su
+// idioma; también la vista de cliente si existe). Si nunca lo generó, no se crea nada.
+if (evento === 'Stop') try {
+    const dir = ruta(root, 'cortex'), mt = f => { try { return fs.statSync(f).mtimeMs; } catch { return 0; } };
+    const fuentes = Math.max(mt(path.join(ruta(root, 'memoria'), 'hechos.jsonl')), mt(path.join(ruta(root, 'devlog'), 'MEMORIA.md')), mt(path.join(ruta(root, 'devlog'), 'INDEX.md')));
+    const cli = rutaBuscador(root).replace(/buscar\.mjs$/, 'memoria.mjs');
+    for (const [archivo, extra] of [['index.html', []], ['cliente.html', ['--cliente']]]) {
+        const f = path.join(dir, archivo);
+        if (!fs.existsSync(f) || mt(f) >= fuentes || !fs.existsSync(cli)) continue;
+        const idioma = (/"idioma":"([a-z]{2})"/.exec(fs.readFileSync(f, 'utf8')) || [])[1];
+        spawnSync(process.execPath, [cli, '--path', root, '--cortex', ...extra, ...(idioma ? ['--idioma', idioma] : [])], { encoding: 'utf8', timeout: 15000 });
+    }
+} catch {}
 
 // 2. al cerrar: ¿quedó apuntada la regla o corrección del usuario?
 if (evento !== 'Stop') process.exit(0);

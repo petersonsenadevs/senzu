@@ -172,6 +172,18 @@ if (process.env.PLAYWRIGHT) {
         await p.locator('[data-ir="3d"]').click(); await p.waitForTimeout(300);
         const pinta = await p.evaluate(() => { const c = document.getElementById('lienzo3d'); const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data; let k = 0; for (let i = 3; i < d.length; i += 4) if (d[i]) k++; return k; });
         ok(pinta > 2000, `${ancho}: el 3D pinta`, String(pinta));
+        // X-T7: un toque en el 3D elige la zona (como en el 2D); otro toque en el mismo sitio la suelta
+        const caja3d = await p.locator('#lienzo3d').boundingBox();
+        const elegida = () => p.evaluate(() => (document.querySelector('.chips [aria-pressed="true"]') || {}).getAttribute?.('data-region') || null);
+        await p.mouse.click(caja3d.x + caja3d.width * 0.42, caja3d.y + caja3d.height * 0.4);
+        const z3 = await elegida();
+        ok(!!z3, `${ancho}: un toque en el 3D elige una zona`, String(z3));
+        await p.mouse.click(caja3d.x + caja3d.width * 0.42, caja3d.y + caja3d.height * 0.4);
+        ok(await elegida() === null, `${ancho}: otro toque la suelta`);
+        await p.mouse.move(caja3d.x + caja3d.width * 0.42, caja3d.y + caja3d.height * 0.4); await p.mouse.down();
+        for (let k = 1; k <= 6; k++) await p.mouse.move(caja3d.x + caja3d.width * 0.42 + k * 12, caja3d.y + caja3d.height * 0.4);
+        await p.mouse.up();
+        ok(await elegida() === null, `${ancho}: arrastrar para girar no elige zona`);
         // la interfaz en otro idioma (los datos, como se guardaron)
         await p.locator('#idioma').selectOption('en');
         ok(/Memory of ceramicas/.test(await p.locator('h1').innerText()) && (await p.locator('.chips [data-region="parietal"] span').innerText()) === 'The project' && (await p.locator('html').getAttribute('lang')) === 'en', `${ancho}: la interfaz cambia a inglés (título, zonas y lang)`);

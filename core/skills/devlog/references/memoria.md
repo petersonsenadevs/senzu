@@ -132,7 +132,8 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   2D/3D por zonas (lo que se quiere conseguir, el proyecto, normas y decisiones, quién eres y lo vivido), qué cambió
   esta semana, lo abierto, el buscador y el detalle con su historia, procedencia y enlaces; en el 3D, impulsos
   entre neuronas según el uso de cada zona. La interfaz habla el idioma del navegador (es, en, pt, fr, de, it;
-  selector y --idioma); los datos se enseñan como se guardaron. Es privado: la carpeta
+  selector y --idioma); los datos se enseñan como se guardaron. Una vez generado, se regenera solo al cerrar una
+  sesión en la que cambió la memoria (con su idioma, y también cliente.html si existe); tocar una zona en el 3D la elige. Es privado: la carpeta
   se ignora en git. `--cortex --cliente` genera `cliente.html` para enseñarlo: sin lo personal, lo deducido, lo
   dudoso, lo aprendido, el devlog ni los comandos (no van ni dentro del archivo).
 - **Uso real** (`--informe`): cada inyección (y cada silencio) se apunta en `senzu/.estado/recuerdo-uso.jsonl`

@@ -326,6 +326,28 @@ const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abierto
     ok(/Pest/.test(mensaje(P, '¿cómo hacemos las pruebas del proyecto?', `ns2-${RUN}`)), 'sin nombres desconocidos, sí lo inyecta');
 }
 
+// ---------------------------------------------------------------- X-T7 · Cortex vivo: se regenera solo al cerrar
+{
+    const P = proyecto('cortex-vivo');
+    const dir = path.join(P, 'senzu', 'cortex');
+    m.guardarHecho(P, { dimension: 'proyecto.hosting', valor: 'Netlify' }, { ahora: T(0) });
+    hook('estado-sesion.mjs', P, { session_id: `cv0-${RUN}`, hook_event_name: 'Stop' });
+    ok(!fs.existsSync(path.join(dir, 'index.html')), 'si nunca se generó Cortex, cerrar no lo crea');
+    const r = spawnSync(process.execPath, [CLI, '--path', P, '--cortex', '--idioma', 'en'], { encoding: 'utf8', env: process.env });
+    spawnSync(process.execPath, [CLI, '--path', P, '--cortex', '--cliente'], { encoding: 'utf8', env: process.env });
+    ok(r.status === 0 && /Netlify/.test(fs.readFileSync(path.join(dir, 'index.html'), 'utf8')), '(generado a mano, en inglés)');
+    const viejo = Date.now() - 60000;
+    fs.utimesSync(path.join(dir, 'index.html'), viejo / 1000, viejo / 1000); fs.utimesSync(path.join(dir, 'cliente.html'), viejo / 1000, viejo / 1000);
+    m.guardarHecho(P, { dimension: 'proyecto.hosting', valor: 'Laravel Forge' }, { ahora: T(10) });
+    hook('estado-sesion.mjs', P, { session_id: `cv1-${RUN}`, hook_event_name: 'Stop' });
+    const idx = fs.readFileSync(path.join(dir, 'index.html'), 'utf8'), cli = fs.readFileSync(path.join(dir, 'cliente.html'), 'utf8');
+    ok(/Laravel Forge/.test(idx) && /Laravel Forge/.test(cli), 'la memoria cambió: al cerrar se regeneran los dos (el tuyo y el del cliente)');
+    ok(/"idioma":"en"/.test(idx) && /data-cliente/.test(cli), 'conservando el idioma elegido y la vista de cliente');
+    const antes = fs.statSync(path.join(dir, 'index.html')).mtimeMs;
+    hook('estado-sesion.mjs', P, { session_id: `cv2-${RUN}`, hook_event_name: 'Stop' });
+    ok(fs.statSync(path.join(dir, 'index.html')).mtimeMs === antes, 'sin cambios en la memoria, no se regenera');
+}
+
 // ---------------------------------------------------------------- X-T6 · contradicciones al empezar la sesión
 {
     const P = proyecto('contradicciones');
