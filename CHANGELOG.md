@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **feature** — Objetivos y pendientes con ciclo de vida (F6-T2) (entrada 114)
 - **feature** — Enlaces entre hechos y expansión de un salto (F6-T1) (entrada 113)
 - **test** — Garantías: sin contexto no inventa y nunca da por vigente lo que no lo es (X-T1) (entrada 112)
 - **docs** — Memoria de hechos documentada y propuesta de fusión para después de la prueba real (F5-T1) (entrada 111)

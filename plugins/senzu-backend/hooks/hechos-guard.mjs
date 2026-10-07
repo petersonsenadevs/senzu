@@ -28,12 +28,12 @@ if (evento === 'PostToolUse') {
     const root = projectRoot();
     if (['Bash', 'PowerShell'].includes(p.tool_name)) {
         const cmd = sinTextoCitado(String((p.tool_input && p.tool_input.command) || ''));
-        const m = /\bmemoria\.mjs\b[^|;&\n]*?--(guardar|olvidar|nada)\b/.exec(cmd);
+        const m = /\bmemoria\.mjs\b[^|;&\n]*?--(guardar|olvidar|nada|resolver|abandonar|en-curso)\b/.exec(cmd);
         if (!m) process.exit(0);
         const r = p.tool_response || {};
         const salida = typeof r === 'string' ? r : [r.stdout, r.stderr, r.output].filter(Boolean).join('\n');
         // solo si funcionó: guardar → «Guardado…» o «Ya estaba…»; olvidar → «Olvidado…»; nada → «Revisado…»
-        const funciono = { guardar: /^(Guardado|Ya estaba)/m, olvidar: /^Olvidado/m, nada: /^Revisado/m }[m[1]].test(salida);
+        const funciono = { guardar: /^(Guardado|Ya estaba)/m, olvidar: /^Olvidado/m, nada: /^Revisado/m, resolver: /^Resuelto/m, abandonar: /^Abandonado/m, 'en-curso': /^En curso/m }[m[1]].test(salida);
         if (!funciono) process.exit(0);
         marcar({ guardados: m[1] === 'guardar' ? [...salida.matchAll(/\b(h-[0-9a-f]{8})\b/g)].map(x => x[1]) : [], via: m[1] });
         process.exit(0);

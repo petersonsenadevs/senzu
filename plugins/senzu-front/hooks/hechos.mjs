@@ -184,6 +184,35 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
     return { accion: entrada.duda ? 'dudoso' : sustituidos.length ? 'sustituye' : 'nuevo', hecho, sustituidos };
     });
 }
+// ---------------------------------------------------------------- objetivos y pendientes con ciclo de vida (F6-T2)
+// abierto → en curso → resuelto | abandonado, con fecha y nota. Cerrado deja de ser vigente (no se inyecta) y queda
+// en el histórico. ref: id del hecho o su dimensión (el vigente de esa dimensión).
+export const FAMILIAS_CICLO = /^(objetivo|pendiente)(\.|$)/;
+export function cambiarProgreso(root, ref, progreso, nota, { ahora = hoy() } = {}) {
+    if (!['en-curso', 'resuelto', 'abandonado'].includes(progreso)) throw new Error('Progreso: en-curso, resuelto o abandonado');
+    const dim = claveDimension(ref);
+    for (const alcance of ['proyecto', 'usuario']) {
+        const file = rutaHechos(root, alcance);
+        if (!fs.existsSync(file)) continue;
+        const h = conCerrojo(file, () => {
+            const { validos: lista, ilegibles } = leerArchivo(file);
+            const x = lista.find(y => y.id === ref) || lista.filter(y => y.dimension === dim && y.estado === 'activo').pop();
+            if (!x || !FAMILIAS_CICLO.test(x.dimension) || x.estado !== 'activo') return null;
+            x.progreso = progreso;
+            if (progreso === 'en-curso') x.en_curso_desde = ahora;
+            else { x.estado = 'cerrado'; x.hasta = ahora; x.cerrado = ahora; if (nota) x.nota_cierre = String(nota).slice(0, 300); }
+            escribirHechos(file, lista, ilegibles);
+            return x;
+        });
+        if (h) return h;
+    }
+    return null;
+}
+// Objetivos y pendientes abiertos, LOS MÁS ANTIGUOS PRIMERO (lo que lleva tiempo abierto es lo que se olvida)
+export function abiertos(root, { ahora = hoy() } = {}) {
+    return todosLosHechos(root).filter(h => FAMILIAS_CICLO.test(h.dimension) && vigente(h, ahora)).sort((a, b) => (a.creado || '').localeCompare(b.creado || ''));
+}
+
 // Enlaza la dimensión A (su hecho vigente, en el alcance donde esté) con la dimensión B. Devuelve el hecho o null.
 export function enlazarHechos(root, dimA, dimB) {
     const a = claveDimension(dimA), b = claveDimension(dimB);
@@ -303,6 +332,8 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     hits.sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
     return conCupos(hits, limite, x => familia(x.hecho.dimension)).map(x => ({ ...x,
         motivo: (x.via ? `vía enlace con ${x.via}` : `coincide: ${x.motivo.join(', ')}`) + (x.hecho.estado === 'sustituido' ? ` · ya no vigente (sustituido el ${String(x.hecho.hasta || '').slice(0, 10)})` : '')
+            + (x.hecho.estado === 'cerrado' ? ` · cerrado (${x.hecho.progreso} el ${String(x.hecho.cerrado || '').slice(0, 10)}${x.hecho.nota_cierre ? ': ' + x.hecho.nota_cierre : ''})` : '')
+            + (x.hecho.progreso === 'en-curso' && x.hecho.estado === 'activo' ? ' · en curso' : '')
             + (x.hecho.estado === 'dudoso' ? ' · dudoso (el usuario no lo afirmó del todo)' : '')
             + (x.debil ? ` · relación débil (solo coincide «${x.solo}»: úsalo solo si de verdad viene al caso)` : '') }));
 }

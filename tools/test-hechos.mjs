@@ -113,6 +113,30 @@ ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S
     ok(m.enlazarHechos(L, 'no.existe', 'proyecto.cliente') === null && m.enlazarHechos(L, 'proyecto.cliente', 'proyecto.cliente') === null, 'enlazar algo que no existe o a sí mismo: nada');
 }
 
+// 3e. objetivos y pendientes con ciclo de vida (F6-T2)
+{
+    const C = proyecto('ciclo');
+    const fotos = m.guardarHecho(C, { dimension: 'pendiente.fotos', valor: 'faltan las fotos de otoño', claves: ['fotos'] }, { ahora: T(C, 0) }).hecho;
+    m.guardarHecho(C, { dimension: 'objetivo.ventas', valor: 'vender 200 piezas al mes', claves: ['ventas'] }, { ahora: T(C, 5) });
+    m.guardarHecho(C, { dimension: 'proyecto.cliente', valor: 'Cerámicas Sol' }, { ahora: T(C, 6) });
+    ok(m.abiertos(C).map(h => h.dimension).join(',') === 'pendiente.fotos,objetivo.ventas', 'abiertos: solo objetivos y pendientes, los más antiguos primero');
+    let h = m.cambiarProgreso(C, 'objetivo.ventas', 'en-curso');
+    ok(h && h.progreso === 'en-curso' && m.abiertos(C).length === 2 && /en curso/.test(m.buscarHechos(C, 'ventas')[0].motivo), 'en curso: sigue abierto y se marca');
+    h = m.cambiarProgreso(C, fotos.id, 'resuelto', 'el fotógrafo las entregó el lunes');
+    ok(h && h.estado === 'cerrado' && h.progreso === 'resuelto' && m.abiertos(C).length === 1, 'resolver por id: deja de estar abierto');
+    ok(m.buscarHechos(C, 'fotos').length === 0, 'lo resuelto ya no se encuentra como vigente');
+    const hist = m.buscarHechos(C, 'fotos', { historico: true });
+    ok(hist.length === 1 && /cerrado \(resuelto el .*: el fotógrafo las entregó el lunes\)/.test(hist[0].motivo), 'pero sí en el histórico, con cuándo y cómo se cerró', JSON.stringify(hist.map(x => x.motivo)));
+    ok(m.cambiarProgreso(C, 'objetivo.ventas', 'abandonado', 'el cliente cambió de estrategia').progreso === 'abandonado' && m.abiertos(C).length === 0, 'abandonar por dimensión');
+    ok(m.cambiarProgreso(C, 'proyecto.cliente', 'resuelto') === null, 'un hecho normal (no objetivo ni pendiente) no tiene ciclo de vida');
+    ok(m.cambiarProgreso(C, fotos.id, 'resuelto') === null, 'lo ya cerrado no se vuelve a cerrar');
+    let err = ''; try { m.cambiarProgreso(C, 'objetivo.ventas', 'hecho'); } catch (e) { err = e.message; }
+    ok(/en-curso, resuelto o abandonado/.test(err), 'un progreso desconocido se rechaza');
+    const cli = (...a) => spawnSync(process.execPath, [CLI, '--path', C, ...a], { encoding: 'utf8', env: process.env }).stdout;
+    m.guardarHecho(C, { dimension: 'pendiente.logo', valor: 'revisar el logo con el cliente' }, { ahora: T(C, 20) });
+    ok(/abierto desde/.test(cli('--abiertos')) && /^Resuelto: .*pendiente\.logo.* — aprobado/m.test(cli('--resolver', 'pendiente.logo', '--como', 'aprobado')), 'CLI: --abiertos y --resolver con nota');
+}
+
 // 4. cupos por familia: que una familia no se coma el espacio
 const C = proyecto('cupos');
 for (let i = 0; i < 6; i++) m.guardarHecho(C, { dimension: `nota.${i}`, valor: `nota de diseño ${i}`, claves: ['diseño'] }, { ahora: T(C, i) });

@@ -77,6 +77,20 @@ if (opt('--lista')) {
     out(l.length ? l.map(linea).join('\n') : 'Sin hechos guardados.');
     process.exit(0);
 }
+// objetivos y pendientes: --en-curso <id|dimensión> · --resolver <id|dimensión> [--como "…"] · --abandonar <id|dimensión> [--motivo "…"]
+for (const [flag, progreso, titulo] of [['--en-curso', 'en-curso', 'En curso'], ['--resolver', 'resuelto', 'Resuelto'], ['--abandonar', 'abandonado', 'Abandonado']]) {
+    if (!opt(flag)) continue;
+    const ref = String(opt(flag)), nota = [opt('--como'), opt('--motivo')].find(x => x && x !== true);
+    let h = null;
+    try { h = ref !== 'true' ? m.cambiarProgreso(root, ref, progreso, nota) : null; } catch (e) { out(e.message); process.exit(2); }
+    out(h ? `${titulo}: ${linea(h)}${nota ? ` — ${nota}` : ''}` : 'No hay un objetivo o pendiente ABIERTO con ese id o dimensión (solo objetivo.* y pendiente.* tienen ciclo de vida).');
+    process.exit(h ? 0 : 2);
+}
+if (opt('--abiertos')) {   // objetivos y pendientes abiertos, los más antiguos primero
+    const l = m.abiertos(root);
+    out(l.length ? l.map(h => `${linea(h)} · abierto desde ${fecha(h.creado)}${h.progreso === 'en-curso' ? ' (en curso)' : ''}`).join('\n') : 'No hay objetivos ni pendientes abiertos.');
+    process.exit(0);
+}
 if (opt('--enlazar')) {   // --enlazar <dimensión A> <dimensión B>: al recordar A, llega también lo vigente de B (y al revés)
     const i = args.indexOf('--enlazar'), a = args[i + 1], b = args[i + 2];
     const h = a && b && !a.startsWith('--') && !b.startsWith('--') ? m.enlazarHechos(root, a, b) : null;

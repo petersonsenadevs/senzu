@@ -265,6 +265,24 @@ for (const modo of ['claude', 'codex']) {
     ok(mensaje(Q, 'how much budget do we have for the first phase?', `e2e-otro-${RUN}`) === '', '…ni con una pregunta sobre ellos');
 }
 
+const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abiertos', 'memoria.md') };
+// ---------------------------------------------------------------- F6-T2 · objetivos y pendientes abiertos al empezar
+{
+    const P = proyecto('abiertos');
+    m.guardarHecho(P, { dimension: 'pendiente.fotos', valor: 'faltan las fotos de otoño' }, { ahora: '2026-01-10T09:00:00.000Z' });
+    m.guardarHecho(P, { dimension: 'objetivo.ventas', valor: 'vender 200 piezas al mes' }, { ahora: '2026-09-01T09:00:00.000Z' });
+    const cerrado = m.guardarHecho(P, { dimension: 'pendiente.dominio', valor: 'comprar el dominio' }, { ahora: '2026-02-01T09:00:00.000Z' }).hecho;
+    m.cambiarProgreso(P, cerrado.id, 'resuelto');
+    m.guardarHecho(P, { dimension: 'proyecto.cliente', valor: 'Cerámicas Sol' }, { ahora: '2026-03-01T09:00:00.000Z' });
+    const c = inicio(P, VACIA_ABIERTOS);
+    const bloque = c.split('\n').filter(l => /OBJETIVOS Y PENDIENTES|^\s+· \[(objetivo|pendiente)/.test(l));
+    ok(/OBJETIVOS Y PENDIENTES abiertos \(2;/.test(c) && /--resolver/.test(c), 'inicio: bloque de abiertos con cómo cerrarlos', c.slice(0, 900));
+    ok(bloque[1] && bloque[1].includes('pendiente.fotos') && bloque[2] && bloque[2].includes('objetivo.ventas'), 'los más antiguos primero (las fotos, abiertas desde enero)', bloque.join(' | '));
+    ok(/abierto hace \d+ día\(s\)/.test(bloque[1] || ''), 'con su antigüedad en días');
+    ok(!/comprar el dominio/.test(c), 'lo resuelto no aparece');
+    ok(!/\[pendiente\.fotos\].*\n[\s\S]*\[pendiente\.fotos\]/.test(c) && /HECHOS que ya sabes[\s\S]*proyecto\.cliente/.test(c), 'los abiertos no se repiten en el bloque de HECHOS');
+}
+
 // ---------------------------------------------------------------- GARANTÍAS: sin contexto no inventa; nunca da por vigente lo que no lo es
 const VACIA = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-vacio', 'memoria.md') };
 {   // proyecto SIN NADA (sin devlog, sin hechos, sin memoria del usuario): ningún hook inventa ni se cae
