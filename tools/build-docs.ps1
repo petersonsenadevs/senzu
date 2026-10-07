@@ -258,6 +258,17 @@ if (Test-Path $idxPath) {
             $rows += [pscustomobject]@{ N = $Matches[1]; Fecha = $Matches[2]; Titulo = $Matches[3]; Tipo = $Matches[4] }
         }
     }
+    # Lo de una rama EXPERIMENTAL (la entrada dice «rama exp/…») solo sale si esa rama ya está en el historial de
+    # HEAD (algún commit «(exp)»): un parche desde main no anuncia en el CHANGELOG público lo que no se ha publicado
+    # (el 2.19.1 se llevó las entradas 098-099 de Hemispheric; el 2.19.2 iba a llevarse de la 100 a la 129).
+    $hayExp = $false
+    try { $hayExp = [bool](& git -C $root log HEAD --grep='(exp)$' -n 1 --format='%h' 2>$null) } catch {}
+    if (-not $hayExp) {
+        $rows = @($rows | Where-Object {
+            $f = Get-ChildItem -Path (Join-Path $root "devlog\$($_.Fecha)") -Filter "$($_.N)-*.md" -ErrorAction SilentlyContinue | Select-Object -First 1
+            -not ($f -and ((Read-Utf8 $f.FullName) -match 'rama exp/'))
+        })
+    }
     # El devlog es privado (no se versiona) y el CHANGELOG es público: devlog/privado.txt (también privado)
     # lista sustituciones "nombre ==> genérico" que se aplican a los títulos, para que ningún nombre de
     # cliente o proyecto llegue al CHANGELOG.
