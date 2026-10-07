@@ -10,3 +10,6 @@ Aplica `project-planner` § task-protocol sobre `senzu/plan/PLAN.md`:
 2. Márcala `doing`, lee SOLO la skill y sección que indica su tarjeta, implementa completo.
 3. Verifica exactamente como dice la tarjeta y pega la salida; devlog + commit con `Tarea: <id>` en el cuerpo.
 4. Márcala `done` con el enlace al devlog y propón la siguiente. Si no hay plan, dilo y ofrece `/plan`.
+
+## Al terminar
+Con la tarjeta cerrada, propón la siguiente con `/siguiente`. Si era la última del plan: `/verificar` y después `/lanzar` (si hay interfaz), `/desplegar` y `/entregar`.

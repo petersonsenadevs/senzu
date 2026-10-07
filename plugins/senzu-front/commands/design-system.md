@@ -11,3 +11,6 @@ Aplica `ui-ux-pro-max` §2:
    `py -3 <skills-dir>/ui-ux-pro-max/scripts/search.py "<producto e industria que indicó el usuario>" --design-system -p "<Proyecto>" --persist -o senzu`
    (fuera de Windows: `python3`). Ajusta primary/tipografías a la marca existente si la hay y presenta el resultado
    (patrón, estilo, paleta con tokens, tipografía, evitar) antes de maquetar nada.
+
+## Al terminar
+`/propuestas <página>` para ver maquetas con este design system (o `/ronda` si ya hay propuestas); `/plan` si aún no hay tarjetas.

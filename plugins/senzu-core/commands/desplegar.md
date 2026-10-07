@@ -6,7 +6,7 @@ Uso: `/desplegar [entorno u objetivo, p. ej. "producción" o "staging"]` — el 
 
 Aplica `deploy-ops §references/deploy-checklist.md` para lo que el usuario escribió tras el comando, con evidencia por punto:
 
-1. **PRE**: suites en verde (verify-build), `/lanzar` APTA si aplica, **backup fresco verificado**,
+1. **PRE**: suites en verde (verify-build), `/lanzar` en LISTA si aplica, **backup fresco verificado**,
    plan de rollback escrito en una línea, migraciones revisadas (¿expansivas?), y — para producción —
    **pide la aprobación explícita del usuario AHORA** (sin ella, el guard bloquea y no se despliega).
 2. **DEPLOY**: por el camino reproducible del stack (`references/deploy-by-stack.md`): pipeline/hook/
@@ -17,3 +17,6 @@ Aplica `deploy-ops §references/deploy-checklist.md` para lo que el usuario escr
 
 Primer deploy de un proyecto: antes revisa `references/envs-secrets.md` (secretos en la plataforma,
 APP_DEBUG=false) y `references/backups-monitoring.md` (backups + uptime + Sentry montados).
+
+## Al terminar
+Tras el deploy y los 10 minutos de vigilancia: `/entregar` si es la entrega al cliente; si no, versión y hora al devlog y `/siguiente` si quedan tarjetas.

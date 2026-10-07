@@ -5,7 +5,7 @@ Cada punto se marca con su evidencia (comando+salida, captura o URL). El deploy 
 
 ## PRE (no se despliega sin esto)
 - [ ] Suites en verde AHORA: `verify-build.mjs` (lint/types/tests/build) con salida pegada.
-- [ ] Si es web pública y es su primer deploy o un cambio grande: `/lanzar` en APTA.
+- [ ] Si es web pública y es su primer deploy o un cambio grande: `/lanzar` en LISTA.
 - [ ] **Backup fresco y VERIFICADO** de BD+uploads (de hoy; comprobado que no está vacío). En estáticos
   sin BD: N/A explícito.
 - [ ] **Plan de rollback escrito en una línea**: "si falla → X" (deploy anterior de Netlify / tag docker

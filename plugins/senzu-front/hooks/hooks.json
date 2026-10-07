@@ -117,6 +117,11 @@
                                                             "type":  "command",
                                                             "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/depurar-coach.mjs\"",
                                                             "timeout":  30
+                                                        },
+                                                        {
+                                                            "type":  "command",
+                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/feature-guard.mjs\"",
+                                                            "timeout":  30
                                                         }
                                                     ]
                                       }
@@ -132,6 +137,11 @@
                                                  {
                                                      "type":  "command",
                                                      "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/cierre-limpio.mjs\"",
+                                                     "timeout":  30
+                                                 },
+                                                 {
+                                                     "type":  "command",
+                                                     "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/feature-guard.mjs\"",
                                                      "timeout":  30
                                                  },
                                                  {

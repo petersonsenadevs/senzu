@@ -233,6 +233,9 @@ foreach ($cf in (Get-ChildItem (Join-Path $root 'core\commands') -Filter *.md)) 
     elseif ($ct -match '\$[A-Za-z0-9_{]') { Fail "commands/$($cf.Name)" "contiene '$($Matches[0])...': Codex lo toma como argumento y no migra el comando (escribe la ruta o variable en texto, sin el signo)" }
     # Barra invertida: /instalar seguia sin migrar sin $ y era el unico comando con '\' (rutas de Windows).
     elseif ($ct.Contains([string][char]92)) { Fail "commands/$($cf.Name)" 'contiene barras invertidas: Codex no migra el comando (usa / en las rutas, Windows las acepta)' }
+    # 12b: la cadena entre comandos. Cada comando termina diciendo el paso siguiente (seccion "## Al terminar"):
+    #      sin eso el agente acaba el comando y se queda parado (devlog 095).
+    if ($ct -notmatch '(?m)^## Al terminar\s*$') { Fail "commands/$($cf.Name)" 'sin seccion "## Al terminar" con el paso siguiente del metodo (que comando o que hacer despues)' }
 }
 
 # --- 11: los .ps1 del tooling con BOM UTF-8 (dev-003: sin BOM, PS 5.1 lee ANSI y corrompe literales con acentos).

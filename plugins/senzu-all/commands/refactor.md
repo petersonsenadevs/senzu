@@ -17,3 +17,6 @@ Aplica `backend-audit §references/refactor-seguro.md` para: lo que el usuario e
    dependencias si hay métricas) y la tarjeta del plan marcada como hecha.
 
 Refactor = misma conducta, distinta estructura. Si el comportamiento tiene que cambiar, es otra tarea.
+
+## Al terminar
+`/siguiente` para la próxima tarjeta (de la auditoría o del plan).

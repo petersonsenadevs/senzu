@@ -16,3 +16,6 @@ Aplica la skill `devlog` (references/memoria.md, sección «Memoria del usuario�
    anterior y pregunta si lo sustituye (lo sustituido va al histórico, no se borra).
 3. Una decisión de proyecto va también en la sección «Decisiones» de la entrada del devlog de hoy.
 4. Confirma en una línea qué apuntaste y dónde.
+
+## Al terminar
+Vuelve a lo que se estaba haciendo (o `/siguiente` si hay plan).

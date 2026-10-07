@@ -8,12 +8,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, hookConfig, availableSkills, designSystemMaster, testOnce, outHookJson, psRegex, ruta, rutaRel, textoLogos,
+    readHookInput, projectRoot, hookConfig, availableSkills, designSystemMaster, testOnce, outHookJson, psRegex, ruta, rutaRel, textoLogos, esMensajeDelUsuario,
 } from './lib.mjs';
 
 const p = readHookInput();
 if (!p || !p.prompt) process.exit(0);
 const prompt = String(p.prompt);
+if (!esMensajeDelUsuario(prompt)) process.exit(0);   // informe de un subagente o notificación: no se enruta
 if (prompt.length < 12 || /^\s*\//.test(prompt)) process.exit(0);
 const root = projectRoot();
 const DL = rutaRel(root, 'devlog'), PL = rutaRel(root, 'plan'), DS = rutaRel(root, 'design-system'), CV = rutaRel(root, 'conventions.md');   // rutas reales (senzu/ o antiguas)

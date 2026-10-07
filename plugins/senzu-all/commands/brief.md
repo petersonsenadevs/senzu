@@ -21,3 +21,6 @@ el usuario SIN tecnicismos:
 4. Con sus elecciones: escribe `senzu/plan/brief.md` (objetivo, audiencia, dirección elegida, checklist "Pide:" de
    contenido pendiente del cliente) y confirma el resumen en sus palabras.
 5. Cierra ofreciendo generar el design system (`/design-system "<producto industria keywords>"`).
+
+## Al terminar
+Con interfaz: `/design-system` y después `/propuestas`; y `/plan` para convertir el brief en tarjetas. Sin interfaz: `/plan`.

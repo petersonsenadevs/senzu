@@ -55,6 +55,18 @@ ok(paso(proyecto('omite-plan', { marker: { ...FRONT, omitirPasos: ['plan'] } }))
 ok(paso(proyecto('omite-brief', { marker: { ...FRONT, omitirPasos: ['brief'] } })) === 'plan', 'omitirPasos brief → sigue pidiendo el plan');
 ok(paso(proyecto('solo-docs', { marker: BACK, archivos: { 'README.md': '# Hola\n' } })) === 'plan', 'un README no convierte el proyecto en existente');
 
+// 1b. la cadena hasta el final (devlog 095): /siguiente se anuncia, existente sin plan → /plan, plan terminado → cierre
+ok(sp && sp.anunciar === true, '/siguiente se anuncia (antes se calculaba y nadie lo decía)');
+const adoptado = lib.siguientePaso(proyecto('adoptado-sin-plan', { marker: BACK, archivos: { 'src/app.ts': 'x', 'senzu/conventions.md': '# C\n' } }));
+ok(adoptado && adoptado.paso === 'plan' && adoptado.anunciar && !adoptado.bloquea && !adoptado.conversar, 'existente ya adoptado y sin plan → /plan anunciado (ni bloquea ni interrumpe)', JSON.stringify(adoptado));
+const terminado = proyecto('plan-terminado', { marker: FRONT });
+fs.appendFileSync(path.join(terminado, 'senzu', 'plan', 'PLAN.md'), '\n### F1-T1 · Hacer la home  [M] [done]\n### F1-T2 · Hacer el contacto  [S] [done]\n');
+const cierre = lib.siguientePaso(terminado);
+ok(cierre && cierre.paso === 'cierre' && /\/verificar → \/lanzar → \/desplegar → \/entregar/.test(cierre.comando), 'plan terminado con interfaz → /verificar → /lanzar → /desplegar → /entregar', JSON.stringify(cierre));
+const terminadoBack = proyecto('plan-terminado-back', { marker: BACK });
+fs.appendFileSync(path.join(terminadoBack, 'senzu', 'plan', 'PLAN.md'), '\n### F1-T1 · Crear la API  [M] [done]\n');
+ok(/^\/verificar → \/desplegar → \/entregar$/.test((lib.siguientePaso(terminadoBack) || {}).comando || ''), 'plan terminado sin interfaz: sin /lanzar');
+
 // 2. planStatus no cuenta las tarjetas de ejemplo de la plantilla
 ok(lib.planStatus(proyecto('plantilla', { marker: BACK })).total === 0, 'la plantilla de PLAN.md tiene 0 tareas reales');
 ok(lib.planStatus(conPlan).total === 1, 'una tarjeta real cuenta');
@@ -102,6 +114,10 @@ ok(/SIGUIENTE PASO DEL MÉTODO: \/adoptar/.test(ssA.stdout), 'session-start: con
 ok(/Idioma: responde en castellano/.test(ctx), 'session-start: idioma');
 ok(!/Empieza por \/brief/.test(ctx), 'session-start: sin interfaz no propone /brief');
 ok(/todavía la plantilla/.test(ctx), 'session-start: plan de plantilla = por hacer');
+const ssP = spawnSync(process.execPath, [path.join(HOOKS, 'session-start.mjs')], { input: JSON.stringify({ session_id: `s4-${RUN}`, hook_event_name: 'SessionStart' }), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: conPlan } });
+ok(/SIGUIENTE PASO: \/siguiente — siguiente tarjeta: F1-T1/.test(ssP.stdout) && /Sigue el plan con \/siguiente/.test(ssP.stdout), 'session-start: nombra /siguiente con la tarjeta');
+const ssC = spawnSync(process.execPath, [path.join(HOOKS, 'session-start.mjs')], { input: JSON.stringify({ session_id: `s5-${RUN}`, hook_event_name: 'SessionStart' }), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: terminado } });
+ok(/SIGUIENTE PASO: \/verificar → \/lanzar/.test(ssC.stdout), 'session-start: con el plan terminado propone el cierre');
 const ssF = spawnSync(process.execPath, [path.join(HOOKS, 'session-start.mjs')], { input: JSON.stringify({ session_id: `s2-${RUN}`, hook_event_name: 'SessionStart' }), encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: proyecto('ss-sin', {}) } });
 ok(/no está instalado[\s\S]*\/instalar/.test(ssF.stdout), 'session-start: sin Senzu propone /instalar');
 

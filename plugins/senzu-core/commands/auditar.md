@@ -19,3 +19,6 @@ Aplica `backend-audit §references/protocolo.md` completo para lo que el usuario
 6. Lo aprobado → tarjetas en `senzu/plan/PLAN.md` (fase AU: «Para qué» = el hallazgo, «Verificar» = la misma
    evidencia que lo demostró) que se trabajan con `/siguiente`; los cambios de estructura
    se hacen después con `/refactor`. Devlog con las herramientas ejecutadas y el resultado.
+
+## Al terminar
+Con las tarjetas AU aprobadas en el plan: `/siguiente` para trabajarlas una a una (las de estructura, con `/refactor`).

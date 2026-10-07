@@ -26,3 +26,6 @@ Aplica `code-quality §references/adopt-conventions.md` paso a paso (lo que el u
 Desde ese momento: las convenciones GANAN a tus preferencias (los muros de seguridad siguen aplicando),
 el hook bloquea violaciones introducidas, y los archivos quedan protegidos. Cambiarlas = decisión
 explícita del usuario → borrar ambos y re-ejecutar `/adoptar`.
+
+## Al terminar
+Di qué queda sellado y propón el paso siguiente: si viene trabajo de varias partes, `/plan`; si el usuario venía a un arreglo concreto, hazlo ya siguiendo las convenciones.

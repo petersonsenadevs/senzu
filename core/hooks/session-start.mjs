@@ -29,6 +29,8 @@ if (paso && paso.bloquea) {
     L.push(`- SIGUIENTE PASO DEL MÉTODO: ${paso.comando} — ${paso.motivo}. Propónselo al usuario ANTES de escribir código; el muro arranque-guard te parará la primera vez que lo intentes sin él.`);
 } else if (paso && paso.conversar) {
     L.push(`- ${paso.motivo[0].toUpperCase() + paso.motivo.slice(1)}: no todo necesita un plan, pero tienes que saber qué se va a hacer. Si el usuario no te lo ha dicho claro, háblalo con él antes de programar (objetivo, alcance, qué entra y qué no); propón ${paso.comando} solo si es algo grande o él lo quiere.`);
+} else if (paso && paso.anunciar) {
+    L.push(`- SIGUIENTE PASO: ${paso.comando} — ${paso.motivo}. Si el usuario pide otra cosa, eso manda; si no, propónselo.`);
 }
 if (marker) {
     L.push(`- Stack: ${marker.stack}` + (marker.frontProfile ? ` | Perfil de front: ${marker.frontProfile.label} (stacks del buscador: ${[].concat(marker.frontProfile.stacks || []).join(', ')})` : ''));
@@ -82,7 +84,7 @@ if (plan.exists && !plan.total) {
     L.push(`- Plan del proyecto: ${PL}/PLAN.md (${plan.done}/${plan.total} tareas hechas).`
         + (plan.doing.length ? ` EN CURSO: ${plan.doing.join('; ')}.` : '')
         + (plan.next.length ? ` Siguientes: ${plan.next.join('; ')}.` : '')
-        + ' Sigue el plan (skill project-planner, task-protocol) antes de hacer otra cosa.');
+        + ' Sigue el plan con /siguiente (una tarjeta cada vez; skill project-planner, task-protocol) antes de hacer otra cosa.');
 } else if (marker) {
     L.push(`- No hay ${PL}/PLAN.md: si la tarea es un proyecto o feature (no un arreglo puntual), usa la skill project-planner para crear el plan antes de codificar.`);
 }

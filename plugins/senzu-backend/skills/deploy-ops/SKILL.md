@@ -6,7 +6,7 @@ description: "Despliegue y operaciones para TODOS los stacks: deploy por platafo
 # deploy-ops (Senzu)
 
 Poner y MANTENER en producción, para cualquier stack. Construir y verificar es de las otras skills
-(`/verificar`, `/lanzar`); esta empieza donde acaba el "APTA": publicar, operar y que no se caiga —
+(`/verificar`, `/lanzar`); esta empieza donde acaba el "LISTA" de /lanzar: publicar, operar y que no se caiga —
 y si se cae, volver atrás en minutos.
 
 ## Lectura mínima por tarea

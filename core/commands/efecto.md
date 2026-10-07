@@ -10,3 +10,6 @@ Uso: `/efecto <nombre del efecto> [dónde, p. ej. "marquee en el footer de logos
    sin scroll-jacking en formularios. Si no existe `senzu/design-system/*/MASTER.md`, avísame: el efecto hereda tokens/easing
    del design system.
 3. Implementa con la integración de mi stack (limpieza al desmontar incluida) y di cómo verificarlo en el navegador.
+
+## Al terminar
+`/verificar` (móvil primero: el efecto se mira en 375) y, si venía de una tarjeta, ciérrala y `/siguiente`.

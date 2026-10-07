@@ -21,3 +21,6 @@ Aplica `ui-ux-pro-max §references/es/proposal-mode.md` completo para lo que el 
    opiniones y vetos → `gustos.md` (siembra los vetos anti-IA por defecto).
 5. Solo entonces construye la página real, con **checkpoint por sección** (una sección → enseñar →
    una pregunta → gustos.md → siguiente), justificando cada decisión en el idioma del usuario.
+
+## Al terminar
+`/ronda` para iterar hasta elegir; con la elegida, construir por secciones con checkpoint y al acabar `/verificar`.

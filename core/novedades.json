@@ -1,6 +1,7 @@
 {
   "_que_es": "Novedades que session-start enseña a quien tiene una versión anterior de Senzu (las 3 más recientes; primero las importantes). Una línea por versión, en llano: qué gana el usuario al actualizar.",
   "novedades": [
+    { "version": "2.17.0", "importante": true, "texto": "una feature de backend no se da por hecha sin test, con migraciones sin probar (ni sin down) o claves nuevas sin .env.example; y cada comando dice cuál es el paso siguiente" },
     { "version": "2.16.0", "importante": false, "texto": "citar no es hacer: los muros ya no saltan porque un mensaje de commit, un heredoc, un echo, un grep, un string o un comentario mencione algo prohibido" },
     { "version": "2.15.0", "importante": false, "texto": "aviso de versión desactualizada al empezar la sesión, y muros que ya no frenan sin motivo (leer el marcador, scripts temporales, leer un test)" },
     { "version": "2.14.0", "importante": true, "texto": "ARREGLO DE SEGURIDAD: las convenciones selladas (/adoptar) no se protegían si la ruta llegaba en otro formato (C:/ o /c/); ahora tampoco se alteran desde la terminal ni con un commit" },

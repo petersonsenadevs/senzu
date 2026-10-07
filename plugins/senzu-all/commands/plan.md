@@ -12,3 +12,6 @@ Aplica la skill `project-planner`:
    skill+sección, "hecho cuando" y "verificar"). Presenta el plan y espera mi OK antes de ejecutar.
 
 Petición: lo que el usuario escribió tras el comando
+
+## Al terminar
+Con el OK del usuario: `/siguiente` para la primera tarjeta. Con interfaz y sin design system, antes `/design-system`.

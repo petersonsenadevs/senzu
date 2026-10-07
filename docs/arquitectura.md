@@ -142,6 +142,23 @@ sobre el comando original. En archivos, `testIntroduced(…, codigo)` busca en e
 conventions-guard y backend-guard conservan los strings, porque sus reglas pueden ir sobre ellos (SQL crudo,
 `env('X')`). secrets-guard no cambia: una clave real en un comentario sigue siendo una fuga.
 
+## La cadena del método y los muros de backend
+`siguientePaso()` tiene tres niveles: **bloquea** (instalar, adoptar), **conversar** (proyecto nuevo sin plan:
+saber qué se hace o preguntarlo) y **anunciar** (`/siguiente` con la tarjeta, `/plan` en un proyecto existente
+sin plan, y con el plan terminado `/verificar → /lanzar → /desplegar → /entregar`, sin `/lanzar` si no hay
+interfaz). Cada comando termina con «## Al terminar» (el paso siguiente) y check-skills (12b) lo exige. El
+veredicto de `/lanzar` es LISTA en todas partes; APTA es el de la crítica visual de ui-verify.
+
+Qué es backend, test y migración tiene una sola definición (`esCodigoBackend`, `esTest`, `esMigracion` en
+lib.mjs) que comparten back-skill-reminder, backend-guard y feature-guard; los scripts de `tools/` y `scripts/` no
+son backend de la app. **backend-guard** (al escribir) bloquea migraciones sin `down()` honesto (Laravel, Knex,
+Sequelize, TypeORM, Alembic; Prisma y SQL no tienen down), asignación masiva y errores tragados, y avisa de
+varias escrituras sin transacción (una vez por archivo). **feature-guard** (al cerrar, una vez por conjunto de
+archivos) exige test si se tocó backend, la migración ejecutada y su rollback probado (apunta los `migrate` que se
+ejecutan y no cuenta los que fallan) y las claves nuevas en el `.env.example` más cercano (`lineasAnadidas()`
+con git: solo lo nuevo). protect-files ya deja editar `.env.example`. Los informes de subagentes no se enrutan
+ni se apuntan como correcciones del usuario (`esMensajeDelUsuario`).
+
 ## Perfiles de instalación
 `core/perfiles.json` responde «¿qué es el proyecto?» con un conjunto de grupos de skills. Un perfil es una
 selección por categorías con nombre: se guarda en `senzu/senzu.json` y cada actualización la respeta, con

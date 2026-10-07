@@ -13,3 +13,6 @@ Aplica `code-quality §references/mapa-proyecto.md` (solo lectura, no cambia có
 4. Escribe `senzu/mapa.md` con la estructura de la referencia: lo esencial en la primera pantalla y la
    tabla "dónde tocar para…" con las tareas frecuentes.
 5. Propón enlazarlo desde `CLAUDE.md` o `CLAUDE.project.md` para que el agente lo lea al empezar.
+
+## Al terminar
+Si el usuario va a trabajar en algo concreto: `/plan` para una feature de varias partes, o `/siguiente` si ya hay plan.

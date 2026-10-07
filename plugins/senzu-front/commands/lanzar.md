@@ -17,3 +17,6 @@ Pasa ENTERO `ui-verify §references/launch-checklist.md` sobre lo que el usuario
 
 Veredicto (LISTA / LISTA con menores / NO) + evidencias al devlog; los "menores" se convierten en
 tarjetas X-Tn. Recuerda: el deploy en sí NUNCA sin aprobación explícita del usuario.
+
+## Al terminar
+LISTA → `/desplegar` (con aprobación explícita). LISTA con menores → `/desplegar` y después las tarjetas X-Tn con `/siguiente`. NO → `/siguiente` con las tarjetas creadas y otra vez `/lanzar`.

@@ -16,3 +16,6 @@ Aplica `project-planner §references/estimacion.md` sobre lo que el usuario escr
 5. Rango final (mínimo, previsto y máximo). Si hay tarifa, importe por fase; no inventes la tarifa.
 6. Escribe `senzu/plan/estimacion.md` con resumen para el cliente, detalle por fase, supuestos y exclusiones,
    y enséñale el resumen al usuario.
+
+## Al terminar
+Si el usuario acepta el presupuesto: `/plan` (o `/siguiente` si el plan ya existe).

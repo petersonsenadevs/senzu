@@ -8,7 +8,7 @@ sin esto genera llamadas, sustos con renovaciones y dependencia innecesaria.
 5 Cómo pedir cambios · 6 Formación · 7 Salida · 8 Errores típicos
 
 ## 1. Antes de entregar
-- `/lanzar` en APTA y el último deploy verificado (checklist de `/desplegar`).
+- `/lanzar` en LISTA y el último deploy verificado (checklist de `/desplegar`).
 - Backups automáticos funcionando y un restore probado (backups-monitoring.md).
 - Cuentas a nombre del CLIENTE cuando corresponda (dominio, analítica, Search Console, hosting): si
   están a nombre de la agencia, se dice y se acuerda qué pasa con ellas.

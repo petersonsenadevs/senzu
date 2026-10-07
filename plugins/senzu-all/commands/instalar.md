@@ -7,3 +7,6 @@ Uso: `/instalar [stack opcional, p. ej. "laravel"]` — el argumento es opcional
 Aplica la skill `instalar-proyecto` paso a paso: localizar o clonar el paquete, detectar el stack,
 confirmar con el usuario, preguntar qué es el proyecto (web, backend, front, agente de IA, librería o elegir a medida), ejecutar el
 instalador y pedir una sesión nueva. Si el usuario indicó un stack tras el comando, úsalo.
+
+## Al terminar
+Pide abrir una sesión nueva: el inicio de sesión dirá el siguiente paso (normalmente `/adoptar` si hay código, o `/plan` y `/brief` en un proyecto nuevo).

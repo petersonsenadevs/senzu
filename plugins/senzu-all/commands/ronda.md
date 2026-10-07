@@ -20,3 +20,6 @@ Aplica `ui-ux-pro-max §references/es/rondas.md` paso a paso:
    qué es nuevo. Pide la opinión con el panel o en el chat.
 7. Si ya no queda nada abierto o el usuario elige una: pasa la elegida y lo fijado a `MASTER.md` y
    propón construir la página real (checkpoint por sección).
+
+## Al terminar
+Cuando no quede nada abierto: construir por secciones con checkpoint, `/verificar` y `/lanzar`.

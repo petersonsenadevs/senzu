@@ -4,6 +4,10 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-07
+
+- **feature** — La cadena del método entre comandos y muros de backend para que una feature no falle · v2.17.0 (entrada 095)
+
 ## 2026-10-05
 
 - **fix** — Citar no es hacer: los muros miran lo que se ejecuta, no el texto que lo menciona · v2.16.0 (entrada 094)

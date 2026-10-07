@@ -628,9 +628,12 @@ export function esArchivoDeCodigo(rel) { return EXT_CODIGO.test(String(rel || ''
 
 // ---------------------------------------------------------------- el SIGUIENTE PASO del método
 // Una sola respuesta a «¿en qué punto está este proyecto?» que comparten session-start (lo anuncia), el muro
-// arranque-guard (no deja escribir código hasta darlo) y prompt-router. Orden: instalar → adoptar (si hay código
-// sin convenciones) → brief (solo con interfaz) y plan (si es nuevo) → siguiente tarjeta. El usuario puede omitir
+// arranque-guard (no deja escribir código hasta darlo) y stop-guard (lo propone al cerrar). Orden: instalar →
+// adoptar (si hay código sin convenciones) → brief (solo con interfaz) y plan (si es nuevo) → siguiente tarjeta →
+// con el plan terminado, verificar → lanzar (si hay interfaz) → desplegar → entregar. El usuario puede omitir
 // adoptar, plan o brief por proyecto: "omitirPasos" en el marcador (init.mjs --omitir-paso; el agente no puede).
+// Tres niveles: bloquea (instalar, adoptar), conversar (sin plan en proyecto nuevo: saber qué se hace o
+// preguntarlo) y anunciar (solo se dice: /siguiente, /plan en uno existente, el cierre del plan).
 export function siguientePaso(root) {
     const marker = getMarkerSeguro(root);
     if (!marker) return { paso: 'instalar', comando: '/instalar', bloquea: true,
@@ -650,8 +653,13 @@ export function siguientePaso(root) {
         if (!omitir.has('plan')) return { paso: 'plan', comando: '/plan', bloquea: false, conversar: true,
             motivo: 'proyecto nuevo sin plan' };
     }
-    if (plan.doing.length || plan.next.length) return { paso: 'siguiente', comando: '/siguiente', bloquea: false,
+    if (plan.doing.length || plan.next.length) return { paso: 'siguiente', comando: '/siguiente', bloquea: false, anunciar: true,
         motivo: plan.doing.length ? `tarea en curso: ${plan.doing[0]}` : `siguiente tarjeta: ${plan.next[0]}` };
+    if (plan.total && plan.done >= plan.total) return { paso: 'cierre', bloquea: false, anunciar: true,
+        comando: marker.frontProfile ? '/verificar → /lanzar → /desplegar → /entregar' : '/verificar → /desplegar → /entregar',
+        motivo: `plan terminado (${plan.done}/${plan.total} tarjetas): toca comprobarlo todo y llevarlo a producción, con el OK del usuario en cada paso` };
+    if (mat.existing && !plan.total && !omitir.has('plan')) return { paso: 'plan', comando: '/plan', bloquea: false, anunciar: true,
+        motivo: 'proyecto con código y sin plan: para una feature de varias partes, /plan (objetivo, alcance y tarjetas); para un arreglo puntual no hace falta' };
     return null;
 }
 
@@ -959,4 +967,71 @@ export function soloCodigo(txt, { strings = true, almohadilla = false } = {}) { 
         out += s[i]; i++;
     }
     return out;
+}
+
+// ---------------------------------------------------------------- qué es backend, test y migración
+// Una sola definición para todos los muros de backend (antes cada hook tenía su regex). rel con «/».
+const EXT_BACK = /\.(php|ts|js|mjs|cjs|py|go|java|kt|cs|rb)$/i;
+const DIR_BACK = /(^|\/)(app\/(Http|Models|Services|Actions|Jobs|Policies|Listeners|Console|Domain|Application|Infrastructure|Data|DTOs?)|routes|database\/(migrations|seeders|factories)|server|api|services|domain|application|infrastructure|modules|controllers|repositories|internal|handlers|usecases|use-cases|src\/main\/java|Controllers|prisma|alembic|migrations|db\/migrate)\//i;
+const SUFIJO_BACK = /\.(service|controller|repository|resolver|module|handler|router|routes|model|entity|dto|usecase|use-case|gateway|guard|middleware|schema)\.[cm]?[jt]s$/i;
+export function esTest(rel) {
+    return /(^|\/)(tests?|__tests__|specs?)\/|\.(test|spec)\.[cm]?[jt]sx?$|Test\.php$|(^|\/)test_[^/]+\.py$|_test\.(py|go)$|Spec\.(kt|java)$/i.test(String(rel || ''));
+}
+export function esMigracion(rel) {
+    return /(^|\/)(database\/migrations|migrations|alembic\/versions|prisma\/migrations|db\/migrate)\//i.test(String(rel || ''));
+}
+export function esCodigoBackend(rel) {
+    const r = String(rel || '').replace(/\\/g, '/');
+    if (!EXT_BACK.test(r) || /\.blade\.php$/i.test(r) || esTest(r)) return false;
+    if (/(^|\/)(node_modules|vendor|dist|build|\.next|tools|scripts|\.claude|\.agents|senzu)\//i.test(r)) return false;
+    return DIR_BACK.test(r) || SUFIJO_BACK.test(r) || esMigracion(r);
+}
+
+// Líneas que la sesión ha AÑADIDO a un archivo respecto a HEAD (git diff); archivo nuevo o sin git: todas.
+export function lineasAnadidas(root, rel) {
+    const abs = path.join(root, rel);
+    const txt = readText(abs);
+    if (txt === null) return [];
+    try {
+        const enGit = spawnSync('git', ['ls-files', '--error-unmatch', '--', rel], { cwd: root, encoding: 'utf8' }).status === 0;
+        if (!enGit) return txt.split(/\r?\n/);
+        const d = spawnSync('git', ['diff', 'HEAD', '--unified=0', '--no-color', '--', rel], { cwd: root, encoding: 'utf8' });
+        if (d.status !== 0) return txt.split(/\r?\n/);
+        return d.stdout.split(/\r?\n/).filter(l => l.startsWith('+') && !l.startsWith('+++')).map(l => l.slice(1));
+    } catch { return txt.split(/\r?\n/); }
+}
+
+// Variables de entorno que usa un trozo de código (PHP, JS/TS, Python, Go, Ruby)
+const ENV_IGNORAR = /^(NODE_ENV|CI|HOME|PATH|PWD|TZ|NEXT_RUNTIME|VERCEL(_\w+)?|GITHUB_\w+|RUNNER_\w+|npm_\w+|SENZU_\w+|DEV_STANDARDS_\w+|CLAUDE_\w+)$/;
+export function clavesDeEntorno(lineas) {
+    const txt = [].concat(lineas || []).join('\n');
+    const out = new Set();
+    const pats = [
+        /\benv\(\s*['"]([A-Z][A-Z0-9_]+)['"]/g, /\bgetenv\(\s*['"]([A-Z][A-Z0-9_]+)['"]/g,
+        /process\.env\.([A-Z][A-Z0-9_]+)/g, /process\.env\[\s*['"]([A-Z][A-Z0-9_]+)['"]\s*\]/g, /import\.meta\.env\.([A-Z][A-Z0-9_]+)/g,
+        /os\.environ\[\s*['"]([A-Z][A-Z0-9_]+)['"]\s*\]/g, /os\.environ\.get\(\s*['"]([A-Z][A-Z0-9_]+)['"]/g,
+        /os\.Getenv\(\s*"([A-Z][A-Z0-9_]+)"/g, /\bENV(?:\.fetch\(\s*|\[\s*)['"]([A-Z][A-Z0-9_]+)['"]/g,
+    ];
+    for (const rx of pats) for (const m of txt.matchAll(rx)) if (!ENV_IGNORAR.test(m[1])) out.add(m[1]);
+    return [...out];
+}
+// El .env.example que documenta un archivo: el más cercano subiendo hasta la raíz (monorepos)
+export function envEjemplo(root, rel) {
+    let dir = path.dirname(path.join(root, rel));
+    const tope = path.resolve(root);
+    for (;;) {
+        for (const n of ['.env.example', '.env.sample', '.env.dist', '.env.template']) {
+            const f = path.join(dir, n);
+            if (fs.existsSync(f)) return f;
+        }
+        if (path.resolve(dir) === tope || path.dirname(dir) === dir) return null;
+        dir = path.dirname(dir);
+    }
+}
+
+// ¿Lo escribió el usuario? Los informes de subagentes y las notificaciones también llegan como «prompt» y no
+// deben enrutarse ni apuntarse como correcciones del usuario.
+export function esMensajeDelUsuario(prompt) {
+    const s = String(prompt || '');
+    return !/<agent-message\b|<task-notification\b|^\s*\[SYSTEM NOTIFICATION|\[Subagent hand-back\]/i.test(s);
 }

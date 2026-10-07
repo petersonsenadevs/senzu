@@ -80,6 +80,9 @@ jobs:
       - name: test-version (aviso de Senzu desactualizado, sin red)
         run: node tools/test-version.mjs
 
+      - name: test-backend (una feature no se da por hecha sin test, migración probada ni .env.example)
+        run: node tools/test-backend.mjs
+
       - name: test-trafico (histórico de clones y visitas, badge de clones)
         run: node tools/test-trafico.mjs
 

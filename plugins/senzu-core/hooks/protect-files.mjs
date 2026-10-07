@@ -56,7 +56,8 @@ if (/^(senzu\/)?conventions\.(md|json)$/i.test(rel) && exists && /(senzu|dev-sta
 }
 
 // 2) Secretos
-if (/(^|\/)\.env(\.|$)/i.test(rel) || /\.(pem|key|p12|pfx)$/i.test(rel) || /(^|\/)(id_rsa|id_ed25519)/i.test(rel) || /(^|\/)(credentials|secrets?)(\.|\/|$)/i.test(rel)) {
+// (.env.example y parecidos NO: son la documentación de las claves, sin valores reales; feature-guard pide tenerlos al día)
+if ((/(^|\/)\.env(\.|$)/i.test(rel) && !/(^|\/)\.env\.(example|sample|dist|template)$/i.test(rel)) ||/\.(pem|key|p12|pfx)$/i.test(rel) || /(^|\/)(id_rsa|id_ed25519)/i.test(rel) || /(^|\/)(credentials|secrets?)(\.|\/|$)/i.test(rel)) {
     deny('Archivo de secretos/credenciales. No se edita desde el agente: hazlo tu a mano.');
 }
 

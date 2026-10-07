@@ -15,3 +15,6 @@ Reconstruye dónde se quedó el trabajo SIN pedirle al usuario que lo cuente, y 
 4. **Resume en 3-5 líneas**: qué se estaba haciendo, qué está hecho, qué falta y qué quedó sin commitear.
    Después propón el siguiente paso concreto y pregunta si sigues por ahí. No empieces a cambiar nada hasta que
    el usuario lo confirme, salvo que haya dicho «sigue».
+
+## Al terminar
+Propón el paso que indique la sesión (normalmente `/siguiente`) y espera su OK.

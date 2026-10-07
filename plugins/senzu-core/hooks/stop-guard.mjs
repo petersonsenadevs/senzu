@@ -18,7 +18,7 @@ const DL = rutaRel(root, 'devlog'), PL = rutaRel(root, 'plan'), DS = rutaRel(roo
 const sid = p && p.session_id ? String(p.session_id) : 'default';
 const plan = planStatus(root);
 let planMsg = '';
-if (plan.exists && plan.doing.length) planMsg = ` Ademas hay tarea(s) en curso en ${PL}/PLAN.md (${plan.doing.join('; ')}): si la has terminado, marcala done con el enlace al devlog y propon la siguiente.`;
+if (plan.exists && plan.doing.length) planMsg = ` Ademas hay tarea(s) en curso en ${PL}/PLAN.md (${plan.doing.join('; ')}): si la has terminado, márcala done (con Verificado, Cumple y el enlace al devlog) y propón /siguiente; si no, di qué falta.`;
 // Si la sesión editó UI (marcador de front-skill-reminder), exigir la verificación con móvil primero (skill ui-verify).
 let frontMsg = '';
 if (fs.existsSync(sessionFlag(sid, 'frontedit'))) {

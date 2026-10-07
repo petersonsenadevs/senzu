@@ -5,16 +5,15 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, hookConfig, testOnce, outHookJson, ruta, rutaRel,
+    readHookInput, projectRoot, hookConfig, testOnce, outHookJson, ruta, rutaRel, esCodigoBackend, relDelProyecto,
 } from './lib.mjs';
 
 const p = readHookInput();
 if (!p || !['Edit', 'Write', 'MultiEdit'].includes(p.tool_name)) process.exit(0);
 const file = String((p.tool_input && p.tool_input.file_path) || '').replace(/\\/g, '/');
 if (!file) process.exit(0);
-if (!/\.(php|ts|js|mjs|cjs|py|go|java|kt|cs|rb)$/i.test(file) || /\.blade\.php$/i.test(file)) process.exit(0);
-const esBackend = /(^|\/)(app\/(Http|Models|Services|Actions|Jobs|Policies|Listeners|Console|Domain)|routes|database\/migrations|server|api|services|domain|modules|controllers|repositories|internal|handlers|src\/main\/java|Controllers)\//i.test(file);
-if (!esBackend || /(test|spec)/i.test(file)) process.exit(0);
+// Qué es backend: una sola definición para todos los muros (lib.mjs esCodigoBackend)
+if (!esCodigoBackend(relDelProyecto(projectRoot(), file) || file)) process.exit(0);
 if (!testOnce(p.session_id || 'default', 'back-reminder')) process.exit(0);
 
 const root = projectRoot();
@@ -31,6 +30,8 @@ outHookJson('PreToolUse', {
         + '; para un tema concreto, su catálogo references/backend-catalog.md. '
         + (convenciones ? `Hay convenciones selladas en ${rutaRel(root, 'conventions.md')}: mandan sobre tu preferencia. ` : 'Imita el estilo del código vecino. ')
         + 'Usa las prácticas de la versión REAL del framework (la indicó session-start). Valida la entrada en el borde, '
-        + 'autorización en cada acción sensible, sin N+1, y el cambio va con su test. Si algo falla, skill depurar.',
+        + 'autorización en cada acción sensible, sin N+1, y el cambio va con su test. Al cerrar, feature-guard comprueba que hay test, '
+        + 'que las migraciones se ejecutaron y se probó su rollback, y que las variables de entorno nuevas están en .env.example. '
+        + 'Varias escrituras que van juntas, en una transacción. Si algo falla, skill depurar.',
 });
 process.exit(0);

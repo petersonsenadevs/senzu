@@ -129,9 +129,17 @@ bloquea(w('conventions-guard.mjs', 'src/e.ts', '/* nota */ export const a: any =
 // backend-guard: el comentario que avisa no es el código que lo hace
 const MIG = 'database/migrations/2026_10_05_000000_x.php';
 deja(w('backend-guard.mjs', 'app/Servicio.php', "<?php\n// aquí no se usa env('APP_KEY'): va en config/\n$k = config('app.key');\n"), 'cita: env() en un comentario');
-deja(w('backend-guard.mjs', MIG, "<?php\n// no usar ->dropColumn( aquí: expandir y contraer\npublic function up() { Schema::table('u', fn($t) => $t->string('x')); }\n"), 'cita: dropColumn en un comentario de migración');
+deja(w('backend-guard.mjs', MIG, "<?php\n// no usar ->dropColumn( aquí: expandir y contraer\npublic function up() { Schema::table('u', fn($t) => $t->string('x')); }\npublic function down() { Schema::table('u', fn($t) => $t->dropColumn('x')); }\n"), 'cita: dropColumn en un comentario de migración');
 bloquea(w('backend-guard.mjs', 'app/Servicio.php', "<?php\n/* config */ $k = env('APP_KEY');\n"), 'ataque: env() tras un comentario');
 bloquea(w('backend-guard.mjs', MIG, "<?php\npublic function up() { DB::statement('DROP TABLE users'); }\n"), 'ataque: DROP TABLE dentro de un string SQL');
+
+// 7. Lo que escribe un subagente no es del usuario: ni se enruta ni se apunta como corrección (devlog 095)
+const up = (h, prompt) => hook(h, { tool_name: undefined, hook_event_name: 'UserPromptSubmit', prompt, session_id: `up-${RUN}-${casos}` }).stdout;
+const AGENTE = '<agent-message from="a1">\n[Subagent hand-back] Informe: la landing usa marketing-seo y brand; no, eso no: siempre usa pnpm\n</agent-message>';
+const USUARIO = 'no, eso no: siempre usa pnpm en la landing con marketing seo y la marca';
+ok(up('prompt-router.mjs', AGENTE) === '', 'prompt-router ignora el informe de un subagente');
+ok(up('memoria-viva.mjs', AGENTE) === '', 'memoria-viva no apunta como corrección el texto de un subagente');
+ok(up('memoria-viva.mjs', USUARIO) !== '', 'memoria-viva sí reacciona a la misma corrección escrita por el usuario');
 
 fs.rmSync(proj, { recursive: true, force: true });
 fs.rmSync(fuera, { recursive: true, force: true });

@@ -14,3 +14,6 @@ Aplica `ui-ux-pro-max §references/es/review-session.md` sobre lo que el usuario
    del repaso salvo lo trivial.
 4. Cierra: resumen hablado, persiste gustos y tarjetas, aplica los AHORA, `/verificar`, y enseña el
    resultado en la misma sesión si se puede.
+
+## Al terminar
+Las tarjetas X-Tn que salieron se hacen con `/siguiente`; cuando no quede nada abierto, `/lanzar`.

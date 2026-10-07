@@ -14,3 +14,6 @@ error o test en rojo de la sesión):
 5. **Arregla la causa** con el cambio mínimo; tras tres intentos fallidos, para y replantea la hipótesis.
 6. **Verifica**: el test en verde, `/verificar` en verde y el caso real funcionando. Quita los logs temporales.
 7. Resume al usuario en tres líneas: causa, arreglo y cómo se ha comprobado; y déjalo en el devlog.
+
+## Al terminar
+Si el fallo venía de una tarjeta del plan, ciérrala (Verificado, Cumple, devlog) y propón `/siguiente`. Si no, di qué test lo cubre ahora y vuelve a lo que se estaba haciendo.

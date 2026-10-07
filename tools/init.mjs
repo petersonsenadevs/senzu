@@ -420,8 +420,8 @@ function hookSet(hasFront) {
             { matcher: 'Bash|PowerShell', files: ['guard.mjs'] },
             { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
         ],
-        PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs'] }],
-        Stop: [{ matcher: null, files: ['stop-guard.mjs', 'cierre-limpio.mjs', 'estado-sesion.mjs'] }],
+        PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs', 'feature-guard.mjs'] }],
+        Stop: [{ matcher: null, files: ['stop-guard.mjs', 'cierre-limpio.mjs', 'feature-guard.mjs', 'estado-sesion.mjs'] }],
         PreCompact: [{ matcher: null, files: ['pre-compact.mjs', 'estado-sesion.mjs'] }],
         SessionEnd: [{ matcher: null, files: ['session-end.mjs'] }],
     };
@@ -456,6 +456,7 @@ const HOOKS_ELEGIBLES = [
     ['format-on-save', 'Formatea cada archivo con la herramienta del stack'],
     ['stop-guard', 'No deja cerrar sin verificar ni documentar'],
     ['cierre-limpio', 'No deja cerrar con archivos propios sin commitear; avisa de los de otro agente'],
+    ['feature-guard', 'Backend: no deja cerrar una feature sin test, con migraciones sin probar o claves nuevas sin .env.example'],
     ['tarjeta-guard', 'Una tarjeta del plan no pasa a done sin Verificado, Cumple y su devlog'],
     ['arranque-guard', 'No deja escribir código sin el paso del método que falta (instalar, adoptar, brief o plan)'],
     ['session-start', 'Contexto del proyecto al arrancar la sesión'],
@@ -464,7 +465,7 @@ const HOOKS_ELEGIBLES = [
     ['memoria-archivo', 'Antes de tocar un archivo, lo que la memoria y el devlog dicen de él'],
     ['estado-sesion', 'Guarda en qué se quedó la sesión (/retomar) y comprueba que se apuntaron tus correcciones'],
 ];
-const HOOK_COMPANEROS = { 'stop-guard': ['edit-tracker'], 'cierre-limpio': ['edit-tracker'], 'session-start': ['pre-compact'] };
+const HOOK_COMPANEROS = { 'stop-guard': ['edit-tracker'], 'cierre-limpio': ['edit-tracker'], 'feature-guard': ['edit-tracker'], 'session-start': ['pre-compact'] };
 function hooksPermitidos(sel) {
     if (!sel || !sel.hooks) return null;                         // null = todos
     const s = new Set(['session-end']);

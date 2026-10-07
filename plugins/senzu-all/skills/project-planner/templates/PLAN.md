@@ -23,12 +23,15 @@
 ## F1 — <título de la fase>
 
 ### F1-T1 · <Verbo + objeto>  [S|M] [todo|doing|blocked|done]
+- Para qué: <el objetivo del usuario que cumple, en sus palabras>
 - Skill: <skill → referencia/sección>  (o "sin skill: cambio trivial")
 - Archivos: …
 - Hecho cuando: …
 - Verificar: <comando / URL / captura>
 - Depende de: —
-- Devlog: —
+- Verificado: — (al cerrar: <comando> → <resultado real>)
+- Cumple: — (al cerrar: cómo cumple el «Para qué»)
+- Devlog: — (al cerrar: `senzu/devlog/YYYY-MM-DD/NNN-slug.md`)
 
 ### F1-T2 · …
 

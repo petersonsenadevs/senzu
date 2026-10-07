@@ -54,6 +54,14 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
   (`core/novedades.json`: los arreglos importantes primero). Mira primero lo que ya hay en tu equipo; GitHub,
   como mucho una vez al día y 1,5 s. `SENZU_SIN_RED=1` lo deja sin red. Con los hooks copiados al proyecto,
   los compara con el repo del que se instalaron y te propone `/instalar`.
+- **Los comandos se encadenan**: cada comando acaba diciendo el paso siguiente (`/plan` → `/siguiente` → … →
+  `/verificar` → `/lanzar` → `/desplegar` → `/entregar`), y la sesión lo anuncia al empezar: la tarjeta que toca,
+  `/plan` en un proyecto con código y sin plan, o el cierre cuando el plan está terminado.
+- **Una feature de backend no se da por hecha a medias**: al cerrar, `feature-guard` pide el test si tocaste
+  backend y ningún test, que ejecutes la migración y pruebes su rollback, y que las variables de entorno nuevas
+  estén en `.env.example`. Mientras escribes, `backend-guard` para las migraciones sin `down()`, la asignación
+  masiva (`create($request->all())`, `req.body` al ORM) y los errores tragados (`catch {}`), y avisa si varias
+  escrituras van sin transacción.
 - **El método antes que el código**: al empezar la sesión te dice el **siguiente paso** que falta y por qué:
   `/instalar` si Senzu no está en el proyecto; `/adoptar` si hay código previo sin convenciones selladas. El muro
   `arranque-guard` los hace cumplir: la primera vez que el agente va a escribir código sin ellos, lo para y te lo

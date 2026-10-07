@@ -6,11 +6,11 @@
 // Solo señales fuertes: «siempre» o «nunca» sueltos no cuentan (salen en cualquier frase).
 
 import fs from 'node:fs';
-import { readHookInput, sessionFlag, outHookJson, rutaMemoriaUsuario, projectRoot, rutaRel } from './lib.mjs';
+import { readHookInput, sessionFlag, outHookJson, rutaMemoriaUsuario, projectRoot, rutaRel, esMensajeDelUsuario } from './lib.mjs';
 
 const p = readHookInput();
 const texto = p && typeof p.prompt === 'string' ? p.prompt.trim() : '';
-if (!texto) process.exit(0);
+if (!texto || !esMensajeDelUsuario(texto)) process.exit(0);   // lo de un subagente no es una corrección del usuario
 const sid = p.session_id ? String(p.session_id) : 'default';
 const corto = texto.replace(/\s+/g, ' ').slice(0, 200);
 
