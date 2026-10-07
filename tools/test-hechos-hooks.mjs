@@ -171,7 +171,7 @@ const cierre = (d, sid) => { const r = hook('hechos-guard.mjs', d, { session_id:
     habla(P, s, 'me he mudado a Valencia y desde ahora trabajo desde allí');
     habla(P, s, 'el cliente nuevo se llama Cerámicas Sol y quiere una tienda online');
     let b = cierre(P, s);
-    ok(/revisa la memoria/.test(b) && /--guardar --dimension familia\.tema/.test(b) && /--nada/.test(b) && /No inventes hechos/.test(b), 'cierre con conversación y sin revisar: bloquea con qué hacer', b);
+    ok(/revisa la memoria/i.test(b) && /--guardar --dimension familia\.tema/.test(b) && /--nada/.test(b) && /No inventes hechos/.test(b), 'cierre con conversación y sin revisar: bloquea con qué hacer', b);
     ok(cierre(P, s) === '', 'solo una vez por sesión');
     s = `cie2-${RUN}`;
     habla(P, s, 'me he mudado a Valencia y desde ahora trabajo desde allí');
@@ -184,7 +184,7 @@ const cierre = (d, sid) => { const r = hook('hechos-guard.mjs', d, { session_id:
     s = `cie4-${RUN}`;
     habla(P, s, '私は来月から大阪の新しいオフィスで働きます');
     habla(P, s, 'クライアントの予算は三千ユーロまでです');
-    ok(/revisa la memoria/.test(cierre(P, s)), 'en japonés también (no depende del idioma)');
+    ok(/revisa la memoria/i.test(cierre(P, s)), 'en japonés también (no depende del idioma)');
     s = `cie5-${RUN}`;
     habla(P, s, 'me he mudado a Valencia y desde ahora trabajo desde allí');
     habla(P, s, 'el cliente nuevo se llama Cerámicas Sol y quiere una tienda online');
@@ -240,7 +240,7 @@ function circuito(nombre, modo) {
     h('edit-tracker.mjs', { session_id: s1, hook_event_name: 'PostToolUse', ...edicion });
     const b1 = bloqueo(h('hechos-guard.mjs', { session_id: s1, hook_event_name: 'Stop' }));
     const res = [];
-    res.push([/revisa la memoria/.test(b1), `${modo}: al cerrar sin revisar la memoria, bloquea`]);
+    res.push([/revisa la memoria/i.test(b1), `${modo}: al cerrar sin revisar la memoria, bloquea`]);
     for (const args of [['--dimension', 'proyecto.cliente', '--valor', 'Cerámicas Sol', '--claves', 'cliente,client,empresa,company'],
         ['--dimension', 'restriccion.presupuesto', '--valor', 'máximo 3000 € para la fase 1', '--claves', 'presupuesto,budget,cost']]) {
         const out = spawnSync(process.execPath, [CLI, '--path', P, '--guardar', ...args], { encoding: 'utf8', env: process.env }).stdout;
@@ -281,6 +281,41 @@ const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abierto
     ok(/abierto hace \d+ día\(s\)/.test(bloque[1] || ''), 'con su antigüedad en días');
     ok(!/comprar el dominio/.test(c), 'lo resuelto no aparece');
     ok(!/\[pendiente\.fotos\].*\n[\s\S]*\[pendiente\.fotos\]/.test(c) && /HECHOS que ya sabes[\s\S]*proyecto\.cliente/.test(c), 'los abiertos no se repiten en el bloque de HECHOS');
+}
+
+// ---------------------------------------------------------------- F6-T3 · consolidar lo aprendido al cerrar una sesión de trabajo
+{
+    const P = proyecto('consolidar');
+    const tocar = (sid, rel) => hook('edit-tracker.mjs', P, { session_id: sid, hook_event_name: 'PostToolUse', tool_name: 'Write', tool_input: { file_path: path.join(P, rel), content: 'x' } });
+    const guarda = (sid, dim, valor) => {
+        const out = spawnSync(process.execPath, [CLI, '--path', P, '--guardar', '--dimension', dim, '--valor', valor], { encoding: 'utf8', env: process.env }).stdout;
+        hook('hechos-guard.mjs', P, { session_id: sid, hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command: `node memoria.mjs --guardar --dimension ${dim}` }, tool_response: { stdout: out } });
+    };
+    let s = `con1-${RUN}`;
+    for (const f of ['app/Pedido.php', 'app/Pago.php', 'routes/web.php']) tocar(s, f);
+    let b = cierre(P, s);
+    ok(/Consolida lo aprendido: esta sesión tocó 3 archivos/.test(b) && /aprendizaje\.<tema>/.test(b) && /--nada --motivo/.test(b), 'sesión de trabajo sin aprendizajes: pide consolidar', b);
+    ok(cierre(P, s) === '', 'solo una vez por sesión');
+    s = `con2-${RUN}`;
+    for (const f of ['app/Pedido.php', 'app/Pago.php', 'routes/web.php']) tocar(s, f);
+    guarda(s, 'aprendizaje.webhooks', 'los webhooks de Stripe llegan duplicados: guardar event.id');
+    ok(cierre(P, s) === '', 'con un aprendizaje guardado en la sesión: no pide nada');
+    s = `con3-${RUN}`;
+    tocar(s, 'app/Pedido.php'); tocar(s, 'app/Pago.php');
+    ok(cierre(P, s) === '', 'con solo 2 archivos no es una sesión de trabajo: nada');
+    s = `con4-${RUN}`;
+    for (const f of ['senzu/devlog/MEMORIA.md', 'senzu/plan/PLAN.md', 'senzu/memoria/hechos.jsonl', 'app/Pedido.php']) tocar(s, f);
+    ok(cierre(P, s) === '', 'tocar la propia memoria, el plan o el devlog no cuenta como trabajo');
+    s = `con5-${RUN}`;
+    for (const f of ['app/Pedido.php', 'app/Pago.php', 'routes/web.php']) tocar(s, f);
+    habla(P, s, 'el cliente nuevo se llama Cerámicas Sol y quiere una tienda online');
+    habla(P, s, 'el presupuesto máximo para la primera fase son 3000 euros');
+    b = cierre(P, s);
+    ok(/^\[senzu\] Antes de cerrar:\n1\. Revisa la memoria[\s\S]*\n2\. Consolida lo aprendido/.test(b), 'revisar y consolidar a la vez: un solo mensaje con las dos cosas', b.slice(0, 200));
+    s = `con6-${RUN}`;
+    for (const f of ['app/Pedido.php', 'app/Pago.php', 'routes/web.php']) tocar(s, f);
+    guarda(s, 'proyecto.cliente', 'Cerámicas Sol');
+    ok(/Consolida lo aprendido/.test(cierre(P, s)), 'guardar otros hechos (no aprendizaje.*) no cuenta como consolidar');
 }
 
 // ---------------------------------------------------------------- GARANTÍAS: sin contexto no inventa; nunca da por vigente lo que no lo es

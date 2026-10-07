@@ -8,8 +8,8 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { readHookInput, projectRoot, sessionFlag, sinTextoCitado, relDelProyecto, rutaNativa, ruta, rutaMemoriaUsuario, testOnce, rutaBuscador } from './lib.mjs';
-import { palabras, palabraConPeso } from './hechos.mjs';
+import { readHookInput, projectRoot, sessionFlag, sinTextoCitado, relDelProyecto, rutaNativa, ruta, rutaRel, rutaMemoriaUsuario, testOnce, rutaBuscador, editadosSesion } from './lib.mjs';
+import { palabras, palabraConPeso, todosLosHechos } from './hechos.mjs';
 
 const p = readHookInput() || {};
 const sid = p.session_id ? String(p.session_id) : 'default';
@@ -47,18 +47,34 @@ if (evento === 'PostToolUse') {
     process.exit(0);
 }
 
-// ---------------- Stop: con conversación de verdad y sin revisar la memoria, bloquea UNA vez
-// «De verdad», sin mirar el idioma: 2+ mensajes del usuario con 2+ palabras con peso (los apunta memoria-viva).
-// Sin ese registro (memoria-viva apagado) no bloquea: no se inventa una conversación.
-if (leerRevision(flag).revisada) process.exit(0);
-let peticiones = [];
-try { peticiones = JSON.parse(fs.readFileSync(sessionFlag(sid, 'peticiones'), 'utf8')); } catch { process.exit(0); }
-const sustantivas = peticiones.filter(x => palabras(x && x.texto).filter(palabraConPeso).length >= 2);
-if (sustantivas.length < 2 || !testOnce(sid, 'hechos-guard')) process.exit(0);
-const cli = rutaBuscador(projectRoot()).replace(/buscar\.mjs$/, 'memoria.mjs');
-process.stdout.write(JSON.stringify({ decision: 'block', reason:
-    '[senzu] Antes de cerrar, revisa la memoria (en el idioma en que haya hablado el usuario): ¿ha dicho en esta sesión algo ESTABLE de sí o '
-    + 'del proyecto (dónde vive, su stack, una preferencia, un límite, un cliente, un objetivo o un pendiente)? '
-    + `Si sí: node ${cli} --guardar --dimension familia.tema --valor "…" --claves "…" (claves también en inglés y en su idioma; con «creo que…», --duda). `
-    + `Si no: node ${cli} --nada. Las decisiones y reglas del proyecto van a MEMORIA.md (/recordar). No inventes hechos que el usuario no dijo.` }) + '\n');
+// ---------------- Stop: dos comprobaciones, cada una UNA vez por sesión, en un solo mensaje
+const root = projectRoot();
+const rev = leerRevision(flag);
+const cli = rutaBuscador(root).replace(/buscar\.mjs$/, 'memoria.mjs');
+const motivos = [];
+// 1. Revisar: con conversación de verdad (sin mirar el idioma: 2+ mensajes del usuario con 2+ palabras con peso, que
+//    apunta memoria-viva) y sin revisión. Sin ese registro no se inventa una conversación.
+let peticiones = null;
+try { peticiones = JSON.parse(fs.readFileSync(sessionFlag(sid, 'peticiones'), 'utf8')); } catch { }
+const conversacion = Array.isArray(peticiones) && peticiones.filter(x => palabras(x && x.texto).filter(palabraConPeso).length >= 2).length >= 2;
+if (conversacion && !rev.revisada && testOnce(sid, 'hechos-guard')) {
+    motivos.push('Revisa la memoria (en el idioma en que haya hablado el usuario): ¿ha dicho en esta sesión algo ESTABLE de sí o '
+        + 'del proyecto (dónde vive, su stack, una preferencia, un límite, un cliente, un objetivo o un pendiente)? '
+        + `Si sí: node ${cli} --guardar --dimension familia.tema --valor "…" --claves "…" (claves también en inglés y en su idioma; con «creo que…», --duda). `
+        + `Si no: node ${cli} --nada. Las decisiones y reglas del proyecto van a MEMORIA.md (/recordar). No inventes hechos que el usuario no dijo.`);
+}
+// 2. Consolidar (F6-T3): si la sesión TRABAJÓ (3+ archivos tocados, sin contar la memoria ni el plan) y no guardó ningún
+//    aprendizaje.*, lo aprendido pasa a conocimiento duradero, enlazado solo con la entrada del devlog de hoy.
+const PROPIA = new RegExp(`^(${[rutaRel(root, 'devlog'), rutaRel(root, 'plan'), rutaRel(root, 'memoria'), '\\.estado', 'senzu/\\.estado'].map(d => d.replace(/[.]/g, '\\.')).join('|')})/`, 'i');
+const trabajo = editadosSesion(sid).filter(r => !PROPIA.test(String(r).replace(/\\/g, '/')));
+const guardados = new Set(rev.guardados || []);
+const aprendio = guardados.size && todosLosHechos(root).some(h => guardados.has(h.id) && /^aprendizaje(\.|$)/.test(h.dimension));
+if (new Set(trabajo).size >= 3 && !aprendio && testOnce(sid, 'consolidar')) {
+    motivos.push(`Consolida lo aprendido: esta sesión tocó ${new Set(trabajo).size} archivos. ¿Qué aprendiste que valga para la próxima vez `
+        + '(una causa que encontraste, algo que no funcionó y por qué, cómo se hace algo en este proyecto)? Como mucho 3: '
+        + `node ${cli} --guardar --dimension aprendizaje.<tema> --valor "…" --claves "…" (se enlaza solo con la entrada del devlog de hoy). `
+        + `Si no hay nada que valga: node ${cli} --nada --motivo "sin aprendizajes".`);
+}
+if (!motivos.length) process.exit(0);
+process.stdout.write(JSON.stringify({ decision: 'block', reason: '[senzu] Antes de cerrar:\n' + motivos.map((m, i) => `${i + 1}. ${m}`).join('\n') }) + '\n');
 process.exit(0);

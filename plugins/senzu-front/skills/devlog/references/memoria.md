@@ -121,6 +121,9 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   `--buscar "…"` (`--historico` para el pasado).
 - **Se exige**: hechos-guard no deja cerrar una sesión con conversación sin revisar la memoria (`--guardar` o
   `--nada`). memoria-check avisa de decisiones que citan un valor ya sustituido.
+- **Consolidar**: si la sesión tocó 3 o más archivos de trabajo (sin contar devlog, plan ni memoria) y no guardó
+  ningún `aprendizaje.*`, el cierre pide, una vez, hasta 3 aprendizajes (una causa, lo que no funcionó, cómo se
+  hace algo aquí), enlazados solos con la entrada del devlog del día; o `--nada --motivo "sin aprendizajes"`.
 
 ## 8. Memoria viva: correcciones, archivos y retomar
 - **Correcciones del usuario**: cuando dice «no vuelvas a…», «te dije…», «a partir de ahora…» o «siempre
