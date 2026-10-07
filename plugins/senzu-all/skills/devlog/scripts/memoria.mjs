@@ -7,6 +7,7 @@
 //   node memoria.mjs --buscar "dónde vive" [--historico] [--limite 8] [--json]
 //   node memoria.mjs --contexto [--presupuesto 12]      lo vigente, repartido por familias (lo usa el inicio de sesión)
 //   node memoria.mjs --lista [--todo] | --olvidar <id>
+//   node memoria.mjs --nada [--motivo "…"]              revisado: nada estable que guardar en esta sesión
 // Dimensiones: «familia.tema» libre (identidad.nombre, proyecto.stack, preferencia.gestor-paquetes, restriccion.presupuesto…).
 // Un valor nuevo en la misma dimensión SUSTITUYE al anterior (queda en el histórico); objetivo.*, pendiente.*, nota.*,
 // hecho.* y aprendizaje.* acumulan. --duda: el usuario no lo afirmó del todo («creo que…»): se guarda sin sustituir.
@@ -70,6 +71,10 @@ if (opt('--contexto')) {
 if (opt('--lista')) {
     const l = m.todosLosHechos(root).filter(h => opt('--todo') || h.estado === 'activo' || h.estado === 'dudoso');
     out(l.length ? l.map(linea).join('\n') : 'Sin hechos guardados.');
+    process.exit(0);
+}
+if (opt('--nada')) {   // revisado: el usuario no dijo nada estable que guardar (cuenta como revisión para el cierre)
+    out('Revisado: nada nuevo que guardar en la memoria' + (opt('--motivo') && opt('--motivo') !== true ? ` (${opt('--motivo')})` : '') + '.');
     process.exit(0);
 }
 if (opt('--olvidar')) {

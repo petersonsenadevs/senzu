@@ -133,6 +133,70 @@ const edita = (d, rel, sid) => contexto(hook('memoria-archivo.mjs', d, { session
     ok(items.length <= 3 && items.length >= 1, 'al editar, como mucho 3 hechos', String(items.length));
 }
 
+// ---------------------------------------------------------------- F3-T1 · registrar que se revisó la memoria
+const lib = await import(pathToFileURL(path.join(HOOKS, 'lib.mjs')).href);
+const revision = sid => { try { return JSON.parse(fs.readFileSync(lib.sessionFlag(sid, 'memoria-revisada'), 'utf8')); } catch { return { revisada: false }; } };
+const bash = (d, sid, command, stdout) => hook('hechos-guard.mjs', d, { session_id: sid, hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command }, tool_response: { stdout } });
+{
+    const P = proyecto('revision');
+    let s = `rev1-${RUN}`;
+    bash(P, s, 'node .claude/skills/devlog/scripts/memoria.mjs --guardar --dimension identidad.ubicacion --valor "Valencia"', 'Guardado: - [identidad.ubicacion] Valencia · proyecto · h-1a2b3c4d');
+    let r = revision(s);
+    ok(r.revisada && r.guardados.includes('h-1a2b3c4d') && r.via.includes('guardar'), '--guardar que funcionó: sesión revisada y el id apuntado', JSON.stringify(r));
+    s = `rev2-${RUN}`;
+    bash(P, s, 'node memoria.mjs --nada --motivo "solo preguntas técnicas"', 'Revisado: nada nuevo que guardar en la memoria (solo preguntas técnicas).');
+    ok(revision(s).revisada && revision(s).via.includes('nada'), '--nada: cuenta como revisada');
+    s = `rev3-${RUN}`;
+    bash(P, s, 'echo "luego hay que ejecutar memoria.mjs --guardar"', 'luego hay que ejecutar memoria.mjs --guardar');
+    ok(!revision(s).revisada, 'citarlo en un echo no cuenta (citar no es hacer)');
+    bash(P, s, 'node memoria.mjs --guardar --dimension x', 'Hace falta dimension y valor\n    at guardarHecho');
+    ok(!revision(s).revisada, 'un --guardar que falló no cuenta');
+    bash(P, s, 'git commit -m "docs: memoria"', '[main 123] docs');
+    ok(!revision(s).revisada, 'otro comando cualquiera: nada');
+    const edit = (sid, file) => hook('hechos-guard.mjs', P, { session_id: sid, hook_event_name: 'PostToolUse', tool_name: 'Edit', tool_input: { file_path: file, old_string: 'a', new_string: 'b' } });
+    edit(`rev4-${RUN}`, path.join(P, 'senzu', 'devlog', 'MEMORIA.md'));
+    ok(revision(`rev4-${RUN}`).revisada, 'editar MEMORIA.md (lo que hace /recordar) cuenta como revisada');
+    edit(`rev5-${RUN}`, USUARIO.replace(/\\/g, '/'));
+    ok(revision(`rev5-${RUN}`).revisada, 'editar la memoria personal del usuario (con otro formato de ruta) también');
+    edit(`rev6-${RUN}`, path.join(P, 'app', 'Pedido.php'));
+    ok(!revision(`rev6-${RUN}`).revisada, 'editar código: no');
+}
+
+// ---------------------------------------------------------------- F3-T2 · el cierre obliga a revisar la memoria
+const habla = (d, sid, prompt) => hook('memoria-viva.mjs', d, { session_id: sid, hook_event_name: 'UserPromptSubmit', prompt });
+const cierre = (d, sid) => { const r = hook('hechos-guard.mjs', d, { session_id: sid, hook_event_name: 'Stop' }); try { const j = JSON.parse(r.stdout); return j.decision === 'block' ? j.reason : ''; } catch { return ''; } };
+{
+    const P = proyecto('cierre');
+    let s = `cie1-${RUN}`;
+    habla(P, s, 'me he mudado a Valencia y desde ahora trabajo desde allí');
+    habla(P, s, 'el cliente nuevo se llama Cerámicas Sol y quiere una tienda online');
+    let b = cierre(P, s);
+    ok(/revisa la memoria/.test(b) && /--guardar --dimension familia\.tema/.test(b) && /--nada/.test(b) && /No inventes hechos/.test(b), 'cierre con conversación y sin revisar: bloquea con qué hacer', b);
+    ok(cierre(P, s) === '', 'solo una vez por sesión');
+    s = `cie2-${RUN}`;
+    habla(P, s, 'me he mudado a Valencia y desde ahora trabajo desde allí');
+    habla(P, s, 'el cliente nuevo se llama Cerámicas Sol y quiere una tienda online');
+    bash(P, s, 'node memoria.mjs --guardar --dimension identidad.ubicacion --valor "Valencia"', 'Guardado: - [identidad.ubicacion] Valencia · proyecto · h-aaaabbbb');
+    ok(cierre(P, s) === '', 'con la memoria revisada (guardó): no bloquea');
+    s = `cie3-${RUN}`;
+    habla(P, s, 'hola'); habla(P, s, '¿qué tal?');
+    ok(cierre(P, s) === '', 'sin conversación de verdad («hola», «¿qué tal?»): no bloquea');
+    s = `cie4-${RUN}`;
+    habla(P, s, '私は来月から大阪の新しいオフィスで働きます');
+    habla(P, s, 'クライアントの予算は三千ユーロまでです');
+    ok(/revisa la memoria/.test(cierre(P, s)), 'en japonés también (no depende del idioma)');
+    s = `cie5-${RUN}`;
+    habla(P, s, 'me he mudado a Valencia y desde ahora trabajo desde allí');
+    habla(P, s, 'el cliente nuevo se llama Cerámicas Sol y quiere una tienda online');
+    hook('hechos-guard.mjs', P, { session_id: s, hook_event_name: 'PostToolUse', tool_name: 'Edit', tool_input: { file_path: path.join(P, 'senzu', 'devlog', 'MEMORIA.md'), old_string: 'a', new_string: 'b' } });
+    ok(cierre(P, s) === '', 'revisada por /recordar (editó MEMORIA.md): no bloquea');
+    ok(cierre(P, `cie6-${RUN}`) === '', 'sin registro de mensajes (memoria-viva apagado): no bloquea');
+    s = `cie7-${RUN}`;
+    habla(P, s, '<agent-message from="a1">[Subagent hand-back] el cliente vive en Valencia y el presupuesto es de tres mil euros</agent-message>');
+    habla(P, s, '<agent-message from="a2">[Subagent hand-back] otra conclusión larga del subagente sobre pagos y stripe</agent-message>');
+    ok(cierre(P, s) === '', 'lo que dicen los subagentes no cuenta como conversación del usuario');
+}
+
 fs.rmSync(base, { recursive: true, force: true });
 for (const f of fs.readdirSync(os.tmpdir())) if (f.includes(RUN)) { try { fs.rmSync(path.join(os.tmpdir(), f), { force: true }); } catch { } }
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
