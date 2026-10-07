@@ -7,7 +7,7 @@
 //     solo valor, un valor nuevo SUSTITUYE al anterior (queda en el histórico con su fecha de fin); las familias de
 //     VARIOS (objetivo, pendiente, nota…) acumulan.
 //   · búsqueda: palabras con Intl.Segmenter (también japonés, chino, árabe…), sin tildes ni mayúsculas, BM25,
-//     erratas por trigramas y «claves» que el agente añade en otros idiomas para buscar entre idiomas.
+//     erratas por distancia de edición acotada y «claves» que el agente añade en otros idiomas para buscar entre idiomas.
 // Almacén: senzu/memoria/hechos.jsonl (proyecto) y, junto a la memoria del usuario, hechos.jsonl (todos sus proyectos).
 
 import fs from 'node:fs';
@@ -16,6 +16,7 @@ import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { ruta, rutaMemoriaUsuario } from './lib.mjs';
+export { rutaNativa } from './lib.mjs';   // para memoria.mjs: --path con C:\, C:/ o /c/ de Git Bash → el mismo almacén
 
 export const FAMILIAS_VARIOS = /^(objetivo|pendiente|nota|hecho|enlace|aprendizaje)(\.|$)/;
 export function rutaHechos(root, alcance = 'proyecto') {
@@ -36,24 +37,84 @@ export function claveDimension(d) {
     return normalizar(d).replace(/[\s_/]+/g, '-').replace(/[^\p{L}\p{N}.-]/gu, '').replace(/-+/g, '-').replace(/\.{2,}/g, '.').replace(/^[.-]+|[.-]+$/g, '');
 }
 const familia = dim => dim.split('.')[0];
-const trigramas = w => { const s = ` ${w} `; const out = new Set(); for (let i = 0; i < s.length - 2; i++) out.add(s.slice(i, i + 3)); return out; };
-function parecido(a, b) {   // Dice sobre trigramas: 1 = igual. Sirve en cualquier alfabeto
-    const A = trigramas(a), B = trigramas(b); let c = 0;
-    for (const x of A) if (B.has(x)) c++;
-    return (2 * c) / (A.size + B.size);
+// Erratas: distancia de Damerau (la transposición «im»↔«mi» cuenta 1), por puntos de código (cualquier alfabeto) y
+// acotada: como mucho 1 cambio en palabras de 4-5 letras y 2 en las más largas. Con trigramas, «quien» encajaba con
+// «quieren» y «Ceráimcas» no encajaba con «ceramicas» (evaluación de F4-T1).
+function distancia(a, b, max) {
+    const x = [...a], y = [...b];
+    if (Math.abs(x.length - y.length) > max) return max + 1;
+    let prev2 = null, prev = Array.from({ length: y.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= x.length; i++) {
+        const cur = [i]; let minFila = i;
+        for (let j = 1; j <= y.length; j++) {
+            const coste = x[i - 1] === y[j - 1] ? 0 : 1;
+            let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + coste);
+            if (prev2 && i > 1 && j > 1 && x[i - 1] === y[j - 2] && x[i - 2] === y[j - 1]) v = Math.min(v, prev2[j - 2] + 1);
+            cur.push(v); if (v < minFila) minFila = v;
+        }
+        if (minFila > max) return max + 1;
+        prev2 = prev; prev = cur;
+    }
+    return prev[y.length];
+}
+// Ninguna errata en palabras de 4 letras («todo»≈«tono», «cosa»≈«cost» eran falsos aciertos), 1 de 5 a 7, 2 desde 8.
+const maxErratas = w => { const n = [...w].length; return n <= 4 ? 0 : n <= 7 ? 1 : 2; };
+// Flexiones sin listas por idioma: prefijo común largo («hosted»/«hosting», «mudarme»/«mudado»,
+// «ceramicassol»/«ceramicassol.es»): al menos 4 letras, el 60 % de la corta y la mitad de la larga.
+function prefijoComun(a, b) {
+    const x = [...a], y = [...b]; let p = 0;
+    while (p < x.length && p < y.length && x[p] === y[p]) p++;
+    const corta = Math.min(x.length, y.length), larga = Math.max(x.length, y.length);
+    return p >= 4 && p >= 0.6 * corta && p >= 0.5 * larga;
 }
 
-// ---------------------------------------------------------------- almacén (JSONL, escritura atómica)
-export function leerHechos(file) {
+// ---------------------------------------------------------------- almacén (JSONL, cerrojo y escritura atómica)
+// Robusto ante la vida real (F4-T2): BOM y CRLF; líneas cortadas o basura que no tumban la lectura y NO se pierden al
+// reescribir (van a hechos.danado.jsonl); varios procesos a la vez (Claude y Codex en el mismo proyecto) con un
+// cerrojo alrededor de leer-modificar-escribir; renombrado con reintentos (en Windows falla si otro proceso lee).
+function leerArchivo(file) {
     let txt = '';
-    try { txt = fs.readFileSync(file, 'utf8'); } catch { return []; }
-    return txt.split(/\r?\n/).filter(l => l.trim()).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean);
+    try { txt = fs.readFileSync(file, 'utf8'); } catch { return { validos: [], ilegibles: [] }; }
+    const validos = [], ilegibles = [];
+    for (const l of txt.replace(/^﻿/, '').split(/\r?\n/)) {
+        if (!l.trim()) continue;
+        try { const h = JSON.parse(l); if (h && typeof h === 'object' && h.id && h.dimension) validos.push(h); else ilegibles.push(l); } catch { ilegibles.push(l); }
+    }
+    return { validos, ilegibles };
 }
-function escribirHechos(file, lista) {
+export function leerHechos(file) { return leerArchivo(file).validos; }
+const dormir = ms => { try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); } catch { } };
+function conCerrojo(file, fn) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    const tmp = `${file}.${process.pid}.tmp`;
+    const lock = file + '.lock', hasta = Date.now() + 8000;
+    for (;;) {
+        try { fs.writeFileSync(lock, String(process.pid), { flag: 'wx' }); break; } catch (e) {
+            if (e.code !== 'EEXIST') throw e;
+            try { if (Date.now() - fs.statSync(lock).mtimeMs > 10000) { fs.rmSync(lock, { force: true }); continue; } } catch { continue; }   // abandonado
+            if (Date.now() > hasta) throw new Error('La memoria de hechos está ocupada por otro proceso; vuelve a intentarlo.');
+            dormir(10 + Math.floor(Math.random() * 20));
+        }
+    }
+    try { return fn(); } finally { try { fs.rmSync(lock, { force: true }); } catch { } }
+}
+function escribirHechos(file, lista, ilegibles = []) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    if (ilegibles.length) {   // lo ilegible no se pierde: se aparta para recuperarlo a mano
+        const danado = path.join(path.dirname(file), 'hechos.danado.jsonl');
+        let ya = ''; try { ya = fs.readFileSync(danado, 'utf8'); } catch { }
+        const nuevas = ilegibles.filter(l => !ya.includes(l));
+        if (nuevas.length) fs.appendFileSync(danado, nuevas.map(l => l.replace(/\r/g, '')).join('\n') + '\n');
+    }
+    const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
     fs.writeFileSync(tmp, lista.map(h => JSON.stringify(h)).join('\n') + (lista.length ? '\n' : ''));
-    fs.renameSync(tmp, file);
+    try {
+        for (let i = 0; ; i++) {
+            try { fs.renameSync(tmp, file); return; } catch (e) {
+                if (i >= 20 || !['EPERM', 'EBUSY', 'EACCES'].includes(e.code)) { fs.copyFileSync(tmp, file); return; }
+                dormir(15);
+            }
+        }
+    } finally { try { fs.rmSync(tmp, { force: true }); } catch { } }
 }
 const hoy = () => new Date().toISOString();
 export function vigente(h, ahora = hoy()) {
@@ -78,14 +139,16 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
     if (!dimension || !valor) throw new Error('Hace falta dimension y valor');
     const alcance = entrada.alcance === 'usuario' ? 'usuario' : 'proyecto';
     const file = rutaHechos(root, alcance);
-    const lista = leerHechos(file);
     const k = normalizar(valor);
     const claves = [...new Set([].concat(entrada.claves || []).flatMap(c => String(c).split(',')).map(c => c.trim()).filter(Boolean))];
+    // leer-modificar-escribir dentro del cerrojo: lo que otro proceso guardó entre medias no se pisa
+    return conCerrojo(file, () => {
+    const { validos: lista, ilegibles } = leerArchivo(file);
     const igual = lista.find(h => h.dimension === dimension && normalizar(h.valor) === k && (h.estado === 'activo' || h.estado === 'dudoso'));
     if (igual) {   // ya estaba: se suman las claves nuevas, nada más (sin duplicar)
         const antes = igual.claves || [];
         igual.claves = [...new Set([...antes, ...claves])];
-        if (igual.claves.length !== antes.length) escribirHechos(file, lista);
+        if (igual.claves.length !== antes.length || ilegibles.length) escribirHechos(file, lista, ilegibles);
         return { accion: 'ya-estaba', hecho: igual, sustituidos: [] };
     }
     const hecho = {
@@ -108,14 +171,21 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
         if (!hecho.claves && sustituidos.some(h => h.claves && h.claves.length)) hecho.claves = [...new Set(sustituidos.flatMap(h => h.claves || []))];
     }
     lista.push(JSON.parse(JSON.stringify(hecho)));
-    escribirHechos(file, lista);
+    escribirHechos(file, lista, ilegibles);
     return { accion: entrada.duda ? 'dudoso' : sustituidos.length ? 'sustituye' : 'nuevo', hecho, sustituidos };
+    });
 }
 export function olvidarHecho(root, id) {
     for (const alcance of ['proyecto', 'usuario']) {
-        const file = rutaHechos(root, alcance), lista = leerHechos(file);
-        const h = lista.find(x => x.id === id);
-        if (h) { h.estado = 'invalidado'; h.invalidado = hoy(); escribirHechos(file, lista); return h; }
+        const file = rutaHechos(root, alcance);
+        if (!fs.existsSync(file)) continue;
+        const h = conCerrojo(file, () => {
+            const { validos: lista, ilegibles } = leerArchivo(file);
+            const x = lista.find(y => y.id === id);
+            if (x) { x.estado = 'invalidado'; x.invalidado = hoy(); escribirHechos(file, lista, ilegibles); }
+            return x || null;
+        });
+        if (h) return h;
     }
     return null;
 }
@@ -151,10 +221,15 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
         for (const w of q) {
             let termino = w, peso = 1;
             if (!tf.has(w)) {   // errata o variante: la palabra del hecho más parecida
-                let mejor = null, sim = 0;
-                if ([...w].length >= 4) for (const d of tf.keys()) { const s = parecido(w, d); if (s > sim) { sim = s; mejor = d; } }
-                if (!mejor || sim < 0.6) continue;
-                termino = mejor; peso = sim * 0.8; motivo.push(`${w}≈${mejor}`);
+                let mejor = null, dist = Infinity;
+                const max = maxErratas(w);
+                if (max > 0) for (const d of tf.keys()) { const x = distancia(w, d, max); if (x < dist) { dist = x; mejor = d; } }
+                if (mejor && dist <= max) { termino = mejor; peso = dist === 1 ? 0.75 : 0.55; motivo.push(`${w}≈${mejor}`); }
+                else {
+                    const flex = [...tf.keys()].find(d => prefijoComun(w, d));
+                    if (!flex) continue;
+                    termino = flex; peso = 0.8; motivo.push(`${w}~${flex}`);
+                }
             } else motivo.push(w);
             const f = tf.get(termino);
             score += peso * idf(termino) * (f * 2.2) / (f + 1.2 * (0.25 + 0.75 * t.length / media));

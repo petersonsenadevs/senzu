@@ -18,7 +18,8 @@ import { pathToFileURL, fileURLToPath } from 'node:url';
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 const args = process.argv.slice(2);
 const opt = n => { const i = args.indexOf(n); return i >= 0 ? (args[i + 1] !== undefined && !args[i + 1].startsWith('--') ? args[i + 1] : true) : null; };
-const root = path.resolve(opt('--path') || process.env.CLAUDE_PROJECT_DIR || process.cwd());
+const rutaPedida = String(opt('--path') && opt('--path') !== true ? opt('--path') : process.env.CLAUDE_PROJECT_DIR || process.cwd());
+let root = path.resolve(rutaPedida);   // provisional: para encontrar el motor; abajo, normalizada como en los hooks
 const out = s => process.stdout.write(s + '\n');
 
 async function motor() {   // hechos.mjs de los hooks: junto a la skill (plugin o .claude), o en el paquete de Senzu
@@ -30,6 +31,7 @@ async function motor() {   // hechos.mjs de los hooks: junto a la skill (plugin 
     process.exit(2);
 }
 const m = await motor();
+root = m.rutaNativa ? m.rutaNativa(rutaPedida) : root;   // /c/… de Git Bash, C:/ o barra final → la misma carpeta
 const fecha = s => String(s || '').slice(0, 10);
 const linea = h => `- [${h.dimension}] ${h.valor}${h.estado !== 'activo' ? ` (${h.estado}${h.hasta ? ' ' + fecha(h.hasta) : ''})` : ''}${h.desde ? ` · desde ${fecha(h.desde)}` : ''}${h.devlog ? ` · ver ${h.devlog}` : ''} · ${h.alcance} · ${h.id}`;
 
