@@ -5,7 +5,8 @@ description: Verifica el proyecto tras los cambios — build, lint, types, tests
 Ejecuta la verificación completa del proyecto y NO des nada por hecho en rojo:
 
 1. `node <skills-dir>/code-quality/scripts/verify-build.mjs`
-   desde la raíz (usa los comandos del stack: lint, types, tests, build). Si algo FALLA: corrige y
+   desde la raíz (usa los comandos del stack: lint, types, tests, build; sin manifiesto de build, las suites
+   propias del repo, la sintaxis de lo cambiado y los enlaces de los documentos). Si algo FALLA: corrige y
    re-ejecuta hasta 0 fallos, pegando la salida final.
 2. Si en la sesión se tocó UI: además `ui-verify` — `node <skills-dir>/ui-verify/scripts/verify-ui.mjs
    <url-local>` con la app en dev, MÓVIL 375 primero (o la pasada con navegador).

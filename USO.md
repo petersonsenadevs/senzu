@@ -69,6 +69,10 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
   la base de datos) y avisa del DTO que falta y del código fuera de su carpeta. Lo heredado no bloquea: solo lo
   nuevo. `arquitectura.mjs --comprobar` revisa el proyecto entero (lo usa `/verificar`). Sin declararla, no se
   impone ninguna.
+- **Verifica según lo que sea el proyecto**: con manifiesto (Node, PHP, Python, Go, Rust, Ruby, Java, .NET,
+  Deno, Makefile) lint, tipos, tests y build con sus herramientas; sin manifiesto no hay build: ejecuta las suites
+  propias del repo, comprueba que el código cambiado carga (JS, Python, PowerShell, shell, JSON) y que los
+  documentos cambiados no enlazan a archivos que no existen. Y deja constancia para el cierre.
 - **El método antes que el código**: al empezar la sesión te dice el **siguiente paso** que falta y por qué:
   `/instalar` si Senzu no está en el proyecto; `/adoptar` si hay código previo sin convenciones selladas. El muro
   `arranque-guard` los hace cumplir: la primera vez que el agente va a escribir código sin ellos, lo para y te lo

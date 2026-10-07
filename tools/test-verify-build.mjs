@@ -110,10 +110,100 @@ git(m, 'init', '-q'); git(m, 'config', 'user.email', 't@t'); git(m, 'config', 'u
     const r = run(s);
     ok(r.code === 0 && /PASS  lint/.test(r.out) && !/Monorepo/.test(r.out), 'proyecto simple: usa los comandos de config.json', r.out.slice(-300));
 }
-{   // sin nada que verificar
+{   // sin manifiesto y sin nada: no hay build ni nada que comprobar → sale bien y deja constancia (antes: código 2
+    // y el cierre volvía a pedir la verificación en falso; devlog 097)
     const v = nuevo();
     const r = run(v);
-    ok(r.code === 2 && /No hay comandos que ejecutar/.test(r.out), 'carpeta sin manifiestos: aviso y código 2', r.out);
+    ok(r.code === 0 && /no es un build/.test(r.out) && /Nada que comprobar/.test(r.out), 'carpeta vacía sin manifiesto: nada que comprobar, código 0', r.out);
+}
+
+// ---------------------------------------------------------------- sin manifiesto: suites propias, sintaxis y enlaces
+const repo = () => { const d = nuevo(); git(d, 'init', '-q'); return d; };
+{   // repo de scripts con sus suites (como Senzu): se ejecutan y su resultado manda
+    const d = repo();
+    w(d, 'tools/test-uno.mjs', 'console.log("Casos: 2  Fallos: 0");\n');
+    w(d, 'tools/check-algo.mjs', 'process.exit(0);\n');
+    w(d, 'tools/ayuda.mjs', 'process.exit(1);\n');   // no es una suite (ni test-* ni check-*): no se ejecuta
+    let r = run(d);
+    ok(r.code === 0 && /no es un build/.test(r.out) && /PASS  suite tools\/test-uno\.mjs/.test(r.out) && /PASS  suite tools\/check-algo\.mjs/.test(r.out) && !/ayuda/.test(r.out.split('== Resumen ==')[1] || ''), 'sin manifiesto: ejecuta las suites propias (test-*, check-*)', r.out.slice(-500));
+    w(d, 'tools/test-dos.mjs', 'console.error("FAIL algo");process.exit(1);\n');
+    r = run(d);
+    ok(r.code === 1 && /FAIL  suite tools\/test-dos\.mjs/.test(r.out), 'sin manifiesto: una suite que falla es FAIL', r.out.slice(-300));
+    r = run(d, '--rapido');
+    ok(r.code === 0 && !/suite tools/.test(r.out.split('== Resumen ==')[1] || '') && /saltadas con --rapido/.test(r.out), '--rapido se salta las suites', r.out.slice(-300));
+}
+{   // sintaxis de lo cambiado
+    const d = repo();
+    w(d, 'hooks/bien.mjs', 'export const a = 1;\n');
+    w(d, 'datos/bien.json', '{ "a": 1 }');
+    w(d, 'tsconfig.json', '{ // comentarios permitidos\n "compilerOptions": {} }');
+    let r = run(d);
+    ok(r.code === 0 && /PASS  sintaxis/.test(r.out), 'sintaxis: JS y JSON correctos (tsconfig con comentarios no cuenta)', r.out.slice(-300));
+    w(d, 'hooks/mal.mjs', 'export const a = ;\n');
+    r = run(d);
+    ok(r.code === 1 && /FAIL  sintaxis/.test(r.out) && /hooks\/mal\.mjs/.test(r.out), 'sintaxis: JS que no carga es FAIL con el archivo', r.out.slice(-400));
+    fs.rmSync(path.join(d, 'hooks', 'mal.mjs'));
+    w(d, 'datos/mal.json', '{ "a": 1, }');
+    r = run(d);
+    ok(r.code === 1 && /datos\/mal\.json/.test(r.out), 'sintaxis: JSON roto es FAIL', r.out.slice(-300));
+    if (process.platform === 'win32') {
+        fs.rmSync(path.join(d, 'datos', 'mal.json'));
+        w(d, 'tools/x.ps1', 'function F { if ($true) { "a" }\n');
+        r = run(d);
+        ok(r.code === 1 && /tools\/x\.ps1: línea/.test(r.out), 'sintaxis: PowerShell que no analiza es FAIL con la línea', r.out.slice(-300));
+    }
+}
+{   // enlaces de los documentos cambiados
+    const d = repo();
+    w(d, 'docs/guia.md', '# Guía\nVer [uso](uso.md), [web](https://x.dev), [ancla](#a), `[no](roto.md)`.\n');
+    w(d, 'docs/uso.md', '# Uso\n');
+    let r = run(d);
+    ok(r.code === 0 && /PASS  enlaces/.test(r.out), 'enlaces: relativos que existen, web, anclas y código no cuentan', r.out.slice(-300));
+    w(d, 'README.md', '# X\n[guía](docs/guia.md) y [falta](docs/no-existe.md)\n');
+    r = run(d);
+    ok(r.code === 1 && /README\.md: enlace roto → docs\/no-existe\.md/.test(r.out), 'enlaces: uno roto es FAIL con el documento', r.out.slice(-300));
+}
+
+// ---------------------------------------------------------------- más manifiestos (lo que ejecutaría)
+{
+    const d = nuevo();
+    w(d, 'Cargo.toml', '[package]\nname = "x"\n');
+    const r = run(d, '--plan');
+    ok(/lint: cargo clippy/.test(r.out) && /test: cargo test/.test(r.out) && /build: cargo build/.test(r.out), 'Rust: clippy, test y build', r.out);
+}
+{
+    const d = nuevo();
+    w(d, 'Gemfile', 'source "https://rubygems.org"\n'); w(d, '.rubocop.yml', ''); fs.mkdirSync(path.join(d, 'spec'));
+    const r = run(d, '--plan');
+    ok(/lint: bundle exec rubocop/.test(r.out) && /test: bundle exec rspec/.test(r.out), 'Ruby: rubocop y rspec', r.out);
+}
+{
+    const d = nuevo();
+    w(d, 'pom.xml', '<project/>');
+    ok(/test: mvn -q -B verify/.test(run(d, '--plan').out), 'Java (Maven): mvn verify');
+    const g = nuevo();
+    w(g, 'build.gradle.kts', ''); w(g, process.platform === 'win32' ? 'gradlew.bat' : 'gradlew', '');
+    ok(/test: ".*gradlew(\.bat)?" check -q/.test(run(g, '--plan').out), 'Gradle con su envoltorio gradlew');
+}
+{
+    const d = nuevo();
+    w(d, 'App.csproj', '<Project/>');
+    const r = run(d, '--plan');
+    ok(/build: dotnet build/.test(r.out) && /test: dotnet test/.test(r.out), '.NET: dotnet build y test', r.out);
+}
+{
+    const d = nuevo();
+    w(d, 'Makefile', 'lint:\n\techo lint\ntest:\n\techo test\n');
+    const r = run(d, '--plan');
+    ok(/lint: make lint/.test(r.out) && /test: make test/.test(r.out), 'Makefile: sus objetivos lint y test', r.out);
+}
+{
+    const d = nuevo();
+    w(d, 'requirements.txt', 'pytest\n'); fs.mkdirSync(path.join(d, 'tests'));
+    const r = run(d, '--plan');
+    const hayPython = ['py', 'python3', 'python'].some(e => spawnSync(e, e === 'py' ? ['-3', '--version'] : ['--version'], { stdio: 'ignore' }).status === 0);
+    if (hayPython) ok(/test: (py -3|python3?) -m pytest -q/.test(r.out), 'Python sin pyproject (requirements.txt): pytest con el Python del sistema', r.out);
+    else ok(!/pytest/.test(r.out), 'Python sin pyproject y sin Python instalado: no inventa el comando', r.out);
 }
 
 console.log(`Casos: ${casos}  Fallos: ${fallos}`);

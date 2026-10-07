@@ -43,8 +43,10 @@ function resolverComando(c, dir) {
 }
 
 // ---------------------------------------------------------------- paquetes
-const MANIFIESTOS = ['package.json', 'pyproject.toml', 'composer.json', 'go.mod'];
-const tieneManifiesto = d => MANIFIESTOS.some(m => existe(d, m));
+const MANIFIESTOS = ['package.json', 'pyproject.toml', 'composer.json', 'go.mod', 'Cargo.toml', 'Gemfile', 'pom.xml', 'build.gradle', 'build.gradle.kts',
+    'deno.json', 'deno.jsonc', 'requirements.txt', 'setup.py', 'Makefile', 'makefile', 'justfile', 'Justfile'];
+const proyectoDotnet = d => { try { return fs.readdirSync(d).some(f => /\.(csproj|fsproj|sln)$/i.test(f)); } catch { return false; } };
+const tieneManifiesto = d => MANIFIESTOS.some(m => existe(d, m)) || proyectoDotnet(d);
 function expandir(patron) {   // "apps/*", "packages/**", "apps/web" (sin dependencias de glob)
     const limpio = patron.replace(/^["']|["']$/g, '').replace(/\/+$/, '');
     if (!limpio || limpio.startsWith('!')) return [];
@@ -90,6 +92,16 @@ function prefijoPy(dir) {
     for (const d of [dir, root]) { if (existe(d, 'uv.lock')) return 'uv run '; if (existe(d, 'poetry.lock')) return 'poetry run '; }
     return '';
 }
+// El Python del sistema: en Windows «python» puede ser el atajo de la Store que no hace nada; el lanzador «py -3» no
+let pythonCache = null;
+function python() {
+    if (pythonCache !== null) return pythonCache;
+    const prueba = (exe, a) => { try { execFileSync(exe, [...a, '--version'], { stdio: 'ignore' }); return true; } catch { return false; } };
+    pythonCache = process.platform === 'win32' && prueba('py', ['-3']) ? 'py -3' : prueba('python3', []) ? 'python3' : prueba('python', []) ? 'python' : '';
+    return pythonCache;
+}
+// Script envolvente del proyecto (mvnw, gradlew): en Windows su .cmd/.bat
+const envoltorio = (dir, n) => (process.platform === 'win32' ? [n + '.cmd', n + '.bat'] : [n]).map(f => path.join(dir, f)).find(f => fs.existsSync(f));
 
 // ---------------------------------------------------------------- comandos por paquete
 function comandosDe(dir, esRaiz) {
@@ -130,6 +142,33 @@ function comandosDe(dir, esRaiz) {
         if (existe(dir, 'artisan')) cmds.set(cmds.has('test') ? 'test-php' : 'test', 'php artisan test');
     }
     if (existe(dir, 'go.mod')) { cmds.set(cmds.has('lint') ? 'vet-go' : 'lint', 'go vet ./...'); cmds.set(cmds.has('test') ? 'test-go' : 'test', 'go test ./...'); }
+    const pon = (k, c) => cmds.set(cmds.has(k) ? `${k}-${cmds.size}` : k, c);
+    if (existe(dir, 'Cargo.toml')) {   // Rust: clippy como lint (con avisos = error), tests y build
+        pon('lint', 'cargo clippy --quiet --all-targets -- -D warnings'); pon('test', 'cargo test --quiet');
+        if (!sinBuild) pon('build', 'cargo build --quiet');
+    }
+    if (existe(dir, 'Gemfile')) {   // Ruby: rubocop si está configurado; rspec o minitest según la carpeta
+        if (existe(dir, '.rubocop.yml')) pon('lint', 'bundle exec rubocop');
+        if (existe(dir, 'spec')) pon('test', 'bundle exec rspec'); else if (existe(dir, 'test') && existe(dir, 'Rakefile')) pon('test', 'bundle exec rake test');
+    }
+    if (existe(dir, 'pom.xml')) { const mvnw = envoltorio(dir, 'mvnw'); pon('test', `${mvnw ? `"${mvnw}"` : 'mvn'} -q -B verify`); }   // verify = compilar + tests + checks del pom
+    if (existe(dir, 'build.gradle') || existe(dir, 'build.gradle.kts')) { const gw = envoltorio(dir, 'gradlew'); pon('test', `${gw ? `"${gw}"` : 'gradle'} check -q`); }
+    if (proyectoDotnet(dir)) { if (!sinBuild) pon('build', 'dotnet build --nologo -v q'); pon('test', 'dotnet test --nologo -v q'); }
+    if (existe(dir, 'deno.json') || existe(dir, 'deno.jsonc')) { pon('lint', 'deno lint'); pon('test', 'deno test --quiet'); }   // deno test también comprueba tipos
+    // Python sin pyproject (requirements.txt / setup.py): lo que esté configurado y, si no hay nada, al menos que compile
+    if (!py && (existe(dir, 'requirements.txt') || existe(dir, 'setup.py')) && python()) {
+        const req = readText(path.join(dir, 'requirements.txt'));
+        if (existe(dir, 'ruff.toml') || existe(dir, '.ruff.toml')) pon('lint', `${python()} -m ruff check .`);
+        if (existe(dir, 'tests') || existe(dir, 'pytest.ini') || /^pytest\b/mi.test(req)) pon('test', `${python()} -m pytest -q`);
+        if (!cmds.size) pon('sintaxis', `${python()} -m compileall -q .`);
+    }
+    // Makefile / justfile: sus objetivos de verificación, si no ha salido nada del manifiesto
+    if (!cmds.size) {
+        const mk = readText(path.join(dir, 'Makefile')) || readText(path.join(dir, 'makefile'));
+        for (const t of ['lint', 'check', 'test', 'build']) if (new RegExp(`^${t}\\s*:`, 'm').test(mk) && !(t === 'build' && sinBuild)) pon(t, `make ${t}`);
+        const just = readText(path.join(dir, 'justfile')) || readText(path.join(dir, 'Justfile'));
+        if (!cmds.size) for (const t of ['lint', 'check', 'test', 'build']) if (new RegExp(`^${t}\\s*:`, 'm').test(just) && !(t === 'build' && sinBuild)) pon(t, `just ${t}`);
+    }
     // Reglas de arquitectura (backend-audit references/reglas-arquitectura.md)
     const deptracBin = ['deptrac.bat', 'deptrac'].map(n => path.join(dir, 'vendor', 'bin', n)).find(f => fs.existsSync(f));
     const deptracCfg = ['deptrac.yaml', 'deptrac.yml'].find(f => existe(dir, f));
@@ -171,28 +210,42 @@ else {
 }
 if (soloPaquete && !objetivo.length) { console.log(`[verify-build] No encuentro el paquete "${soloPaquete}". Paquetes: ${candidatos.map(rel).join(', ') || '(ninguno)'}`); process.exit(2); }
 
-const plan = objetivo.map(d => ({ dir: d, cmds: comandosDe(d, d === root) })).filter(p => p.cmds.size);
+let plan = objetivo.map(d => ({ dir: d, cmds: comandosDe(d, d === root) })).filter(p => p.cmds.size);
+if (!plan.length && !esMonorepo) {
+    // Sin manifiesto de build no hay build que hacer: es otro tipo de proyecto (scripts, hooks, documentación…).
+    // Se comprueba con lo que el propio repo trae (sus suites) y, de lo cambiado, la sintaxis y los enlaces.
+    const sb = comprobacionesSinBuild();
+    if (!sb.cmds.size) {
+        console.log(`[verify-build] ${sb.resumen} Nada que comprobar automáticamente.`);
+        if (!sb.hayCambiosDeCodigo) { constancia(); process.exit(0); }
+        console.log('Hay código cambiado sin forma de comprobarlo aquí: verifícalo a mano y di cómo en tu respuesta.');
+        process.exit(2);
+    }
+    console.log(`[verify-build] ${sb.resumen}`);
+    plan = [{ dir: root, cmds: sb.cmds }];
+}
 if (!plan.length) {
     console.log(`[verify-build] No hay comandos que ejecutar${esMonorepo ? ` en ${objetivo.map(rel).join(', ')}` : ''} (sin config.json ni scripts de lint/types/test/build reconocibles).`);
     process.exit(2);
 }
 if (esMonorepo) console.log(`[verify-build] Monorepo: ${plan.map(p => rel(p.dir)).join(', ')}${!todos && !soloPaquete ? ' (los paquetes con cambios; --todos para todos)' : ''}`);
 if (args.includes('--plan')) {   // solo enseña qué ejecutaría
-    for (const { dir, cmds } of plan) for (const [k, c] of cmds) console.log(`  ${rel(dir)} · ${k}: ${c}`);
+    for (const { dir, cmds } of plan) for (const [k, c] of cmds) console.log(`  ${rel(dir)} · ${k}: ${typeof c === 'string' ? c : c.desc}`);
     process.exit(0);
 }
 
 // ---------------------------------------------------------------- ejecutar
 // Herramienta no instalada o script que no existe = SKIP con motivo (no es un fallo del código).
-const NO_CONFIGURADO = /Missing script|no test specified|command not found|no se reconoce|is not recognized|ERR_PNPM_NO_SCRIPT|Couldn't find a script|No module named '?(ruff|mypy|pytest)\b|Failed to spawn: `(ruff|mypy|pytest)`|executable file not found|no tests ran|collected 0 items/i;
+const NO_CONFIGURADO = /Missing script|no test specified|command not found|no se reconoce|is not recognized|ERR_PNPM_NO_SCRIPT|Couldn't find a script|No module named '?(ruff|mypy|pytest)\b|Failed to spawn: `(ruff|mypy|pytest)`|executable file not found|no tests ran|collected 0 items|no such command: `?clippy|No rule to make target|Could not find command "?bundle|could not find Gemfile/i;
 const results = [];
 let fails = 0;
 for (const { dir, cmds } of plan) {
     const pre = esMonorepo ? `${rel(dir)} · ` : '';
     for (const [k, c] of cmds) {
-        console.log(`== ${pre}${k}: ${c}`);
+        console.log(`== ${pre}${k}: ${typeof c === 'string' ? c : c.desc}`);
         let out = '', code = 0;
-        try {
+        if (typeof c !== 'string') ({ code, out } = c.fn());   // comprobación interna (sintaxis, enlaces)
+        else try {
             out = execSync(c, { cwd: dir, stdio: ['ignore', 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 32 * 1024 * 1024 });
         } catch (e) {
             code = e.status == null ? 1 : e.status;
@@ -221,6 +274,80 @@ if (fails) {
 constancia();
 console.log('\n[verify-build] Todo en verde. Constancia registrada. Si tocaste UI, ademas ui-verify (movil primero).');
 process.exit(0);
+
+// ---------------------------------------------------------------- sin manifiesto: no es un build
+// Repos de scripts, hooks, plugins o documentación. La comprobación buena es la que el propio repo trae (sus
+// suites: tools/test-*, tools/check-*, scripts/test*…) más, de lo cambiado, que el código se pueda cargar
+// (sintaxis) y que los documentos no enlacen a archivos que no existen. --rapido se salta las suites.
+function hayEjecutable(exe) { try { execFileSync(exe, ['--version'], { stdio: 'ignore' }); return true; } catch { return false; } }
+function comprobacionesSinBuild() {
+    const cmds = new Map();
+    const rapido = args.includes('--rapido');
+    const suites = [];
+    for (const d of ['tools', 'scripts', 'test', 'tests', 'bin']) {
+        let ents = [];
+        try { ents = fs.readdirSync(path.join(root, d), { withFileTypes: true }); } catch { continue; }
+        for (const e of ents.filter(x => x.isFile()).map(x => x.name).sort()) if (/^(test|check)[-_.][\w.-]*\.(mjs|cjs|js|sh|ps1|py)$/i.test(e)) suites.push(`${d}/${e}`);
+    }
+    const ejecutor = f => {
+        const q = `"${path.join(root, f)}"`, ext = path.extname(f).toLowerCase();
+        if (['.mjs', '.cjs', '.js'].includes(ext)) return `node ${q}`;
+        if (ext === '.ps1') return process.platform === 'win32' ? `powershell -NoProfile -ExecutionPolicy Bypass -File ${q}` : (hayEjecutable('pwsh') ? `pwsh -NoProfile -File ${q}` : null);
+        if (ext === '.sh') return hayEjecutable('bash') ? `bash ${q}` : null;
+        if (ext === '.py') return python() ? `${python()} ${q}` : null;
+        return null;
+    };
+    if (!rapido) for (const s of suites) { const c = ejecutor(s); if (c) cmds.set(`suite ${s}`, c); }
+    const cam = (cambiados() || []).filter(f => { try { return fs.statSync(f).isFile(); } catch { return false; } })
+        .filter(f => !/(^|[\\/])(node_modules|vendor|\.git)[\\/]/.test(f));
+    const codigo = cam.filter(f => /\.(mjs|cjs|js|json|py|ps1|sh)$/i.test(f));
+    const docs = cam.filter(f => /\.md$/i.test(f));
+    if (codigo.length) cmds.set('sintaxis', { desc: `que cargue el código cambiado (${codigo.length}: JS con node --check, Python, PowerShell, shell y JSON)`, fn: () => sintaxis(codigo) });
+    if (docs.length) cmds.set('enlaces', { desc: `enlaces relativos de los documentos cambiados (${docs.length})`, fn: () => enlaces(docs) });
+    const partes = [suites.length ? `sus ${suites.length} suite(s) propias${rapido ? ' (saltadas con --rapido)' : ''}` : null,
+        codigo.length ? `la sintaxis de ${codigo.length} archivo(s) cambiado(s)` : null, docs.length ? `los enlaces de ${docs.length} documento(s) cambiado(s)` : null].filter(Boolean);
+    const resumen = 'Sin manifiesto de build (package.json, composer.json, pyproject.toml, Cargo.toml, go.mod…): no es un build, es un repo de scripts o documentación. '
+        + (partes.length ? `Se comprueba con ${partes.join(', ')}.` : 'No tiene suites propias ni cambios de código o documentos.');
+    return { cmds, resumen, hayCambiosDeCodigo: cam.some(f => /\.(rs|go|rb|java|kt|cs|php|ts|tsx|jsx|vue|svelte|astro)$/i.test(f)) };
+}
+function sintaxis(archivos) {
+    const errores = [], ps1 = [];
+    const primera = e => String((e.stderr && e.stderr.toString()) || e.message || '').split(/\r?\n/).map(l => l.trim()).find(l => l && !/^at |^Node\.js v/.test(l)) || 'error de sintaxis';
+    for (const f of archivos) {
+        const r = rel(f), ext = path.extname(f).toLowerCase();
+        try {
+            if (['.mjs', '.cjs', '.js'].includes(ext)) execFileSync(process.execPath, ['--check', f], { stdio: ['ignore', 'pipe', 'pipe'] });
+            else if (ext === '.json') {   // tsconfig, jsconfig y los de editores admiten comentarios: no son JSON estricto
+                if (!/(^|\/)(tsconfig[\w.-]*|jsconfig[\w.-]*|devcontainer)\.json$|(^|\/)\.vscode\//i.test(r)) { let s = fs.readFileSync(f, 'utf8'); if (s.charCodeAt(0) === 0xFEFF) s = s.slice(1); JSON.parse(s); }
+            } else if (ext === '.py') { if (python()) execSync(`${python()} -c "import ast,sys; ast.parse(open(sys.argv[1], encoding='utf-8').read(), sys.argv[1])" "${f}"`, { stdio: ['ignore', 'pipe', 'pipe'] }); }
+            else if (ext === '.sh') { if (hayEjecutable('bash')) execFileSync('bash', ['-n', f], { stdio: ['ignore', 'pipe', 'pipe'] }); }
+            else if (ext === '.ps1') ps1.push(f);
+        } catch (e) { errores.push(`${r}: ${primera(e)}`); }
+    }
+    if (ps1.length) {   // el analizador de PowerShell, en una sola llamada para todos
+        const exe = process.platform === 'win32' ? 'powershell' : 'pwsh';
+        // salida en UTF-8 (si no, Windows usa la página de códigos de la consola y los acentos llegan rotos)
+        const script = '[Console]::OutputEncoding=[System.Text.Encoding]::UTF8;' + ps1.map(f => `$e=$null;[void][System.Management.Automation.Language.Parser]::ParseFile('${f.replace(/'/g, "''")}',[ref]$null,[ref]$e);if($e){$e|ForEach-Object{'${rel(f)}|'+$_.Extent.StartLineNumber+'|'+$_.Message}}`).join(';');
+        try {
+            errores.push(...execFileSync(exe, ['-NoProfile', '-Command', script], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+                .split(/\r?\n/).filter(l => l.trim()).map(l => { const [a, n, ...m] = l.split('|'); return `${a}: línea ${n}: ${m.join('|')}`; }));
+        } catch { }
+    }
+    return errores.length ? { code: 1, out: errores.join('\n') } : { code: 0, out: '' };
+}
+function enlaces(docs) {
+    const rotos = [];
+    for (const f of docs) {
+        const txt = readText(f).replace(/```[\s\S]*?```/g, '').replace(/`[^`\n]*`/g, '');   // lo que va en código no es un enlace
+        for (const m of txt.matchAll(/\]\(\s*<?([^)\s>]+)>?(?:\s+"[^"]*")?\s*\)/g)) {
+            if (/^([a-z][a-z0-9+.-]*:|#|\/|\{|\$|<)/i.test(m[1])) continue;   // web, correo, ancla, absoluta o plantilla
+            let dest = m[1].split('#')[0].split('?')[0];
+            try { dest = decodeURI(dest); } catch { }
+            if (dest && !fs.existsSync(path.resolve(path.dirname(f), dest))) rotos.push(`${rel(f)}: enlace roto → ${m[1]}`);
+        }
+    }
+    return rotos.length ? { code: 1, out: rotos.join('\n') } : { code: 0, out: '' };
+}
 
 function constancia() {   // flag para el stop-guard (mismo esquema de hash que core/hooks/lib.mjs)
     const hash = crypto.createHash('md5').update(root.toLowerCase(), 'utf8').digest('hex').slice(0, 12);
