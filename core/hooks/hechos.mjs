@@ -214,7 +214,10 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     const docs = todosLosHechos(root).filter(h => h.estado !== 'invalidado' && (historico || vigente(h, ahora) || h.estado === 'dudoso'));
     const q = [...new Set(palabras(consulta))];
     if (!docs.length || !q.length) return [];
-    const toks = docs.map(h => palabras([h.dimension.replace(/[.-]/g, ' '), h.valor, h.texto, ...(h.claves || [])].filter(Boolean).join(' ')));
+    // De la dimensión se indexa el TEMA, no la familia: «proyecto.analitica» → «analitica». Con la familia, cualquier
+    // pregunta que dijera «proyecto» rozaba todos los proyecto.* (lo destapó la batería de garantías)
+    const tema = d => (d.includes('.') ? d.slice(d.indexOf('.') + 1) : d).replace(/[.-]/g, ' ');
+    const toks = docs.map(h => palabras([tema(h.dimension), h.valor, h.texto, ...(h.claves || [])].filter(Boolean).join(' ')));
     const media = toks.reduce((s, t) => s + t.length, 0) / toks.length || 1;
     const df = new Map();
     for (const t of toks) for (const w of new Set(t)) df.set(w, (df.get(w) || 0) + 1);

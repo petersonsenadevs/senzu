@@ -265,6 +265,51 @@ for (const modo of ['claude', 'codex']) {
     ok(mensaje(Q, 'how much budget do we have for the first phase?', `e2e-otro-${RUN}`) === '', '…ni con una pregunta sobre ellos');
 }
 
+// ---------------------------------------------------------------- GARANTÍAS: sin contexto no inventa; nunca da por vigente lo que no lo es
+const VACIA = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-vacio', 'memoria.md') };
+{   // proyecto SIN NADA (sin devlog, sin hechos, sin memoria del usuario): ningún hook inventa ni se cae
+    const V = proyecto('garantia-vacio');
+    const s = `gar-vacio-${RUN}`;
+    const c = inicio(V, VACIA);
+    ok(!/HECHOS que ya sabes/.test(c) && !/AVISO de memoria/.test(c) && !/hechos que aprendió/.test(c), 'sin contexto: el inicio no inventa hechos, avisos ni sesión anterior');
+    ok(mensaje(V, '¿cuál es el presupuesto del cliente y dónde vive el usuario?', s, VACIA) === '', 'sin contexto: una pregunta concreta no recibe nada (no se rellena)');
+    const r = hook('memoria-archivo.mjs', V, { session_id: s, tool_name: 'Edit', tool_input: { file_path: path.join(V, 'app', 'Pago.php'), old_string: 'a', new_string: 'b' } }, VACIA);
+    ok(r.status === 0 && contexto(r) === '', 'sin contexto: editar no inyecta nada');
+    const st = hook('hechos-guard.mjs', V, { session_id: s, hook_event_name: 'Stop' }, VACIA);
+    ok(st.status === 0 && st.stdout.trim() === '', 'sin contexto: el cierre no bloquea ni falla');
+    const es = hook('estado-sesion.mjs', V, { session_id: s, hook_event_name: 'Stop' }, VACIA);
+    ok(es.status === 0, 'sin contexto: el estado de la sesión no falla');
+    const cli = spawnSync(process.execPath, [CLI, '--path', V, '--recordar', 'presupuesto del cliente'], { encoding: 'utf8', env: { ...process.env, ...VACIA } });
+    ok(/Nada en hechos, memoria ni devlog para eso\. Dilo así: no lo supongas/.test(cli.stdout), 'sin contexto: --recordar dice que no sabe (no lo supongas)', cli.stdout);
+}
+{   // un proyecto SIN Senzu instalado (sin senzu.json): los hooks de la memoria no se caen ni inyectan hechos
+    const N = path.join(base, 'sin-senzu'); fs.mkdirSync(N, { recursive: true });
+    const r1 = hook('recuerdo-vivo.mjs', N, { session_id: `gar-ns-${RUN}`, hook_event_name: 'UserPromptSubmit', prompt: 'qué presupuesto tiene el cliente para la tienda' }, VACIA);
+    const r2 = hook('hechos-guard.mjs', N, { session_id: `gar-ns-${RUN}`, hook_event_name: 'Stop' }, VACIA);
+    ok(r1.status === 0 && contexto(r1) === '' && r2.status === 0 && r2.stdout.trim() === '', 'sin Senzu instalado: nada inyectado, nada bloqueado, sin errores');
+}
+{   // nunca da por VIGENTE lo que no lo es: sustituido, olvidado, caducado, futuro; lo dudoso va marcado
+    const G = proyecto('garantia-vigente');
+    m.guardarHecho(G, { dimension: 'identidad.ubicacion', valor: 'Málaga', claves: ['ciudad', 'city', 'vive'] }, { ahora: T(0) });
+    m.guardarHecho(G, { dimension: 'identidad.ubicacion', valor: 'Valencia', claves: ['ciudad', 'city', 'vive'] }, { ahora: T(1) });
+    const olvidado = m.guardarHecho(G, { dimension: 'proyecto.hosting', valor: 'Netlify', claves: ['hosting', 'servidor'] }, { ahora: T(2) });
+    m.olvidarHecho(G, olvidado.hecho.id);
+    m.guardarHecho(G, { dimension: 'restriccion.congelacion', valor: 'sin despliegues en agosto', claves: ['despliegues'], hasta: '2020-09-01T00:00:00.000Z' }, { ahora: T(3) });
+    m.guardarHecho(G, { dimension: 'proyecto.lanzamiento', valor: 'lanzamiento en 2030', claves: ['lanzamiento'], desde: '2030-01-01T00:00:00.000Z' }, { ahora: T(4) });
+    m.guardarHecho(G, { dimension: 'proyecto.analitica', valor: 'creo que Plausible', claves: ['analítica', 'analytics'], duda: true }, { ahora: T(5) });
+    let n = 0;   // una sesión por pregunta: en la misma sesión no se repite lo ya inyectado y eso taparía la prueba
+    const pregunta = q => mensaje(G, q, `gar-vig-${RUN}-${n++}`, VACIA);
+    const ciudad = pregunta('¿en qué ciudad vive el usuario ahora mismo?');
+    ok(/Valencia/.test(ciudad) && !/Málaga/.test(ciudad), 'lo sustituido NO se inyecta como vigente (solo Valencia)', ciudad);
+    ok(pregunta('¿qué hosting y qué servidor usamos?') === '', 'lo olvidado NO se inyecta');
+    ok(!/agosto/.test(pregunta('¿podemos hacer despliegues en agosto?')), 'lo caducado NO se inyecta');
+    ok(!/2030/.test(pregunta('¿cuándo es el lanzamiento del proyecto?')), 'lo futuro NO se inyecta como vigente');
+    ok(!/Plausible/.test(pregunta('¿cuándo es el lanzamiento del proyecto?')), 'la palabra «proyecto» ya no roza todos los proyecto.* (la familia no se indexa)');
+    ok(/Plausible.*dudoso/.test(pregunta('¿qué herramienta de analítica analytics quieren?')), 'lo dudoso llega marcado como dudoso');
+    const ini = inicio(G, VACIA);
+    ok(/«Valencia»/.test(ini) && !/«Málaga»/.test(ini) && !/Netlify/.test(ini) && !/agosto/.test(ini) && !/2030/.test(ini), 'el inicio de sesión tampoco: ni sustituido, ni olvidado, ni caducado, ni futuro');
+}
+
 fs.rmSync(base, { recursive: true, force: true });
 for (const f of fs.readdirSync(os.tmpdir())) if (f.includes(RUN)) { try { fs.rmSync(path.join(os.tmpdir(), f), { force: true }); } catch { } }
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
