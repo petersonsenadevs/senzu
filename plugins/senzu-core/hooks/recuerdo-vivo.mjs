@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { readHookInput, projectRoot, sessionFlag, outHookJson, esMensajeDelUsuario } from './lib.mjs';
-import { recuerdo, palabras, palabraConPeso, UMBRAL_RECUERDO, anotarUso } from './hechos.mjs';
+import { recuerdo, palabras, palabraConPeso, UMBRAL_RECUERDO, anotarUso, apuntarInyeccion } from './hechos.mjs';
 
 // Umbrales (se afinan con la evaluación de F4). Hechos: BM25 del motor (IDF suavizado, escala estable). Memoria y
 // devlog: los puntos de buscar.mjs dependen del tamaño del devlog (0,7 en uno pequeño, 38 en uno grande), así que el
@@ -35,6 +35,9 @@ const elegidos = todos
     .filter(x => (x.fuente === 'hecho' ? x.puntuacion >= UMBRAL_HECHO : x.puntuacion > 0 && x.puntuacion >= RELATIVO * mejor(x.fuente)) && !ya.has(clave(x)))
     .sort((a, b) => (a.debil === true) - (b.debil === true))   // lo sólido delante; los roces de una palabra, detrás y marcados
     .slice(0, MAXIMO);
+// X-T4: se apunta lo que se inyecta (o el silencio) para medir el uso real; al cerrar se marca si sirvió
+// (un silencio cuenta solo si no había nada que decir; lo que no se repite porque ya se dijo en la sesión, no)
+if (elegidos.length || !todos.some(x => (x.fuente === 'hecho' ? x.puntuacion >= UMBRAL_HECHO : x.puntuacion > 0))) apuntarInyeccion(root, { sid, origen: 'mensaje', consulta, items: elegidos });
 if (!elegidos.length) process.exit(0);
 try { fs.appendFileSync(flag, elegidos.map(clave).join('\n') + '\n'); } catch { }
 anotarUso(root, elegidos.filter(x => x.fuente === 'hecho').map(x => x.id));   // F6-T5: lo que llega al agente, sube

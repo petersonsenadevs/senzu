@@ -135,6 +135,9 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   selector y --idioma); los datos se enseñan como se guardaron. Es privado: la carpeta
   se ignora en git. `--cortex --cliente` genera `cliente.html` para enseñarlo: sin lo personal, lo deducido, lo
   dudoso, lo aprendido, el devlog ni los comandos (no van ni dentro del archivo).
+- **Uso real** (`--informe`): cada inyección (y cada silencio) se apunta en `senzu/.estado/recuerdo-uso.jsonl`
+  (privado, fuera de git); al cerrar se mira en la conversación si el agente la usó. Da la precisión real, lo que
+  más se ignora (ruido) y los silencios para revisar. Sin la conversación (Codex) queda «sin datos».
 - **Uso y enfriamiento**: lo que llega al agente (al hablar, al editar, `--buscar`, `--recordar`) suma un uso; lo
   usado sube un poco y lo que pasa de 90 días sin usarse se enfría despacio (×0,9 como mucho). Nada se borra.
 - **Llega sola**: al iniciar (lo vigente), con cada mensaje (recuerdo-vivo: hechos, decisiones y devlog de lo que

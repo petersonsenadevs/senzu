@@ -10,7 +10,7 @@ import {
     readHookInput, projectRoot, sessionFlag, testOnce, editadosSesion, gitCambios, gitBranch, planStatus,
     devlogEntradas, readText, rutaEstado, memoriaProyecto, rutaMemoriaUsuario, ruta, rutaRel,
 } from './lib.mjs';
-import { todosLosHechos } from './hechos.mjs';
+import { todosLosHechos, marcarUsoSesion, textosDelAgente } from './hechos.mjs';
 
 const p = readHookInput() || {};
 const root = projectRoot();
@@ -45,6 +45,10 @@ if (peticiones.length || editados.length || hechosGuardados.length) {
     };
     try { fs.writeFileSync(rutaEstado(root), JSON.stringify(estado, null, 2) + '\n'); } catch {}
 }
+
+// 1b. uso real de la memoria (X-T4): lo que se inyectó en esta sesión, ¿lo usó el agente? Se mira en la conversación
+// (transcript_path); sin ella queda «sin datos», nunca se supone
+try { marcarUsoSesion(root, sid, p.transcript_path ? textosDelAgente(p.transcript_path) : []); } catch {}
 
 // 2. al cerrar: ¿quedó apuntada la regla o corrección del usuario?
 if (evento !== 'Stop') process.exit(0);

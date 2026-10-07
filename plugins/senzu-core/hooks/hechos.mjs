@@ -15,7 +15,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { ruta, rutaMemoriaUsuario } from './lib.mjs';
+import { ruta, rutaMemoriaUsuario, rutaEstado } from './lib.mjs';
 export { rutaNativa } from './lib.mjs';   // para memoria.mjs: --path con C:\, C:/ o /c/ de Git Bash → el mismo almacén
 
 export const FAMILIAS_VARIOS = /^(objetivo|pendiente|nota|hecho|enlace|aprendizaje)(\.|$)/;
@@ -733,4 +733,85 @@ export function datosCortex(root, { cliente = false, ahora = hoy(), dias = 7, en
     // el nombre del proyecto: el que sabe la memoria (proyecto.nombre) o, si no, el de la carpeta
     const nombre = actuales.find(h => h.dimension === 'proyecto.nombre');
     return { proyecto: nombre ? nombre.valor : path.basename(path.resolve(root)), generado: ahora, cliente, zonas, cambios: cambios.slice(0, 20), abiertos: abiertosV };
+}
+
+// ---------------------------------------------------------------- registro del uso REAL (X-T4)
+// Cada vez que la memoria inyecta algo (o calla) se apunta en senzu/.estado/recuerdo-uso.jsonl (privado: la carpeta
+// se ignora en git). Al cerrar la sesión se mira lo que respondió el agente DESPUÉS de cada inyección: si el contenido
+// del recuerdo aparece, se marca «usado»; si no, «ignorado». Sin la conversación (p. ej. en Codex) queda «sin datos»:
+// no se inventa. `memoria.mjs --informe` saca las cifras reales y los casos para afinar con datos de verdad.
+const MAX_REGISTRO = 3000;   // líneas que se guardan como mucho (lo más viejo se va)
+export function rutaUso(root) { return path.join(path.dirname(rutaEstado(root)), 'recuerdo-uso.jsonl'); }   // rutaEstado da el archivo de la sesión; su carpeta (ignorada en git) crea
+export function apuntarInyeccion(root, { sid, origen, consulta, items = [] }, { ahora = hoy() } = {}) {
+    try {
+        const linea = { t: ahora, sid: String(sid || 'default'), origen, consulta: String(consulta || '').replace(/\s+/g, ' ').slice(0, 200),
+            items: items.map(x => ({ fuente: x.fuente, id: x.id, texto: String(x.texto || '').replace(/\s+/g, ' ').slice(0, 160), puntuacion: x.puntuacion, debil: x.debil || undefined })) };
+        fs.appendFileSync(rutaUso(root), JSON.stringify(linea) + '\n');
+    } catch { }
+}
+function leerUso(root) {
+    try { return fs.readFileSync(rutaUso(root), 'utf8').split(/\r?\n/).filter(Boolean).map(l => { try { return JSON.parse(l); } catch { return null; } }).filter(Boolean); } catch { return []; }
+}
+// Lo que dijo el agente, con su hora, de una conversación de Claude Code (JSONL). Formato desconocido → [].
+export function textosDelAgente(transcript) {
+    let crudo = ''; try { crudo = fs.readFileSync(transcript, 'utf8'); } catch { return []; }
+    const out = [];
+    for (const l of crudo.split(/\r?\n/)) {
+        let j; try { j = JSON.parse(l); } catch { continue; }
+        const msg = j && (j.message || j);
+        if (!msg || (j.type !== 'assistant' && msg.role !== 'assistant')) continue;
+        const c = msg.content;
+        const texto = typeof c === 'string' ? c : Array.isArray(c) ? c.map(x => (x && (x.type === 'text' ? x.text : x.type === 'tool_use' ? JSON.stringify(x.input || '') : '')) || '').join(' ') : '';
+        if (texto) out.push({ t: j.timestamp || null, texto });
+    }
+    return out;
+}
+// ¿Usó el agente este recuerdo? Sus palabras con peso propias (sin las que ya traía la pregunta): si al menos la
+// mitad (y mínimo una) aparecen en lo que respondió, se usó.
+export function seUso(item, consulta, respuesta) {
+    const deLaPregunta = new Set(palabras(consulta));
+    const propias = [...new Set(palabras(String(item.texto || '').replace(/^\[[^\]]*\]\s*/, '')).filter(w => palabraConPeso(w) && !deLaPregunta.has(w)))];
+    if (!propias.length) return null;
+    const dicho = new Set(palabras(respuesta));
+    const n = propias.filter(w => dicho.has(w)).length;
+    return n >= Math.max(1, Math.ceil(propias.length / 2));
+}
+export function marcarUsoSesion(root, sid, textos) {
+    const todas = leerUso(root);
+    if (!todas.length) return 0;
+    const mias = todas.filter(x => x.sid === String(sid) && x.items.length && x.evaluado == null);
+    if (!mias.length) return 0;
+    let marcadas = 0;
+    mias.forEach(x => {
+        const siguiente = todas.find(y => y.sid === x.sid && y.t > x.t);
+        const tras = textos.filter(m => m.t && m.t >= x.t && (!siguiente || m.t < siguiente.t)).map(m => m.texto).join('\n');
+        const conHora = textos.some(m => m.t);
+        x.evaluado = textos.length ? true : false;
+        x.items.forEach(it => { it.usado = !textos.length || (!conHora && !tras) ? null : seUso(it, x.consulta, tras || textos.map(m => m.texto).join('\n')); });
+        marcadas++;
+    });
+    try {
+        const tmp = rutaUso(root) + '.tmp';
+        fs.writeFileSync(tmp, todas.slice(-MAX_REGISTRO).map(x => JSON.stringify(x)).join('\n') + '\n');
+        fs.renameSync(tmp, rutaUso(root));
+    } catch { }
+    return marcadas;
+}
+export function informeUso(root, { dias = 30, ahora = hoy() } = {}) {
+    const desde = new Date(Date.parse(ahora) - dias * 864e5).toISOString();
+    const l = leerUso(root).filter(x => x.t >= desde);
+    const items = l.flatMap(x => x.items.map(it => ({ ...it, consulta: x.consulta, t: x.t, origen: x.origen })));
+    const cuenta = f => items.filter(f).length;
+    const usados = cuenta(i => i.usado === true), ignorados = cuenta(i => i.usado === false), sinDatos = cuenta(i => i.usado == null);
+    const porRecuerdo = new Map();
+    for (const i of items.filter(x => x.usado != null)) { const k = i.fuente + '|' + i.id; const v = porRecuerdo.get(k) || { fuente: i.fuente, id: i.id, texto: i.texto, usado: 0, ignorado: 0 }; v[i.usado ? 'usado' : 'ignorado']++; porRecuerdo.set(k, v); }
+    return {
+        dias, mensajes: l.length, conRecuerdo: l.filter(x => x.items.length).length, silencios: l.filter(x => !x.items.length).length,
+        inyectados: items.length, usados, ignorados, sinDatos,
+        precision: usados + ignorados ? Math.round(1000 * usados / (usados + ignorados)) / 10 : null,
+        debiles: { usados: cuenta(i => i.debil && i.usado === true), ignorados: cuenta(i => i.debil && i.usado === false) },
+        ruido: [...porRecuerdo.values()].filter(v => v.ignorado >= 2 && v.ignorado > v.usado).sort((a, b) => b.ignorado - a.ignorado).slice(0, 8),
+        ignoradosRecientes: items.filter(i => i.usado === false).slice(-8).reverse().map(i => ({ consulta: i.consulta, texto: i.texto, t: i.t })),
+        silenciosRecientes: l.filter(x => !x.items.length).slice(-8).reverse().map(x => ({ consulta: x.consulta, t: x.t })),
+    };
 }

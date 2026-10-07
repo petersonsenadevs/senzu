@@ -326,6 +326,48 @@ const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abierto
     ok(/Pest/.test(mensaje(P, '¿cómo hacemos las pruebas del proyecto?', `ns2-${RUN}`)), 'sin nombres desconocidos, sí lo inyecta');
 }
 
+// ---------------------------------------------------------------- X-T4 · registro del uso real
+{
+    const P = proyecto('uso-real');
+    m.guardarHecho(P, { dimension: 'proyecto.pasarela-pago', valor: 'Stripe con webhooks firmados', claves: ['pagos', 'cobros'] }, { ahora: T(0) });
+    m.guardarHecho(P, { dimension: 'preferencia.tipografia', valor: 'Fraunces en los titulares', claves: ['letra', 'titulares'] }, { ahora: T(1) });
+    const s = `ur-${RUN}`;
+    const reg = () => { try { return fs.readFileSync(m.rutaUso(P), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l)); } catch { return []; } };
+    mensaje(P, 'vamos a montar los cobros de la tienda', s);
+    mensaje(P, 'qué letra ponemos en los titulares de la home', s);
+    mensaje(P, 'qwertyzz asdfgh', s);
+    let r = reg();
+    ok(r.length === 3 && r[0].items.some(x => /Stripe/.test(x.texto)) && r[1].items.some(x => /Fraunces/.test(x.texto)) && r[2].items.length === 0, 'cada mensaje apunta lo que se inyectó (y el silencio, cuando no había nada)', JSON.stringify(r.map(x => x.items.length)));
+    ok(/(^|[\\/])\.estado[\\/]recuerdo-uso\.jsonl$/.test(m.rutaUso(P)) && /^\*$/m.test(fs.readFileSync(path.join(path.dirname(m.rutaUso(P)), '.gitignore'), 'utf8')), 'el registro vive en senzu/.estado, que se ignora en git');
+    mensaje(P, 'vamos a montar los cobros de la tienda', s);
+    ok(reg().length === 3, 'lo que ya se dijo en la sesión no se repite ni cuenta como silencio');
+    // la conversación: el agente usa Stripe y no hace caso de Fraunces
+    const tr = path.join(P, 'transcript.jsonl'), d1 = new Date(Date.parse(r[0].t) + 500).toISOString(), d2 = new Date(Date.parse(r[1].t) + 500).toISOString();
+    fs.writeFileSync(tr, [
+        JSON.stringify({ type: 'user', timestamp: r[0].t, message: { role: 'user', content: 'vamos a montar los cobros' } }),
+        JSON.stringify({ type: 'assistant', timestamp: d1, message: { role: 'assistant', content: [{ type: 'text', text: 'Como ya usáis Stripe, monto los webhooks firmados y la idempotencia.' }] } }),
+        JSON.stringify({ type: 'assistant', timestamp: d2, message: { role: 'assistant', content: [{ type: 'text', text: 'Para los titulares propongo Inter Display, más neutra.' }] } }),
+    ].join('\n'));
+    hook('estado-sesion.mjs', P, { session_id: s, hook_event_name: 'Stop', transcript_path: tr });
+    r = reg();
+    const st = r[0].items.find(x => /Stripe/.test(x.texto)), fr = r[1].items.find(x => /Fraunces/.test(x.texto));
+    ok(st.usado === true && fr.usado === false, 'al cerrar: lo que el agente usó, «usado»; lo que ignoró, «ignorado»', JSON.stringify([st.usado, fr.usado]));
+    const inf = m.informeUso(P);
+    ok(inf.usados >= 1 && inf.ignorados >= 1 && inf.silencios === 1 && inf.precision > 0 && inf.precision < 100 && inf.ignoradosRecientes.some(x => /Fraunces/.test(x.texto)) && inf.silenciosRecientes[0].consulta === 'qwertyzz asdfgh', 'el informe: precisión real, ignorados y silencios con sus casos', JSON.stringify(inf));
+    const o = spawnSync(process.execPath, [CLI, '--path', P, '--informe'], { encoding: 'utf8', env: process.env }).stdout;
+    ok(/precisión real: [\d.]+ %/.test(o) && /Ignorados recientes:[\s\S]*Fraunces/.test(o) && /Silencios recientes[\s\S]*qwertyzz/.test(o), 'CLI --informe', o);
+    // sin conversación (Codex, o un cierre sin transcript): «sin datos», nunca supuesto
+    const s2 = `ur2-${RUN}`;
+    mensaje(P, 'qué letra ponemos en los titulares del blog', s2);
+    hook('estado-sesion.mjs', P, { session_id: s2, hook_event_name: 'Stop' });
+    const ult = reg().filter(x => x.sid === s2).pop();
+    ok(ult && ult.items.length && ult.items.every(x => x.usado === null), 'sin la conversación: «sin datos», no se supone', JSON.stringify(ult));
+    const V = proyecto('uso-vacio');
+    ok(/Sin registro de uso/.test(spawnSync(process.execPath, [CLI, '--path', V, '--informe'], { encoding: 'utf8', env: process.env }).stdout), 'CLI --informe sin registro lo dice');
+    ok(m.seUso({ texto: '[proyecto.pasarela-pago] Stripe con webhooks firmados' }, 'montamos stripe', 'he configurado los webhooks firmados') === true
+        && m.seUso({ texto: '[proyecto.pasarela-pago] Stripe con webhooks firmados' }, 'montamos stripe', 'Stripe, claro') === false, 'usado = aparece lo PROPIO del recuerdo, no lo que ya traía la pregunta');
+}
+
 // ---------------------------------------------------------------- F6-T5 · lo que llega al agente cuenta como uso
 {
     const P = proyecto('usos');

@@ -9,6 +9,7 @@
 //   node memoria.mjs --lista [--todo] | --olvidar <id>
 //   node memoria.mjs --nada [--motivo "…"]              revisado: nada estable que guardar en esta sesión
 //   node memoria.mjs --enlazar <dimensión A> <dimensión B>  (o --enlaces A,B al guardar): al recordar uno, llega el otro
+//   node memoria.mjs --informe [--dias 30] [--json]     el uso REAL: qué se inyectó, si sirvió, el ruido y los silencios
 //   node memoria.mjs --cortex [--cliente] [--salida <carpeta>] [--idioma es|en|pt|fr|de|it]   la memoria en un HTML local, sin red
 // Dimensiones: «familia.tema» libre (identidad.nombre, proyecto.stack, preferencia.gestor-paquetes, restriccion.presupuesto…).
 // Un valor nuevo en la misma dimensión SUSTITUYE al anterior (queda en el histórico); objetivo.*, pendiente.*, nota.*,
@@ -115,6 +116,22 @@ if (opt('--olvidar')) {
     const h = m.olvidarHecho(root, String(opt('--olvidar')));
     out(h ? `Olvidado (queda en el archivo como invalidado): ${linea(h)}` : 'No existe ese id.');
     process.exit(h ? 0 : 2);
+}
+if (opt('--informe')) {   // X-T4: el uso REAL (lo que se inyectó en las sesiones y si el agente lo usó)
+    if (!m.informeUso) { out('Este Senzu no trae el informe de uso todavía: actualízalo.'); process.exit(2); }
+    const dias = Number(opt('--dias')) || 30;
+    const r = m.informeUso(root, { dias });
+    if (opt('--json')) { out(JSON.stringify(r, null, 2)); process.exit(0); }
+    if (!r.mensajes) { out(`Sin registro de uso en los últimos ${dias} días: se llena solo al hablar con el agente (senzu/.estado/recuerdo-uso.jsonl).`); process.exit(0); }
+    out(`Uso real de la memoria (últimos ${dias} días)`);
+    out(`  Mensajes con recuerdo: ${r.conRecuerdo} · silencios (nada que decir): ${r.silencios}`);
+    out(`  Recuerdos inyectados: ${r.inyectados} · usados: ${r.usados} · ignorados: ${r.ignorados} · sin datos: ${r.sinDatos}`
+        + (r.precision != null ? ` · precisión real: ${r.precision} %` : ''));
+    if (r.debiles.usados + r.debiles.ignorados) out(`  Relaciones débiles: usadas ${r.debiles.usados} · ignoradas ${r.debiles.ignorados}`);
+    if (r.ruido.length) { out('  Lo que más se ignora (posible ruido):'); for (const x of r.ruido) out(`    - [${x.fuente}] ${x.texto} (ignorado ${x.ignorado}, usado ${x.usado})`); }
+    if (r.ignoradosRecientes.length) { out('  Ignorados recientes:'); for (const x of r.ignoradosRecientes) out(`    - «${x.consulta}» → ${x.texto}`); }
+    if (r.silenciosRecientes.length) { out('  Silencios recientes (¿había algo que recordar?):'); for (const x of r.silenciosRecientes) out(`    - «${x.consulta}»`); }
+    process.exit(0);
 }
 if (opt('--cortex')) {   // Cortex: la memoria en un HTML local, sin red; --cliente: sin nada privado, para enseñarlo
     if (!m.datosCortex) { out('Este Senzu no trae Cortex todavía: actualízalo.'); process.exit(2); }
