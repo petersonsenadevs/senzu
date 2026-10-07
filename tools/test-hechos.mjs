@@ -79,6 +79,19 @@ ok(m.buscarHechos(S, 'ما في الصندوق').length === 0, 'árabe: «في»
 ok(m.buscarHechos(S, '猫は可愛いです').every(x => x.hecho.dimension !== 'identidad.ciudad'), 'japonés: la partícula «は» no basta');
 ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S, '東京').dimension === 'identidad.ciudad' && primero(S, '3000').dimension === 'restriccion.presupuesto', 'pero una palabra con peso (en cualquier escritura) o un número sí');
 
+// 3c. relación débil: si la pregunta tiene 3+ palabras con peso y solo coincide una, sale marcada (no se esconde)
+{
+    const D = proyecto('debil');
+    m.guardarHecho(D, { dimension: 'proyecto.hosting', valor: 'Forge sobre un VPS de Hetzner', claves: ['servidor', 'server', 'hosting'] }, { ahora: T(D, 0) });
+    const roce = m.buscarHechos(D, 'qué versión de PHP hay en el servidor de staging');
+    ok(roce.length === 1 && roce[0].debil === true && /relación débil \(solo coincide «servidor»/.test(roce[0].motivo), 'un roce de una sola palabra sale marcado como relación débil', JSON.stringify(roce.map(x => x.motivo)));
+    const solido = m.buscarHechos(D, 'en qué servidor está el hosting');
+    ok(solido.length === 1 && !solido[0].debil, 'con dos palabras que coinciden ya no es débil');
+    // (límite medido: «dónde» y «está» también tienen peso, así que «¿dónde está el servidor?» sale débil; la marca no
+    //  descarta nada, solo avisa. Sin listas por idioma no se distinguen las palabras de pregunta.)
+    ok(!m.buscarHechos(D, '¿y el servidor?')[0].debil, 'una pregunta con UNA sola palabra con peso no es débil (es todo lo que pregunta)');
+}
+
 // 4. cupos por familia: que una familia no se coma el espacio
 const C = proyecto('cupos');
 for (let i = 0; i < 6; i++) m.guardarHecho(C, { dimension: `nota.${i}`, valor: `nota de diseño ${i}`, claves: ['diseño'] }, { ahora: T(C, i) });

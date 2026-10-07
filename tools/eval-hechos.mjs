@@ -73,3 +73,9 @@ else {
     }
 }
 if (opt('--estricto') && (total.recall3 < 90 || total.abstencion < 90)) process.exit(1);
+// Mínimos de no regresión para la CI (las cifras de hoy redondeadas a la baja): --min-recall3 97 --min-abstencion 75
+const minimo = n => { const i = args.indexOf(n); return i >= 0 ? Number(args[i + 1]) : null; };
+for (const [n, v] of [['--min-recall3', total.recall3], ['--min-recall1', total.recall1], ['--min-abstencion', total.abstencion]]) {
+    const mn = minimo(n);
+    if (mn !== null && v < mn) { process.stdout.write(`\nREGRESIÓN: ${n.replace('--min-', '')} ${v}% < ${mn}%\n`); process.exit(1); }
+}

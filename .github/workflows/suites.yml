@@ -92,6 +92,9 @@ jobs:
       - name: test-hechos-robustez (archivo dañado, concurrencia, 10 000 hechos, Unicode raro, rutas)
         run: node tools/test-hechos-robustez.mjs
 
+      - name: eval-hechos (recuerdo multilingüe medido; mínimos de no regresión)
+        run: node tools/eval-hechos.mjs --min-recall3 97 --min-recall1 93 --min-abstencion 75
+
       - name: test-arquitectura (capas, contextos de DDD, controlador sin ORM, DTO y carpetas declaradas)
         run: node tools/test-arquitectura.mjs
 

@@ -24,8 +24,14 @@ export function rutaHechos(root, alcance = 'proyecto') {
 }
 
 // ---------------------------------------------------------------- texto: normalizar y partir en palabras
+// Sin tildes ni mayúsculas, pero SOLO los acentos que son opcionales al escribir: los combinantes latinos, griegos y
+// cirílicos (U+0300–036F) y los signos vocálicos opcionales del árabe y del hebreo. Quitar TODAS las marcas (\p{M})
+// rompía el devanagari, el tailandés o el bengalí, donde las vocales son marcas («भारत» → «भरत»; evaluación F4-T1).
+// También fuera los invisibles (ancho cero, marcas de dirección).
 export function normalizar(t) {
-    return String(t || '').normalize('NFKC').toLowerCase().normalize('NFKD').replace(/\p{M}/gu, '').normalize('NFC').replace(/\s+/g, ' ').trim();
+    return String(t || '').normalize('NFKC').toLowerCase().normalize('NFKD')
+        .replace(/[̀-ًͯ-ٰٟ֑-ׇ]/g, '').replace(/[​-‏‪-‮⁠-⁩﻿]/g, '')
+        .normalize('NFC').replace(/\s+/g, ' ').trim();
 }
 const SEG = new Intl.Segmenter(undefined, { granularity: 'word' });
 export function palabras(t) {
@@ -65,7 +71,7 @@ function prefijoComun(a, b) {
     const x = [...a], y = [...b]; let p = 0;
     while (p < x.length && p < y.length && x[p] === y[p]) p++;
     const corta = Math.min(x.length, y.length), larga = Math.max(x.length, y.length);
-    return p >= 4 && p >= 0.6 * corta && p >= 0.5 * larga;
+    return corta >= 6 && p >= 4 && p >= 0.6 * corta && p >= 0.5 * larga;   // desde 6 letras: «quien»/«quieren» no
 }
 
 // ---------------------------------------------------------------- almacén (JSONL, cerrojo y escritura atómica)
@@ -196,7 +202,8 @@ export function todosLosHechos(root) { return ['proyecto', 'usuario'].flatMap(a 
 // に; cuenta desde 3). «el», «de», «of», «في» suman a la puntuación, pero un hecho solo cuenta si coincide al
 // menos una palabra con peso.
 export const palabraConPeso = w => [...w].length >= 4 || /\p{N}/u.test(w) || /[\p{Script=Han}\p{Script=Katakana}\p{Script=Hangul}]/u.test(w)
-    || (/^\p{Script=Hiragana}+$/u.test(w) && [...w].length >= 3);
+    || (/^\p{Script=Hiragana}+$/u.test(w) && [...w].length >= 3)
+    || /^[bcdfghjklmnpqrstvwxz]{3}$/.test(w);   // siglas latinas sin vocales: npm, css, php, sql, ssh, dns
 
 // Umbral a partir del cual un hecho se INYECTA solo (recuerdo-vivo) y con el que se mide la evaluación (F4).
 export const UMBRAL_RECUERDO = 0.8;
@@ -214,10 +221,11 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     // IDF suavizado: con el clásico, un término presente en TODOS los hechos vale ~0 (en una memoria pequeña pasa a
     // menudo y dejaba fuera justo lo relevante); así sigue contando algo (≈0,7) y los raros pesan más
     const idf = w => Math.log(1 + (docs.length + 1) / ((df.get(w) || 0) + 0.5));
+    const qConPeso = q.filter(palabraConPeso).length;
     const hits = docs.map((h, i) => {
         const t = toks[i], tf = new Map();
         for (const w of t) tf.set(w, (tf.get(w) || 0) + 1);
-        let score = 0, conPesoCoincide = false; const motivo = [];
+        let score = 0, conPesoCoincide = false; const motivo = [], conPesoQueCoinciden = new Set();
         for (const w of q) {
             let termino = w, peso = 1;
             if (!tf.has(w)) {   // errata o variante: la palabra del hecho más parecida
@@ -232,14 +240,31 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
                 }
             } else motivo.push(w);
             const f = tf.get(termino);
-            score += peso * idf(termino) * (f * 2.2) / (f + 1.2 * (0.25 + 0.75 * t.length / media));
-            if (palabraConPeso(termino)) conPesoCoincide = true;
+            const conPeso = palabraConPeso(termino);
+            // las palabras sin peso («es», «el», «of») suman poco: acompañan, pero no deciden el orden
+            score += peso * (conPeso ? 1 : 0.3) * idf(termino) * (f * 2.2) / (f + 1.2 * (0.25 + 0.75 * t.length / media));
+            if (conPeso) { conPesoCoincide = true; conPesoQueCoinciden.add(termino); }
         }
-        return { hecho: h, puntuacion: conPesoCoincide ? +score.toFixed(3) : 0, motivo };
-    }).filter(x => x.puntuacion > 0).sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
+        // Relación DÉBIL: la pregunta tiene 3+ palabras con peso y solo coincide una. No se descarta (una regla de
+        // cobertura que lo hacía hundía el recuerdo del 98,5 % al 78,8 %: las palabras de pregunta también tienen
+        // peso), pero se marca para que el agente, que sí entiende el sentido, decida si viene al caso (F4-T4).
+        const debil = qConPeso >= 3 && conPesoQueCoinciden.size === 1;
+        return { hecho: h, puntuacion: conPesoCoincide ? +score.toFixed(3) : 0, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined };
+    }).filter(x => x.puntuacion > 0);
+    // Preguntando por el PASADO (lo decide el agente con --historico): la historia de cada dimensión encontrada entra
+    // entera y lo sustituido va delante («¿dónde vivía antes?» encuentra «Valencia» por «mudado» y trae «Málaga»)
+    if (historico) {
+        const mejorPorDim = new Map();
+        for (const x of hits) mejorPorDim.set(x.hecho.dimension, Math.max(mejorPorDim.get(x.hecho.dimension) || 0, x.puntuacion));
+        const yaEsta = new Set(hits.map(x => x.hecho.id));
+        for (const h of docs) if (mejorPorDim.has(h.dimension) && !yaEsta.has(h.id)) hits.push({ hecho: h, puntuacion: 0, motivo: [`historia de ${h.dimension}`] });
+        for (const x of hits) if (mejorPorDim.has(x.hecho.dimension)) x.puntuacion = +(mejorPorDim.get(x.hecho.dimension) * (vigente(x.hecho, ahora) ? 1 : 1.05)).toFixed(3);
+    }
+    hits.sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
     return conCupos(hits, limite, x => familia(x.hecho.dimension)).map(x => ({ ...x,
         motivo: `coincide: ${x.motivo.join(', ')}` + (x.hecho.estado === 'sustituido' ? ` · ya no vigente (sustituido el ${String(x.hecho.hasta || '').slice(0, 10)})` : '')
-            + (x.hecho.estado === 'dudoso' ? ' · dudoso (el usuario no lo afirmó del todo)' : '') }));
+            + (x.hecho.estado === 'dudoso' ? ' · dudoso (el usuario no lo afirmó del todo)' : '')
+            + (x.debil ? ` · relación débil (solo coincide «${x.solo}»: úsalo solo si de verdad viene al caso)` : '') }));
 }
 // Reparto por turnos entre familias: que un tipo de recuerdo no se coma todo el espacio
 function conCupos(lista, limite, fam) {
@@ -272,7 +297,7 @@ function buscarEnDevlog(root, consulta, limite) {
 export function recuerdo(root, consulta, { limite = 6, historico = false } = {}) {
     const hechos = buscarHechos(root, consulta, { historico, limite }).map(x => ({
         fuente: 'hecho', id: x.hecho.id, texto: `[${x.hecho.dimension}] ${x.hecho.valor}`, motivo: x.motivo, ver: x.hecho.devlog || null, hecho: x.hecho,
-        puntuacion: x.puntuacion,
+        puntuacion: x.puntuacion, debil: !!x.debil,
     }));
     const vistos = new Set();
     const dl = buscarEnDevlog(root, consulta, limite)

@@ -33,6 +33,7 @@ const todos = recuerdo(root, consulta.slice(0, 600), { limite: 10 });
 const mejor = f => Math.max(0, ...todos.filter(x => x.fuente === f).map(x => x.puntuacion));
 const elegidos = todos
     .filter(x => (x.fuente === 'hecho' ? x.puntuacion >= UMBRAL_HECHO : x.puntuacion > 0 && x.puntuacion >= RELATIVO * mejor(x.fuente)) && !ya.has(clave(x)))
+    .sort((a, b) => (a.debil === true) - (b.debil === true))   // lo sólido delante; los roces de una palabra, detrás y marcados
     .slice(0, MAXIMO);
 if (!elegidos.length) process.exit(0);
 try { fs.appendFileSync(flag, elegidos.map(clave).join('\n') + '\n'); } catch { }
