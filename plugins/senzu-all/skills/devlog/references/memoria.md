@@ -114,6 +114,14 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   (`--dimension familia.tema --valor … --claves …`, con claves también en inglés y en el idioma del usuario para
   encontrarla desde cualquiera); el motor (`hooks/hechos.mjs`) es determinista y sin red: sustituye por dimensión
   (lo viejo queda en el histórico con su fecha), no duplica, fecha y busca igual en cualquier escritura.
+- **Convención de claves** (el contenido, en cualquier idioma; las claves, no): `familia.tema` con familia de la
+  lista (identidad, preferencia, proyecto, objetivo, pendiente, restriccion, nota, hecho, aprendizaje, enlace) y tema
+  en castellano, minúsculas, sin tildes y con guiones. Lo habitual tiene nombre fijo (ubicacion, nombre, idioma,
+  zona-horaria, horario, cliente, stack, hosting, dominio, repositorio, pasarela-pago, presupuesto, plazo,
+  gestor-paquetes, editor, tipografia, color-marca, analitica, lanzamiento, tests); lo que escribas en otro idioma
+  (`project.alojamiento`) se lleva solo a lo canónico (`proyecto.hosting`) y SUSTITUYE al valor viejo. Una familia
+  fuera de la lista no se guarda. `--claves`: el término en inglés y el del idioma del usuario (en los temas fijos,
+  el inglés lo pone el motor). Si una dimensión nueva comparte claves con otra, avisa: puede ser el mismo dato.
 - **Familias que acumulan** (objetivo, pendiente, nota, hecho, aprendizaje); el resto, un valor vigente por
   dimensión. `--duda` para lo no afirmado del todo; `--alcance usuario` para lo que vale en todos sus proyectos.
 - **Procedencia**: `--fuente usuario` (por defecto: lo afirmó), `devlog` o `agente` (lo dedujiste tú). Lo deducido

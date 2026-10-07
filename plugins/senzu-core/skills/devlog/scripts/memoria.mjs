@@ -38,7 +38,8 @@ const fecha = s => String(s || '').slice(0, 10);
 const linea = h => `- [${h.dimension}] ${h.valor}${h.estado !== 'activo' ? ` (${h.estado}${h.hasta ? ' ' + fecha(h.hasta) : ''})` : ''}${h.desde ? ` · desde ${fecha(h.desde)}` : ''}${h.devlog ? ` · ver ${h.devlog}` : ''} · ${h.alcance} · ${h.id}`;
 
 if (opt('--guardar')) {
-    const r = m.guardarHecho(root, {
+    let r;
+    try { r = m.guardarHecho(root, {
         dimension: opt('--dimension'), valor: opt('--valor'), texto: opt('--texto') === true ? undefined : opt('--texto'),
         claves: opt('--claves') && opt('--claves') !== true ? String(opt('--claves')).split(',') : [], idioma: opt('--idioma') || undefined,
         devlog: opt('--devlog') && opt('--devlog') !== true ? String(opt('--devlog')) : undefined,   // por defecto, la entrada de hoy
@@ -47,14 +48,16 @@ if (opt('--guardar')) {
         fuente: opt('--fuente') && opt('--fuente') !== true ? String(opt('--fuente')) : 'usuario',   // usuario | agente | devlog
         desde: opt('--desde') && opt('--desde') !== true ? new Date(opt('--desde')).toISOString() : undefined,
         hasta: opt('--hasta') && opt('--hasta') !== true ? new Date(opt('--hasta')).toISOString() : undefined,
-    });
+    }); } catch (e) { out(`No guardado: ${e.message}`); process.exit(2); }   // p. ej. una familia fuera de la convención
     if (opt('--json')) { out(JSON.stringify(r, null, 2)); process.exit(0); }
     const que = { nuevo: 'Guardado', 'ya-estaba': 'Ya estaba (no se duplica)', sustituye: 'Guardado y sustituye a lo anterior', dudoso: 'Guardado como dudoso (no sustituye nada)' }[r.accion];
     out(`${que}: ${linea(r.hecho)}`);
     for (const s of r.sustituidos) out(`  sustituido: ${linea(s)}`);
     for (const a of r.avisos || []) out(a.tipo === 'casi-duplicado'
         ? `  ojo, casi duplicado (${a.motivo}): ${linea(a.hecho)} → si es lo mismo, --olvidar uno de los dos`
-        : `  ojo, contradice (${a.motivo}): ${linea(a.hecho)} → pregunta al usuario cuál vale`);
+        : a.tipo === 'contradice' ? `  ojo, contradice (${a.motivo}): ${linea(a.hecho)} → pregunta al usuario cuál vale`
+        : a.tipo === 'misma-dimension' ? `  ojo, ¿misma dimensión? ${a.motivo}: ${linea(a.hecho)}`
+        : `  convención: ${a.motivo}`);
     process.exit(0);
 }
 if (opt('--buscar')) {

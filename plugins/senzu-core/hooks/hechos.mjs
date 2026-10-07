@@ -42,6 +42,91 @@ export function palabras(t) {
 export function claveDimension(d) {
     return normalizar(d).replace(/[\s_/]+/g, '-').replace(/[^\p{L}\p{N}.-]/gu, '').replace(/-+/g, '-').replace(/\.{2,}/g, '.').replace(/^[.-]+|[.-]+$/g, '');
 }
+
+// ---------------------------------------------------------------- convención de claves (X-T3)
+// El CONTENIDO puede estar en cualquier idioma; las CLAVES no: la misma cosa tiene que acabar en la misma dimensión
+// (si no, «project.alojamiento» no sustituye a «proyecto.hosting» y lo viejo sigue vigente). Convención:
+//   familia.tema — familia de una lista fija; tema en castellano, minúsculas, sin tildes y con guiones.
+//   Lo que el agente escriba en otro idioma (project, goal, location…) se traduce solo a lo canónico.
+//   --claves: minúsculas, sin repetir; el término en inglés y el del idioma del usuario. Para los temas conocidos, el
+//   inglés lo pone el motor.
+export const FAMILIAS = ['identidad', 'preferencia', 'proyecto', 'objetivo', 'pendiente', 'restriccion', 'nota', 'hecho', 'aprendizaje', 'enlace'];
+const ALIAS_FAMILIA = {
+    identity: 'identidad', identite: 'identidad', identitat: 'identidad', identita: 'identidad', identidade: 'identidad', usuario: 'identidad', user: 'identidad', persona: 'identidad', perfil: 'identidad', profile: 'identidad',
+    preference: 'preferencia', preferences: 'preferencia', preferencias: 'preferencia', pref: 'preferencia', preferenz: 'preferencia', gusto: 'preferencia',
+    project: 'proyecto', projet: 'proyecto', projeto: 'proyecto', progetto: 'proyecto', projekt: 'proyecto', projecte: 'proyecto',
+    goal: 'objetivo', goals: 'objetivo', objective: 'objetivo', objectif: 'objetivo', obiettivo: 'objetivo', ziel: 'objetivo', meta: 'objetivo', objetivos: 'objetivo',
+    todo: 'pendiente', task: 'pendiente', tasks: 'pendiente', tarea: 'pendiente', pending: 'pendiente', pendente: 'pendiente', aufgabe: 'pendiente', pendientes: 'pendiente',
+    constraint: 'restriccion', constraints: 'restriccion', restriction: 'restriccion', limit: 'restriccion', limite: 'restriccion', limitacion: 'restriccion', restricao: 'restriccion', einschrankung: 'restriccion', vincolo: 'restriccion',
+    note: 'nota', notes: 'nota', notiz: 'nota', fact: 'hecho', dato: 'hecho', data: 'hecho',
+    learning: 'aprendizaje', learnings: 'aprendizaje', lesson: 'aprendizaje', leccion: 'aprendizaje', aprendizado: 'aprendizaje', lecon: 'aprendizaje', lektion: 'aprendizaje',
+    link: 'enlace', relacion: 'enlace',
+};
+// Temas canónicos de lo habitual: [tema, términos en inglés que el motor añade como claves, alias en otros idiomas]
+const TEMAS = [
+    ['nombre', ['name'], ['name', 'nom', 'nome', 'vorname']],
+    ['ubicacion', ['location', 'city', 'lives'], ['location', 'city', 'ciudad', 'residencia', 'ville', 'cidade', 'citta', 'wohnort', 'stadt', 'lugar']],
+    ['idioma', ['language'], ['language', 'lang', 'langue', 'lingua', 'sprache', 'lengua']],
+    ['zona-horaria', ['timezone', 'time zone'], ['timezone', 'time-zone', 'tz', 'huso-horario', 'fuseau-horaire', 'fuso-orario', 'zeitzone']],
+    ['horario', ['schedule', 'working hours'], ['schedule', 'working-hours', 'hours', 'horaire', 'orario', 'arbeitszeit', 'jornada']],
+    ['cliente', ['client', 'customer'], ['client', 'customer', 'kunde', 'cliente-final']],
+    ['contacto-cliente', ['client contact'], ['client-contact', 'customer-contact']],
+    ['stack', ['stack', 'tech stack', 'framework'], ['tech-stack', 'tecnologia', 'technology', 'framework', 'tecnologias']],
+    ['hosting', ['hosting', 'host', 'server'], ['host', 'alojamiento', 'hospedaje', 'hebergement', 'hospedagem', 'servidor-web']],
+    ['dominio', ['domain'], ['domain', 'domaine', 'dominio-web']],
+    ['repositorio', ['repository', 'repo'], ['repository', 'repo', 'depot', 'repositorio-codigo']],
+    ['pasarela-pago', ['payment gateway', 'payments'], ['payment-gateway', 'payments', 'payment', 'pagos', 'pasarela-pagos', 'pasarela', 'zahlungen', 'paiement', 'pagamento', 'pagamenti']],
+    ['presupuesto', ['budget'], ['budget', 'orcamento', 'preventivo', 'coste']],
+    ['plazo', ['deadline'], ['deadline', 'fecha-limite', 'echeance', 'prazo', 'scadenza', 'frist']],
+    ['gestor-paquetes', ['package manager'], ['package-manager', 'gestor-de-paquetes', 'paquetes']],
+    ['editor', ['editor', 'ide'], ['ide', 'editeur']],
+    ['tipografia', ['font', 'typography'], ['font', 'fonts', 'typography', 'schrift']],
+    ['color-marca', ['brand colour', 'brand color'], ['brand-color', 'brand-colour', 'color-de-marca', 'couleur-marque', 'cor-da-marca', 'markenfarbe']],
+    ['analitica', ['analytics'], ['analytics', 'analitica-web', 'analyse']],
+    ['lanzamiento', ['launch', 'release'], ['launch', 'release', 'lancement', 'lancamento', 'lancio']],
+    ['tests', ['tests', 'testing'], ['test', 'testing', 'pruebas', 'tests-automaticos']],
+];
+const TEMA_ALIAS = new Map();
+for (const [tema, , alias] of TEMAS) { TEMA_ALIAS.set(tema, tema); for (const a of alias) if (!TEMA_ALIAS.has(a)) TEMA_ALIAS.set(a, tema); }
+const INGLES_DE = new Map(TEMAS.map(([t, en]) => [t, en]));
+// Devuelve { dimension, cambios: [«project → proyecto»…] } o lanza un error claro si la familia no es de la lista
+export function dimensionConvencional(d) {
+    const k = claveDimension(d);
+    const i = k.indexOf('.');
+    if (i <= 0 || i === k.length - 1) throw new Error(`Dimensión «${d}»: tiene que ser familia.tema (familias: ${FAMILIAS.join(', ')}).`);
+    let fam = k.slice(0, i), tema = k.slice(i + 1);
+    const cambios = [];
+    if (!FAMILIAS.includes(fam)) {
+        const alias = ALIAS_FAMILIA[fam];
+        if (!alias) {
+            const cerca = FAMILIAS.map(f => [f, distancia(fam, f, 3)]).sort((a, b) => a[1] - b[1])[0];
+            throw new Error(`Familia «${fam}» fuera de la convención. Usa una de: ${FAMILIAS.join(', ')}${cerca[1] <= 3 ? ` (¿«${cerca[0]}»?)` : ''}.`);
+        }
+        cambios.push(`${fam} → ${alias}`); fam = alias;
+    }
+    const canon = TEMA_ALIAS.get(tema);
+    let original = null;
+    if (canon && canon !== tema) { cambios.push(`${tema} → ${canon}`); original = tema.replace(/-/g, ' '); tema = canon; }
+    // la palabra que usó el agente («ciudad») no se pierde: va a las claves, así se sigue encontrando por ella
+    return { dimension: `${fam}.${tema}`, cambios, original };
+}
+// Para BUSCAR por dimensión (resolver, enlazar): la forma convencional si la tiene; si no, tal cual (lo viejo)
+const dimensionO = d => { try { return dimensionConvencional(d).dimension; } catch { return claveDimension(d); } };
+// Claves con la convención: minúsculas, espacios simples, sin repetir (lo que normaliza igual es lo mismo),
+// como mucho 16; y los términos en inglés de los temas conocidos.
+export function clavesConvencionales(claves, dimension) {
+    const tema = dimension.slice(dimension.indexOf('.') + 1);
+    // (la palabra del tema SÍ se queda si el agente la puso: repetirla le dice al buscador que el hecho trata de eso,
+    // frente a otro que solo lo menciona; quitarla hundía «¿quién es el cliente?» bajo «contacto del cliente»)
+    const vistas = new Set(), out = [];
+    for (const c of [].concat(claves || []).flatMap(x => String(x).split(',')).concat(INGLES_DE.get(tema) || [])) {
+        const v = String(c).toLocaleLowerCase().replace(/\s+/g, ' ').trim();
+        const n = normalizar(v);
+        if (!v || vistas.has(n)) continue;
+        vistas.add(n); out.push(v);
+    }
+    return out.slice(0, 16);
+}
 const familia = dim => dim.split('.')[0];
 // Erratas: distancia de Damerau (la transposición «im»↔«mi» cuenta 1), por puntos de código (cualquier alfabeto) y
 // acotada: como mucho 1 cambio en palabras de 4-5 letras y 2 en las más largas. Con trigramas, «quien» encajaba con
@@ -142,13 +227,15 @@ export function entradaDelDia(root, ahora = hoy()) {
 // ---------------------------------------------------------------- guardar, olvidar
 // Devuelve { accion: 'nuevo' | 'ya-estaba' | 'sustituye' | 'dudoso', hecho, sustituidos }
 export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
-    const dimension = claveDimension(entrada.dimension);
     const valor = String(entrada.valor || '').trim();
-    if (!dimension || !valor) throw new Error('Hace falta dimension y valor');
+    if (!claveDimension(entrada.dimension || '') || !valor) throw new Error('Hace falta dimension y valor');
+    const conv = dimensionConvencional(entrada.dimension);   // X-T3: la misma clave para lo mismo, en cualquier idioma
+    const dimension = conv.dimension;
     const alcance = entrada.alcance === 'usuario' ? 'usuario' : 'proyecto';
     const file = rutaHechos(root, alcance);
     const k = normalizar(valor);
-    const claves = [...new Set([].concat(entrada.claves || []).flatMap(c => String(c).split(',')).map(c => c.trim()).filter(Boolean))];
+    const propias = [].concat(entrada.claves || []).flatMap(c => String(c).split(',')).map(c => c.trim()).filter(Boolean);
+    const claves = clavesConvencionales(conv.original ? [...propias, conv.original] : propias, dimension);
     // leer-modificar-escribir dentro del cerrojo: lo que otro proceso guardó entre medias no se pisa
     return conCerrojo(file, () => {
     const { validos: lista, ilegibles } = leerArchivo(file);
@@ -175,24 +262,47 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
         desde: entrada.desde || undefined, hasta: entrada.hasta || undefined,
         devlog: entrada.devlog ? String(entrada.devlog) : (entradaDelDia(root, ahora) || undefined),
         // enlaces a DIMENSIONES (no a hechos): si el valor del otro lado cambia, el enlace sigue llevando al vigente
-        enlaces: (() => { const e = [...new Set([].concat(entrada.enlaces || []).flatMap(x => String(x).split(',')).map(claveDimension).filter(x => x && x !== dimension))]; return e.length ? e : undefined; })(),
+        enlaces: (() => { const e = [...new Set([].concat(entrada.enlaces || []).flatMap(x => String(x).split(',')).map(x => { try { return dimensionConvencional(x).dimension; } catch { return claveDimension(x); } }).filter(x => x && x !== dimension))]; return e.length ? e : undefined; })(),
     };
     const sustituidos = [];
     if (!entrada.duda && !FAMILIAS_VARIOS.test(dimension)) {
         sustituidos.push(...sustituir(lista, dimension, hecho, ahora));
         // Sin claves propias hereda las del que sustituye: describen la dimensión («idioma», «language»), y sin
         // ellas el valor nuevo dejaría de encontrarse desde otro idioma
-        if (!hecho.claves && sustituidos.some(h => h.claves && h.claves.length)) hecho.claves = [...new Set(sustituidos.flatMap(h => h.claves || []))];
+        if (!propias.length && sustituidos.some(h => h.claves && h.claves.length)) hecho.claves = clavesConvencionales([...(hecho.claves || []), ...sustituidos.flatMap(h => h.claves || [])], dimension);
         if (!hecho.enlaces && sustituidos.some(h => h.enlaces && h.enlaces.length)) hecho.enlaces = [...new Set(sustituidos.flatMap(h => h.enlaces || []))];   // igual con los enlaces
     }
     // Avisos (no bloquean: decide el agente, que entiende el sentido): lo mismo dicho de otra manera en la familia, y
     // otro valor vigente de la MISMA dimensión que este no sustituye (una duda frente a lo afirmado, u otro alcance)
     const otroAlcance = leerHechos(rutaHechos(root, alcance === 'usuario' ? 'proyecto' : 'usuario'));
-    const avisos = avisosAlGuardar(hecho, [...lista, ...otroAlcance].filter(h => h.id !== hecho.id && (h.estado === 'activo' || h.estado === 'dudoso') && vigente(h, ahora)));
+    const vigentesAhora = [...lista, ...otroAlcance].filter(h => h.id !== hecho.id && (h.estado === 'activo' || h.estado === 'dudoso') && vigente(h, ahora));
+    const avisos = [...avisosAlGuardar(hecho, vigentesAhora), ...avisosConvencion(hecho, conv, propias, vigentesAhora)];
     lista.push(JSON.parse(JSON.stringify(hecho)));
     escribirHechos(file, lista, ilegibles);
     return { accion: entrada.duda ? 'dudoso' : sustituidos.length ? 'sustituye' : 'nuevo', hecho, sustituidos, avisos };
     });
+}
+// Avisos de la convención (X-T3): lo que se normalizó, claves que faltan y, lo más importante, una dimensión NUEVA que
+// parece otra que ya existe (comparten claves): si es el mismo dato con otro nombre, el valor viejo seguiría vigente.
+function avisosConvencion(hecho, conv, propias, vigentes) {
+    const avisos = [];
+    const tema = hecho.dimension.slice(hecho.dimension.indexOf('.') + 1), fam = familia(hecho.dimension);
+    if (conv.cambios.length) avisos.push({ tipo: 'convencion', motivo: `dimensión llevada a la convención (${conv.cambios.join(', ')})` });
+    if (!INGLES_DE.has(tema) && propias.length < 2) avisos.push({ tipo: 'convencion', motivo: propias.length ? 'una sola clave: añade también el término en inglés y el del idioma del usuario' : 'sin claves: añade --claves con el término en inglés y el del idioma del usuario (así se encuentra desde cualquier idioma)' });
+    if (!FAMILIAS_VARIOS.test(hecho.dimension) && !vigentes.some(h => h.dimension === hecho.dimension)) {
+        const terminos = h => new Set(palabras([h.dimension.slice(h.dimension.indexOf('.') + 1).replace(/-/g, ' '), ...(h.claves || [])].join(' ')).filter(palabraConPeso));
+        const mios = terminos(hecho);
+        const vistos = new Set();
+        for (const h of vigentes) {
+            if (familia(h.dimension) !== fam || h.dimension === hecho.dimension || vistos.has(h.dimension)) continue;
+            const comunes = [...terminos(h)].filter(w => mios.has(w));
+            if (comunes.length >= 2) {
+                vistos.add(h.dimension);
+                avisos.push({ tipo: 'misma-dimension', hecho: h, motivo: `comparte «${comunes.slice(0, 3).join('», «')}» con ${h.dimension}: si es el mismo dato, guárdalo en ${h.dimension} para que sustituya al viejo` });
+            }
+        }
+    }
+    return avisos;
 }
 // Lo vigente de la dimensión (activo y dudoso: lo afirmado gana a la duda) pasa a sustituido por «nuevo»
 function sustituir(lista, dimension, nuevo, ahora) {
@@ -276,7 +386,7 @@ function avisosAlGuardar(hecho, vigentes) {
 export const FAMILIAS_CICLO = /^(objetivo|pendiente)(\.|$)/;
 export function cambiarProgreso(root, ref, progreso, nota, { ahora = hoy() } = {}) {
     if (!['en-curso', 'resuelto', 'abandonado'].includes(progreso)) throw new Error('Progreso: en-curso, resuelto o abandonado');
-    const dim = claveDimension(ref);
+    const dim = dimensionO(ref);
     for (const alcance of ['proyecto', 'usuario']) {
         const file = rutaHechos(root, alcance);
         if (!fs.existsSync(file)) continue;
@@ -301,7 +411,7 @@ export function abiertos(root, { ahora = hoy() } = {}) {
 
 // Enlaza la dimensión A (su hecho vigente, en el alcance donde esté) con la dimensión B. Devuelve el hecho o null.
 export function enlazarHechos(root, dimA, dimB) {
-    const a = claveDimension(dimA), b = claveDimension(dimB);
+    const a = dimensionO(dimA), b = dimensionO(dimB);
     if (!a || !b || a === b) return null;
     for (const alcance of ['proyecto', 'usuario']) {
         const file = rutaHechos(root, alcance);

@@ -72,12 +72,12 @@ ok(/coincide: pnpm/.test(cerca[0].motivo), 'cada resultado trae su motivo', cerc
 const S = proyecto('vacias');
 m.guardarHecho(S, { dimension: 'restriccion.presupuesto', valor: 'máximo 3000 € para el cliente de la tienda' }, { ahora: T(S, 0) });
 m.guardarHecho(S, { dimension: 'identidad.ubicacion', valor: 'أعيش في القاهرة' }, { ahora: T(S, 1) });
-m.guardarHecho(S, { dimension: 'identidad.ciudad', valor: '私は東京に住んでいます' }, { ahora: T(S, 2) });
+m.guardarHecho(S, { dimension: 'identidad.oficina', valor: '私は東京に住んでいます' }, { ahora: T(S, 2) });
 ok(m.buscarHechos(S, 'cambia el color de la cabecera a gris').length === 0, 'español: «el», «de», «la» no hacen coincidir nada', JSON.stringify(m.buscarHechos(S, 'cambia el color de la cabecera a gris').map(x => x.motivo)));
 ok(m.buscarHechos(S, 'what is in the box of the page').length === 0, 'inglés: «is», «in», «of», «the» tampoco');
 ok(m.buscarHechos(S, 'ما في الصندوق').length === 0, 'árabe: «في» sola no basta');
-ok(m.buscarHechos(S, '猫は可愛いです').every(x => x.hecho.dimension !== 'identidad.ciudad'), 'japonés: la partícula «は» no basta');
-ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S, '東京').dimension === 'identidad.ciudad' && primero(S, '3000').dimension === 'restriccion.presupuesto', 'pero una palabra con peso (en cualquier escritura) o un número sí');
+ok(m.buscarHechos(S, '猫は可愛いです').every(x => x.hecho.dimension !== 'identidad.oficina'), 'japonés: la partícula «は» no basta');
+ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S, '東京').dimension === 'identidad.oficina' && primero(S, '3000').dimension === 'restriccion.presupuesto', 'pero una palabra con peso (en cualquier escritura) o un número sí');
 
 // 3c. relación débil: si la pregunta tiene 3+ palabras con peso y solo coincide una, sale marcada (no se esconde)
 {
@@ -153,36 +153,37 @@ ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S
     ok(ded.id === r.hecho.id, '(es el mismo hecho)');
 
     // la duda frente a lo afirmado
-    m.guardarHecho(F, { dimension: 'identidad.ciudad', valor: 'Málaga' }, { ahora: T(F, 100) });
-    r = m.guardarHecho(F, { dimension: 'identidad.ciudad', valor: 'Valencia', duda: true }, { ahora: T(F, 110) });
-    ok(r.accion === 'dudoso' && r.avisos.length === 1 && r.avisos[0].tipo === 'contradice' && r.avisos[0].hecho.valor === 'Málaga' && /la duda no lo sustituye/.test(r.avisos[0].motivo), 'guardar una duda que contradice lo afirmado: avisa', JSON.stringify(r.avisos));
-    hits = m.buscarHechos(F, 'ciudad');
+    m.guardarHecho(F, { dimension: 'identidad.ubicacion', valor: 'Málaga' }, { ahora: T(F, 100) });
+    r = m.guardarHecho(F, { dimension: 'identidad.ubicacion', valor: 'Valencia', duda: true }, { ahora: T(F, 110) });
+    ok(r.accion === 'dudoso' && r.avisos.filter(a => a.tipo === 'contradice').length === 1 && r.avisos.find(a => a.tipo === 'contradice').hecho.valor === 'Málaga' && /la duda no lo sustituye/.test(r.avisos.find(a => a.tipo === 'contradice').motivo), 'guardar una duda que contradice lo afirmado: avisa', JSON.stringify(r.avisos));
+    hits = m.buscarHechos(F, 'location');
     ok(hits[0].hecho.valor === 'Málaga' && hits[1].hecho.valor === 'Valencia', 'lo afirmado va antes que la duda');
-    r = m.guardarHecho(F, { dimension: 'identidad.ciudad', valor: 'VALENCIA' }, { ahora: T(F, 120) });
-    const ciudad = m.todosLosHechos(F).filter(h => h.dimension === 'identidad.ciudad');
+    r = m.guardarHecho(F, { dimension: 'identidad.ubicacion', valor: 'VALENCIA' }, { ahora: T(F, 120) });
+    const ciudad = m.todosLosHechos(F).filter(h => h.dimension === 'identidad.ubicacion');
     ok(r.accion === 'sustituye' && r.hecho.estado === 'activo' && ciudad.length === 2 && ciudad.find(h => h.valor === 'Málaga').estado === 'sustituido', 'afirmar lo que era duda: se confirma y sustituye a lo anterior', JSON.stringify(ciudad.map(h => [h.valor, h.estado])));
     m.guardarHecho(F, { dimension: 'identidad.barrio', valor: 'El Palo', duda: true }, { ahora: T(F, 130) });
     m.guardarHecho(F, { dimension: 'identidad.barrio', valor: 'Pedregalejo' }, { ahora: T(F, 140) });
     ok(m.buscarHechos(F, 'barrio').map(x => x.hecho.valor).join() === 'Pedregalejo', 'lo afirmado sustituye también a una duda distinta (no quedan dos vigentes)');
 
+    const sinConv = r => r.avisos.filter(a => a.tipo !== 'convencion');   // los de la convención se prueban aparte (3i)
     // casi-duplicados: misma familia, dicho de otra manera, en cualquier escritura
     m.guardarHecho(F, { dimension: 'aprendizaje.webhooks', valor: 'los webhooks de Stripe llegan duplicados: guardar event.id' }, { ahora: T(F, 200) });
     r = m.guardarHecho(F, { dimension: 'aprendizaje.stripe', valor: 'Los webhooks de stripe llegan DUPLICADOS, guarda el event id' }, { ahora: T(F, 210) });
-    ok(r.avisos.length === 1 && r.avisos[0].tipo === 'casi-duplicado' && r.avisos[0].hecho.dimension === 'aprendizaje.webhooks' && r.avisos[0].parecido >= 0.6, 'avisa de un casi duplicado en la familia', JSON.stringify(r.avisos));
+    ok(sinConv(r).length === 1 && sinConv(r)[0].tipo === 'casi-duplicado' && sinConv(r)[0].hecho.dimension === 'aprendizaje.webhooks' && sinConv(r)[0].parecido >= 0.6, 'avisa de un casi duplicado en la familia', JSON.stringify(r.avisos));
     r = m.guardarHecho(F, { dimension: 'nota.stripe', valor: 'los webhooks de Stripe llegan duplicados: guardar event.id' }, { ahora: T(F, 220) });
-    ok(r.avisos.length === 0, 'en otra familia no es un duplicado (nota no es aprendizaje)');
+    ok(sinConv(r).length === 0, 'en otra familia no es un duplicado (nota no es aprendizaje)');
     r = m.guardarHecho(F, { dimension: 'aprendizaje.colas', valor: 'las colas de Horizon necesitan reiniciarse tras desplegar' }, { ahora: T(F, 230) });
-    ok(r.avisos.length === 0, 'lo que no se parece no avisa');
+    ok(sinConv(r).length === 0, 'lo que no se parece no avisa');
     r = m.guardarHecho(F, { dimension: 'preferencia.gestor', valor: 'pnpm' }, { ahora: T(F, 240) });
     r = m.guardarHecho(F, { dimension: 'preferencia.runtime', valor: 'npm' }, { ahora: T(F, 241) });
-    ok(r.avisos.length === 0, 'valores cortos parecidos pero distintos (npm / pnpm) no son duplicados', JSON.stringify(r.avisos));
+    ok(sinConv(r).length === 0, 'valores cortos parecidos pero distintos (npm / pnpm) no son duplicados', JSON.stringify(r.avisos));
     m.guardarHecho(F, { dimension: 'aprendizaje.deploy', valor: 'ステージングはNetlifyにデプロイする' }, { ahora: T(F, 250) });
     r = m.guardarHecho(F, { dimension: 'aprendizaje.staging', valor: 'ステージングはNetlifyへデプロイする' }, { ahora: T(F, 251) });
     ok(r.avisos.some(a => a.tipo === 'casi-duplicado' && a.hecho.dimension === 'aprendizaje.deploy'), 'también en japonés (trigramas de caracteres)', JSON.stringify(r.avisos));
     const olv = m.guardarHecho(F, { dimension: 'aprendizaje.cache', valor: 'limpiar la caché de config tras cambiar el .env' }, { ahora: T(F, 260) }).hecho;
     m.olvidarHecho(F, olv.id);
     r = m.guardarHecho(F, { dimension: 'aprendizaje.config', valor: 'limpiar la caché de config tras cambiar el .env.' }, { ahora: T(F, 270) });
-    ok(r.avisos.length === 0, 'lo olvidado no cuenta como duplicado');
+    ok(sinConv(r).length === 0, 'lo olvidado no cuenta como duplicado');
     ok(m.parecido('Málaga', 'MALAGA') === 1 && m.parecido('', 'x') === 0, 'parecido: normalizado y sin dividir por cero');
 
     // otro alcance con otro valor de la misma dimensión
@@ -278,6 +279,46 @@ ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S
     ok(sobre('¿cómo cobramos los pagos con Stripe?').length === 1, 'si el nombre SÍ lo conoce, responde');
     ok(sobre('¿qué tests corren con Pest?')[0]?.hecho.dimension === 'proyecto.tests', 'si coincide más de una palabra, el nombre desconocido no importa');
     ok(sobre('¿dónde está el servidor?')[0]?.hecho.dimension === 'proyecto.hosting', 'una pregunta corta sin nombres sigue respondiendo');
+}
+
+// 3i. convención de claves (X-T3): lo mismo, la misma clave, hable el usuario el idioma que hable
+{
+    const dc = d => m.dimensionConvencional(d);
+    ok(dc('project.hosting').dimension === 'proyecto.hosting' && dc('project.hosting').cambios.join() === 'project → proyecto', 'familia en inglés → la canónica, y se dice');
+    ok(dc('Proyecto.Alojamiento').dimension === 'proyecto.hosting' && dc('goal.ventas').dimension === 'objetivo.ventas' && dc('identity.location').dimension === 'identidad.ubicacion', 'temas y familias en otros idiomas → los canónicos');
+    ok(dc('projet.hébergement').dimension === 'proyecto.hosting' && dc('projekt.zeitzone').dimension === 'proyecto.zona-horaria', 'también en francés y en alemán (sin tildes)');
+    ok(dc('proyecto.fornecedor-embalagens').dimension === 'proyecto.fornecedor-embalagens', 'un tema que no está en el catálogo se respeta (lo cubren los avisos)');
+    let err = ''; try { dc('cosa.x'); } catch (e) { err = e.message; } ok(/Familia «cosa» fuera de la convención/.test(err) && /identidad, preferencia, proyecto/.test(err), 'familia desconocida: se rechaza diciendo cuáles valen', err);
+    err = ''; try { dc('proyeto.x'); } catch (e) { err = e.message; } ok(/¿«proyecto»\?/.test(err), 'y sugiere la más cercana');
+    err = ''; try { dc('ubicacion'); } catch (e) { err = e.message; } ok(/familia\.tema/.test(err), 'sin familia: se rechaza');
+
+    const C = proyecto('convencion');
+    m.guardarHecho(C, { dimension: 'proyecto.hosting', valor: 'Netlify', claves: ['hosting', 'alojamiento'] }, { ahora: T(C, 0) });
+    let r = m.guardarHecho(C, { dimension: 'project.alojamiento', valor: 'Laravel Forge' }, { ahora: T(C, 10) });
+    ok(r.accion === 'sustituye' && r.sustituidos[0].valor === 'Netlify' && r.hecho.dimension === 'proyecto.hosting', 'dicho en otro idioma con otra clave: SUSTITUYE al viejo (no quedan dos vigentes)', JSON.stringify([r.accion, r.hecho.dimension]));
+    ok(m.buscarHechos(C, 'hosting').map(x => x.hecho.valor).join() === 'Laravel Forge', 'y solo lo nuevo es vigente');
+    ok(r.avisos.some(a => a.tipo === 'convencion' && /project → proyecto, alojamiento → hosting/.test(a.motivo)), 'avisa de lo que normalizó', JSON.stringify(r.avisos));
+    r = m.guardarHecho(C, { dimension: 'identidad.ciudad', valor: 'Málaga', claves: ['  Vive ', 'vive', 'LIVES'] }, { ahora: T(C, 20) });
+    ok(r.hecho.dimension === 'identidad.ubicacion' && r.hecho.claves.includes('vive') && r.hecho.claves.includes('lives') && r.hecho.claves.filter(c => c === 'vive').length === 1 && r.hecho.claves.includes('location') && r.hecho.claves.includes('ciudad'), 'claves: minúsculas, sin repetir, el inglés del tema y la palabra original («ciudad») conservada', JSON.stringify(r.hecho.claves));
+    ok(m.buscarHechos(C, 'ciudad')[0]?.hecho.valor === 'Málaga' && m.buscarHechos(C, 'city')[0]?.hecho.valor === 'Málaga', 'se encuentra por la palabra original y por el inglés');
+    r = m.guardarHecho(C, { dimension: 'proyecto.fotografo', valor: 'Ana Ruiz' }, { ahora: T(C, 30) });
+    ok(r.avisos.some(a => a.tipo === 'convencion' && /sin claves/.test(a.motivo)), 'un tema fuera del catálogo sin claves: avisa');
+    r = m.guardarHecho(C, { dimension: 'proyecto.dominio', valor: 'ceramicassol.es' }, { ahora: T(C, 31) });
+    ok(!r.avisos.some(a => a.tipo === 'convencion') && r.hecho.claves.includes('domain'), 'un tema del catálogo sin claves: no hace falta (pone el inglés)');
+    m.guardarHecho(C, { dimension: 'proyecto.proveedor-envases', valor: 'Envases Levante', claves: ['packaging', 'supplier', 'envases'] }, { ahora: T(C, 40) });
+    r = m.guardarHecho(C, { dimension: 'proyecto.fornecedor-embalagens', valor: 'Embalagens Lisboa', claves: ['packaging', 'supplier', 'embalagens'] }, { ahora: T(C, 41) });
+    ok(r.avisos.some(a => a.tipo === 'misma-dimension' && a.hecho.dimension === 'proyecto.proveedor-envases' && /packaging/.test(a.motivo)), 'una dimensión nueva que comparte claves con otra: avisa de que puede ser la misma', JSON.stringify(r.avisos.map(a => a.motivo)));
+    r = m.guardarHecho(C, { dimension: 'proyecto.cdn', valor: 'Bunny', claves: ['cdn', 'images'] }, { ahora: T(C, 42) });
+    ok(!r.avisos.some(a => a.tipo === 'misma-dimension'), 'sin claves en común no avisa');
+    r = m.guardarHecho(C, { dimension: 'proyecto.pasarela', valor: 'Stripe', enlaces: ['project.hosting'] }, { ahora: T(C, 50) });
+    ok(r.hecho.dimension === 'proyecto.pasarela-pago' && r.hecho.enlaces.join() === 'proyecto.hosting', 'los enlaces también se llevan a la convención');
+    m.guardarHecho(C, { dimension: 'objetivo.ventas', valor: 'vender 200 piezas' }, { ahora: T(C, 60) });
+    ok(m.cambiarProgreso(C, 'goal.ventas', 'en-curso')?.progreso === 'en-curso', 'resolver o avanzar por dimensión acepta los alias');
+    const cliC = (...a) => spawnSync(process.execPath, [CLI, '--path', C, ...a], { encoding: 'utf8', env: process.env });
+    let o = cliC('--guardar', '--dimension', 'project.dominio', '--valor', 'ceramicassol.com');
+    ok(/sustituye/.test(o.stdout) && /convención: dimensión llevada a la convención \(project → proyecto\)/.test(o.stdout), 'CLI: dice lo que normalizó', o.stdout);
+    o = cliC('--guardar', '--dimension', 'cosa.x', '--valor', 'y');
+    ok(o.status !== 0 && /fuera de la convención/.test(o.stdout + o.stderr), 'CLI: una familia fuera de la convención no se guarda', o.stdout + o.stderr);
 }
 
 // 4. cupos por familia: que una familia no se coma el espacio
