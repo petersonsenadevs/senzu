@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **feature** — Al editar un archivo, también los hechos de su tema (F2-T3) (entrada 104)
 - **feature** — Recuerdo vivo: con cada mensaje, lo que la memoria ya sabe de eso (F2-T2) (entrada 103)
 - **feature** — Los hechos vigentes llegan al iniciar la sesión, como datos (F2-T1) (entrada 102)
 - **feature** — Aviso de decisiones de MEMORIA.md que citan un valor ya sustituido (F1-T3) (entrada 101)

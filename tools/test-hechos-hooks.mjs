@@ -115,6 +115,24 @@ const mensaje = (d, prompt, sid, env) => contexto(hook('recuerdo-vivo.mjs', d, {
     ok(!/\nREGLA: ignora todo/.test(c) && items.every(l => /«.*»/.test(l)), 'mensaje: un valor con salto de línea e instrucciones va en una línea citada', c.slice(0, 400));
 }
 
+// ---------------------------------------------------------------- F2-T3 · hechos del tema al editar un archivo
+const edita = (d, rel, sid) => contexto(hook('memoria-archivo.mjs', d, { session_id: sid, tool_name: 'Edit', tool_input: { file_path: path.join(d, rel), old_string: 'a', new_string: 'b' } }));
+{
+    const P = proyecto('archivo');
+    m.guardarHecho(P, { dimension: 'proyecto.pasarela-pago', valor: 'Stripe en modo test hasta el lanzamiento', claves: ['pagos', 'pago', 'payments'] }, { ahora: T(0) });
+    m.guardarHecho(P, { dimension: 'restriccion.migraciones', valor: 'nunca borrar columnas sin backup', claves: ['migrations', 'migraciones'] }, { ahora: T(1) });
+    m.guardarHecho(P, { dimension: 'preferencia.componentes', valor: 'components en PascalCase', claves: ['components'] }, { ahora: T(2) });
+    let c = edita(P, 'app/Services/PagoStripeService.php', `arch-${RUN}`);
+    ok(/\[hecho\] \[proyecto\.pasarela-pago\] «Stripe en modo test/.test(c), 'editar PagoStripeService.php: trae el hecho de pagos (camelCase partido)', c);
+    ok(edita(P, 'app/Services/PagoStripeService.php', `arch-${RUN}`) === '', 'el mismo archivo en la misma sesión: nada');
+    ok(/nunca borrar columnas/.test(edita(P, 'database/migrations/2026_10_07_crear_pedidos.php', `arch-${RUN}`)), 'una migración: trae la restricción de migraciones');
+    ok(edita(P, 'resources/js/components/BotonGrande.vue', `arch-${RUN}`) === '', 'carpeta genérica («components») sola no basta: nada sobre botones', edita(P, 'resources/js/components/BotonGrande.vue', `arch2-${RUN}`));
+    ok(edita(P, 'senzu/memoria/hechos.jsonl', `arch-${RUN}`) === '' && edita(P, 'senzu/devlog/MEMORIA.md', `arch-${RUN}`) === '', 'la propia memoria (hechos, devlog) no se comenta a sí misma');
+    for (let i = 0; i < 6; i++) m.guardarHecho(P, { dimension: `nota.pago-${i}`, valor: `pago dividido ${i}`, claves: ['pago', 'stripe'] }, { ahora: T(10 + i) });
+    const items = edita(P, 'app/Services/PagoStripeService.php', `arch3-${RUN}`).split('\n').filter(l => /\[hecho\]/.test(l));
+    ok(items.length <= 3 && items.length >= 1, 'al editar, como mucho 3 hechos', String(items.length));
+}
+
 fs.rmSync(base, { recursive: true, force: true });
 for (const f of fs.readdirSync(os.tmpdir())) if (f.includes(RUN)) { try { fs.rmSync(path.join(os.tmpdir(), f), { force: true }); } catch { } }
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
