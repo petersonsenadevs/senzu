@@ -198,6 +198,38 @@ export function recuerdo(root, consulta, { limite = 6, historico = false } = {})
     return out;
 }
 
+// ---------------------------------------------------------------- coherencia con MEMORIA.md
+// Si un hecho se sustituyó (el stack pasó de «Laravel 10» a «Laravel 11») y una decisión VIGENTE de MEMORIA.md
+// aún cita el valor viejo (y no el nuevo), la decisión puede haberse quedado obsoleta: se avisa con su D-xxx.
+// Sin falsos avisos: solo valores con peso (una palabra de 4+ letras, un número o un nombre propio) y como
+// secuencia de palabras completas, no como trozo de otra palabra.
+const conPeso = v => palabras(v).some(w => [...w].length >= 4 || /\p{N}/u.test(w)) || /\p{Lu}/u.test(String(v));
+function contiene(lineaToks, valorToks) {
+    if (!valorToks.length) return false;
+    for (let i = 0; i + valorToks.length <= lineaToks.length; i++) if (valorToks.every((w, j) => lineaToks[i + j] === w)) return true;
+    return false;
+}
+export function decisionesObsoletas(root) {
+    let mem = '';
+    try { mem = fs.readFileSync(path.join(ruta(root, 'devlog'), 'MEMORIA.md'), 'utf8'); } catch { return []; }
+    const vigentes = (/^##\s+Decisiones vigentes\s*$([\s\S]*?)(?=^##\s|(?![\s\S]))/m.exec(mem.replace(/\r/g, '')) || [])[1] || '';
+    const lineas = vigentes.split('\n').map(l => /^\s*[-*]\s+(D-\d+)\s*·\s*(.*)$/.exec(l)).filter(Boolean).map(m => ({ id: m[1], texto: m[2], toks: palabras(m[2]) }));
+    if (!lineas.length) return [];
+    const todos = todosLosHechos(root), porId = new Map(todos.map(h => [h.id, h]));
+    const avisos = [], vistos = new Set();
+    for (const viejo of todos.filter(h => h.estado === 'sustituido' && conPeso(h.valor))) {
+        const nuevo = porId.get(viejo.sustituido_por);
+        if (!nuevo || nuevo.estado !== 'activo') continue;
+        const tv = palabras(viejo.valor), tn = palabras(nuevo.valor);
+        if (contiene(tn, tv)) continue;   // el nuevo PRECISA al viejo («Hetzner» → «Hetzner Cloud»): no lo contradice
+        for (const d of lineas) if (contiene(d.toks, tv) && !contiene(d.toks, tn) && !vistos.has(d.id + viejo.id)) {
+            vistos.add(d.id + viejo.id);
+            avisos.push({ decision: d.id, texto: d.texto, valorViejo: viejo.valor, valorNuevo: nuevo.valor, dimension: nuevo.dimension });
+        }
+    }
+    return avisos;
+}
+
 // ---------------------------------------------------------------- contexto para el inicio de sesión
 export function contextoHechos(root, { presupuesto = 12, ahora = hoy() } = {}) {
     const vigentes = todosLosHechos(root).filter(h => vigente(h, ahora)).sort((a, b) => (b.creado || '').localeCompare(a.creado || ''));

@@ -131,6 +131,33 @@ ok(sinDia.hecho.devlog === undefined, 'sin entrada ese día, sin enlace (no inve
 ok((m.recuerdo(E, 'cliente Cerámicas').find(x => x.fuente === 'hecho') || {}).ver === '012', 'el recuerdo enseña «ver NNN» del hecho');
 ok(/ver 012/.test(spawnSync(process.execPath, [CLI, '--path', E, '--lista'], { encoding: 'utf8', env: process.env }).stdout), 'CLI: --lista enseña el enlace');
 
+// 7d. coherencia: decisiones de MEMORIA.md que citan un valor ya sustituido (F1-T3)
+const O = proyecto('obsoletas');
+fs.mkdirSync(path.join(O, 'senzu', 'devlog'), { recursive: true });
+fs.writeFileSync(path.join(O, 'senzu', 'devlog', 'MEMORIA.md'), [
+    '# Memoria del proyecto', '', '## Decisiones vigentes',
+    '- D-001 · Stack: Laravel 10 con Inertia y Vue; nada de Livewire',
+    '- D-002 · Front en Vue con Pinia para el estado global',
+    '- D-003 · Hosting en Forge sobre un VPS de Hetzner',
+    '- D-004 · Respuestas en español, sí o sí',
+    '- D-005 · Ya migrado: Laravel 11 en producción y Laravel 10 retirado',
+    '', '## Lo que no funcionó (no repetir)', '- Laravel 10 con PHP 8.4 en local: no arranca', ''].join('\r\n'));   // CRLF a propósito
+const sus = (dim, a, b, extra = {}) => { m.guardarHecho(O, { dimension: dim, valor: a, ...extra }, { ahora: T(O, 0) }); m.guardarHecho(O, { dimension: dim, valor: b, ...extra }, { ahora: T(O, 1) }); };
+sus('proyecto.stack', 'Laravel 10', 'Laravel 11');
+sus('proyecto.front', 'Vue', 'React');
+sus('preferencia.confirmacion', 'sí', 'no');
+sus('proyecto.hosting', 'Hetzner', 'Hetzner Cloud');
+const obs = m.decisionesObsoletas(O);
+const ids = obs.map(o => o.decision).sort().join(',');
+ok(obs.some(o => o.decision === 'D-001' && o.valorViejo === 'Laravel 10' && o.valorNuevo === 'Laravel 11'), 'avisa: D-001 cita «Laravel 10» y el stack ya es «Laravel 11»', JSON.stringify(obs));
+ok(obs.some(o => o.decision === 'D-002') && obs.some(o => o.decision === 'D-001' && o.valorViejo === 'Vue'), 'un nombre propio corto («Vue») también cuenta', ids);
+ok(!obs.some(o => o.decision === 'D-004'), 'una palabra corta y común («sí») no da avisos falsos', ids);
+ok(!obs.some(o => o.decision === 'D-005'), 'si la decisión ya cita también el valor nuevo, no avisa', ids);
+ok(!obs.some(o => o.decision === 'D-003'), 'un valor nuevo que PRECISA al viejo («Hetzner» → «Hetzner Cloud») no deja obsoleta la decisión', ids);
+ok(obs.every(o => /^D-00[12]$/.test(o.decision)), 'solo mira «Decisiones vigentes» (no «Lo que no funcionó»)', ids);
+const mc = spawnSync(process.execPath, [path.join(ROOT, 'core', 'skills', 'devlog', 'scripts', 'memoria-check.mjs')], { cwd: O, encoding: 'utf8', env: process.env });
+ok(mc.status === 1 && /D-001 cita «Laravel 10», pero el hecho proyecto\.stack ahora es «Laravel 11»/.test(mc.stdout), 'memoria-check lo enseña como aviso', mc.stdout);
+
 // 8. la línea de comandos
 const cli = (d, ...a) => spawnSync(process.execPath, [CLI, '--path', d, ...a], { encoding: 'utf8', env: process.env });
 const L = proyecto('cli');

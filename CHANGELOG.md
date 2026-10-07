@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **feature** — Aviso de decisiones de MEMORIA.md que citan un valor ya sustituido (F1-T3) (entrada 101)
 - **feature** — Cada hecho enlazado con su entrada del devlog; plan ampliado con memoria casi perfecta y Cortex (F1-T2) (entrada 100)
 - **feature** — Recuerdo unificado: hechos, MEMORIA.md y devlog en una sola consulta (F1-T1) (entrada 099)
 - **feature** — Rama exp/hemispheric, fase 1: motor de hechos determinista en cualquier idioma y sin red (entrada 098)
