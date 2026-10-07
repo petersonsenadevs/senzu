@@ -217,7 +217,8 @@ $plugRoot = Join-Path $root 'plugins'
 if (Test-Path $plugRoot) {
     foreach ($pd in (Get-ChildItem $plugRoot -Directory | Where-Object { Test-Path (Join-Path $_.FullName 'hooks\hooks.json') })) {
         $hj = Read-Utf8 (Join-Path $pd.FullName 'hooks\hooks.json')
-        $files = @(Get-ChildItem (Join-Path $pd.FullName 'hooks') -Filter *.mjs | Where-Object { $_.Name -ne 'lib.mjs' } | ForEach-Object Name)
+        # lib.mjs y hechos.mjs son librerías que usan los hooks y los scripts, no hooks que se registren
+        $files = @(Get-ChildItem (Join-Path $pd.FullName 'hooks') -Filter *.mjs | Where-Object { @('lib.mjs', 'hechos.mjs') -notcontains $_.Name } | ForEach-Object Name)
         foreach ($f in $files) { if ($hj -notmatch [regex]::Escape($f)) { Fail "plugin:$($pd.Name)" "hook muerto: $f copiado pero no registrado en hooks.json" } }
         if ($pd.Name -in @('senzu-front', 'senzu-core', 'senzu-backend', 'senzu-all') -and $hj -notmatch 'UserPromptSubmit') { Fail "plugin:$($pd.Name)" 'sin UserPromptSubmit (prompt-router)' }
     }

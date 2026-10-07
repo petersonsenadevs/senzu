@@ -134,6 +134,7 @@ function Get-HooksBody {
         'pre-compact.mjs'          = @('PreCompact', 'Re-inyecta lo esencial (stack, versiones, design system, plan, reglas) para sobrevivir a la compactación de contexto.')
         'session-end.mjs'          = @('SessionEnd', 'Limpia los marcadores de sesión.')
         'lib.mjs'                  = $null
+        'hechos.mjs'               = $null   # librería del motor de hechos (memoria.mjs y los hooks), no un hook
     }
     $L.Add('| Hook | Evento | Qué hace |')
     $L.Add('|---|---|---|')
