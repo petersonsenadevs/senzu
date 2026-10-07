@@ -128,6 +128,9 @@ export function todosLosHechos(root) { return ['proyecto', 'usuario'].flatMap(a 
 export const palabraConPeso = w => [...w].length >= 4 || /\p{N}/u.test(w) || /[\p{Script=Han}\p{Script=Katakana}\p{Script=Hangul}]/u.test(w)
     || (/^\p{Script=Hiragana}+$/u.test(w) && [...w].length >= 3);
 
+// Umbral a partir del cual un hecho se INYECTA solo (recuerdo-vivo) y con el que se mide la evaluación (F4).
+export const UMBRAL_RECUERDO = 0.8;
+
 // ---------------------------------------------------------------- buscar (BM25 + erratas + cupos por familia)
 // historico: también lo sustituido y caducado («¿dónde vivía antes?»: lo decide el agente, que entiende la pregunta)
 export function buscarHechos(root, consulta, { historico = false, limite = 8, ahora = hoy() } = {}) {

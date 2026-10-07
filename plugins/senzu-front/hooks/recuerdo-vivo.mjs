@@ -2,23 +2,25 @@
 // (en cualquier idioma), decisiones de MEMORIA.md y entradas del devlog— llega al agente antes de responder, con su
 // fuente y su motivo. Así no pregunta lo que ya se sabe ni contradice lo decidido (plan de Hemispheric, F2-T2).
 // Corto y sin ruido: hasta 5 recuerdos por encima de un umbral, nada que ya se inyectara en la sesión, nada con
-// mensajes de una o dos palabras («ok», «sí»), ni con informes de subagentes. Los valores van como DATOS citados.
+// mensajes sin palabras con peso («ok», «sí»), ni con informes de subagentes. Los valores van como DATOS citados.
 
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { readHookInput, projectRoot, sessionFlag, outHookJson, esMensajeDelUsuario } from './lib.mjs';
-import { recuerdo, palabras } from './hechos.mjs';
+import { recuerdo, palabras, palabraConPeso, UMBRAL_RECUERDO } from './hechos.mjs';
 
 // Umbrales (se afinan con la evaluación de F4). Hechos: BM25 del motor (IDF suavizado, escala estable). Memoria y
 // devlog: los puntos de buscar.mjs dependen del tamaño del devlog (0,7 en uno pequeño, 38 en uno grande), así que el
 // umbral es RELATIVO al mejor de su fuente; el buscador ya no devuelve nada si no hay relación.
-const UMBRAL_HECHO = 0.8, RELATIVO = 0.5, MAXIMO = 5;
+const UMBRAL_HECHO = UMBRAL_RECUERDO, RELATIVO = 0.5, MAXIMO = 5;   // el de hechos, compartido con la evaluación
 
 const p = readHookInput();
 const texto = p && typeof p.prompt === 'string' ? p.prompt.trim() : '';
 if (!texto || !esMensajeDelUsuario(texto)) process.exit(0);
 const consulta = texto.replace(/^\/[\w:-]+\s*/, '');   // «/plan pagos con stripe» → «pagos con stripe»
-if (palabras(consulta).length < 3) process.exit(0);
+// Sin ninguna palabra con peso («sí», «ok», «¿y?») no hay nada que recordar. No se mira la LONGITUD: en japonés o
+// chino una pregunta entera puede ser una o dos palabras («オフィス», «景德镇»), y eso dependía del idioma.
+if (!palabras(consulta).some(palabraConPeso)) process.exit(0);
 
 const root = projectRoot();
 const sid = p.session_id ? String(p.session_id) : 'default';
