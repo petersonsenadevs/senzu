@@ -648,6 +648,31 @@ export function decisionesObsoletas(root) {
     return avisos;
 }
 
+// ---------------------------------------------------------------- contradicciones vigentes (X-T6)
+// Lo que choca y conviene preguntar al usuario al empezar: (1) dos valores vigentes de la misma dimensión en el mismo
+// alcance (una duda frente a lo afirmado); lo del proyecto frente a lo del usuario NO cuenta: es una excepción
+// legítima («en este proyecto, espacios»). (2) El mismo dato guardado con dos claves (comparten 2+ términos), lo que
+// la convención avisa al guardar pero puede venir de antes.
+export function contradicciones(root, { ahora = hoy(), maximo = 3 } = {}) {
+    const vig = todosLosHechos(root).filter(h => (h.estado === 'activo' || h.estado === 'dudoso') && (vigente(h, ahora) || h.estado === 'dudoso'));
+    const out = [];
+    const grupos = new Map();
+    for (const h of vig) if (!FAMILIAS_VARIOS.test(h.dimension)) { const k = h.alcance + '|' + h.dimension; if (!grupos.has(k)) grupos.set(k, []); grupos.get(k).push(h); }
+    for (const l of grupos.values()) {
+        const distintos = [...new Map(l.map(h => [normalizar(h.valor), h])).values()];
+        if (distintos.length > 1) out.push({ tipo: 'valores', dimension: l[0].dimension, hechos: distintos });
+    }
+    const terminos = h => new Set(palabras([h.dimension.slice(h.dimension.indexOf('.') + 1).replace(/-/g, ' '), ...(h.claves || [])].join(' ')).filter(palabraConPeso));
+    const unicos = [...new Map(vig.filter(h => !FAMILIAS_VARIOS.test(h.dimension)).map(h => [h.dimension, h])).values()];
+    for (let i = 0; i < unicos.length; i++) for (let j = i + 1; j < unicos.length; j++) {
+        const a = unicos[i], b = unicos[j];
+        if (familia(a.dimension) !== familia(b.dimension)) continue;
+        const ta = terminos(a), comunes = [...terminos(b)].filter(w => ta.has(w));
+        if (comunes.length >= 2) out.push({ tipo: 'misma-dimension', dimension: a.dimension, hechos: [a, b], comunes });
+    }
+    return out.slice(0, maximo);
+}
+
 // ---------------------------------------------------------------- contexto para el inicio de sesión
 export function contextoHechos(root, { presupuesto = 12, ahora = hoy() } = {}) {
     // por ACTIVIDAD (lo creado o usado más recientemente primero): lo que se sigue usando no se cae del contexto

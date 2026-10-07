@@ -6,7 +6,7 @@ import path from 'node:path';
 import {
     readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion, ramaProtegida, siguientePaso, estadoVersion, rutaBuscador,
 } from './lib.mjs';
-import { contextoHechos, decisionesObsoletas, abiertos, FAMILIAS_CICLO } from './hechos.mjs';
+import { contextoHechos, decisionesObsoletas, abiertos, FAMILIAS_CICLO, contradicciones } from './hechos.mjs';
 
 const p = readHookInput() || {};
 const root = projectRoot();
@@ -119,6 +119,11 @@ try {
     }
     for (const o of decisionesObsoletas(root)) L.push(`- AVISO de memoria: ${o.decision} cita ${citar(o.valorViejo)}, pero ${o.dimension} ahora es ${citar(o.valorNuevo)}. Propón actualizar esa decisión.`);
     const cli = rutaBuscador(root).replace(/buscar\.mjs$/, 'memoria.mjs');
+    // X-T6: lo que choca en la memoria se pregunta al usuario (en su idioma) en cuanto venga al caso
+    for (const c of contradicciones(root)) {
+        if (c.tipo === 'valores') L.push(`- CONTRADICCIÓN en la memoria (pregunta al usuario cuál vale): ${c.dimension} = ${c.hechos.map(h => `${citar(h.valor)}${h.estado === 'dudoso' ? ' (dudoso)' : ''} [${h.id}]`).join(' y ')}. Si vale uno, vuelve a guardarlo (sustituye al otro); si ninguno, node ${cli} --olvidar <id>.`);
+        else L.push(`- ¿MISMO DATO con dos claves? ${c.hechos.map(h => `${h.dimension} = ${citar(h.valor)} [${h.id}]`).join(' y ')} comparten «${c.comunes.slice(0, 3).join('», «')}». Si es lo mismo, guarda el valor que vale en una dimensión y --olvidar el otro.`);
+    }
     L.push(`- Memoria de hechos: si el usuario afirma algo estable de sí o del proyecto (dónde vive, su stack, una preferencia, un límite), en el idioma que sea, guárdalo: node ${cli} --guardar --dimension familia.tema --valor "…" --claves "…" (claves también en inglés y en su idioma). Para recordar: --recordar "…" (hechos, memoria y devlog a la vez).`);
 } catch { }
 for (const a of revisarMemoria(root)) L.push(`- Memoria: ${a}`);

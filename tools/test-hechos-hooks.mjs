@@ -326,6 +326,27 @@ const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abierto
     ok(/Pest/.test(mensaje(P, '¿cómo hacemos las pruebas del proyecto?', `ns2-${RUN}`)), 'sin nombres desconocidos, sí lo inyecta');
 }
 
+// ---------------------------------------------------------------- X-T6 · contradicciones al empezar la sesión
+{
+    const P = proyecto('contradicciones');
+    m.guardarHecho(P, { dimension: 'identidad.ubicacion', valor: 'Málaga' }, { ahora: T(0) });
+    const duda = m.guardarHecho(P, { dimension: 'identidad.ubicacion', valor: 'Valencia', duda: true }, { ahora: T(1) }).hecho;
+    m.guardarHecho(P, { dimension: 'proyecto.proveedor-envases', valor: 'Envases Levante', claves: ['packaging', 'supplier'] }, { ahora: T(2) });
+    m.guardarHecho(P, { dimension: 'proyecto.fornecedor-embalagens', valor: 'Embalagens Lisboa', claves: ['packaging', 'supplier'] }, { ahora: T(3) });
+    m.guardarHecho(P, { dimension: 'preferencia.indentacion', valor: 'tabuladores', claves: ['indent', 'tabs'], alcance: 'usuario' }, { ahora: T(4) });
+    m.guardarHecho(P, { dimension: 'preferencia.indentacion', valor: '2 espacios', claves: ['indent', 'tabs'] }, { ahora: T(5) });
+    const c = m.contradicciones(P);
+    ok(c.some(x => x.tipo === 'valores' && x.dimension === 'identidad.ubicacion' && x.hechos.length === 2), 'una duda frente a lo afirmado: contradicción', JSON.stringify(c.map(x => [x.tipo, x.dimension])));
+    ok(c.some(x => x.tipo === 'misma-dimension' && x.hechos.map(h => h.dimension).sort().join() === 'proyecto.fornecedor-embalagens,proyecto.proveedor-envases'), 'el mismo dato con dos claves: se detecta');
+    ok(!c.some(x => x.dimension === 'preferencia.indentacion'), 'lo del proyecto frente a lo del usuario no es contradicción (es una excepción legítima)');
+    const ctx = inicio(P);
+    ok(/CONTRADICCIÓN en la memoria \(pregunta al usuario cuál vale\): identidad\.ubicacion = «Málaga» \[h-[0-9a-f]+\] y «Valencia» \(dudoso\)/.test(ctx) && ctx.includes(duda.id), 'el inicio de sesión la enseña, con los ids y qué hacer', ctx.slice(0, 400));
+    ok(/¿MISMO DATO con dos claves\?/.test(ctx) && /--olvidar/.test(ctx), 'y el mismo dato con dos claves');
+    m.guardarHecho(P, { dimension: 'identidad.ubicacion', valor: 'Valencia' }, { ahora: T(10) });
+    ok(!m.contradicciones(P).some(x => x.dimension === 'identidad.ubicacion'), 'resuelta (se afirma una), deja de salir');
+    ok(m.contradicciones(proyecto('sin-contradicciones')).length === 0 && !/CONTRADICCIÓN/.test(inicio(proyecto('sin-contradicciones-2'))), 'sin nada que choque, no se dice nada');
+}
+
 // ---------------------------------------------------------------- X-T4 · registro del uso real
 {
     const P = proyecto('uso-real');
