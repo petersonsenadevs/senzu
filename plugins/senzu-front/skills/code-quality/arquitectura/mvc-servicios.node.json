@@ -1,0 +1,131 @@
+{
+  "_que_es": "Arquitectura declarada del proyecto: capas, carpetas y quién puede usar a quién. La hacen cumplir arquitectura-guard (al escribir) y code-quality/scripts/arquitectura.mjs --comprobar (el proyecto entero). Ajusta las rutas a las reales del proyecto antes de sellarla. Una ruta o un archivo que no encaje y sea correcto va a \"excepciones\".",
+  "estilo": "mvc-servicios",
+  "stack": "node",
+  "descripcion": "MVC con servicios y DTO: el controlador traduce HTTP, la lógica va en servicios (o acciones), los datos viajan en DTO y el acceso a datos en modelos o repositorios. Para la mayoría de CRUD y webs de negocio.",
+  "capas": [
+    {
+      "nombre": "http",
+      "rutas": [
+        "src/routes/**",
+        "src/controllers/**",
+        "src/**/*.controller.ts",
+        "src/**/*.routes.ts",
+        "app/api/**",
+        "src/middlewares/**"
+      ],
+      "puede_usar": [
+        "servicios",
+        "dto",
+        "tipos"
+      ],
+      "prohibido": [
+        "@prisma/client",
+        "typeorm",
+        "mongoose",
+        "knex",
+        "pg",
+        "mysql2",
+        "drizzle-orm"
+      ],
+      "por_que": "el controlador traduce HTTP ↔ aplicación; el acceso a datos va en servicios o repositorios"
+    },
+    {
+      "nombre": "servicios",
+      "rutas": [
+        "src/services/**",
+        "src/**/*.service.ts"
+      ],
+      "puede_usar": [
+        "repositorios",
+        "dto",
+        "modelos",
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "repositorios",
+      "rutas": [
+        "src/repositories/**",
+        "src/**/*.repository.ts"
+      ],
+      "puede_usar": [
+        "modelos",
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "modelos",
+      "rutas": [
+        "src/models/**",
+        "src/entities/**",
+        "src/**/*.entity.ts",
+        "src/**/*.model.ts"
+      ],
+      "puede_usar": [
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "dto",
+      "rutas": [
+        "src/dto/**",
+        "src/**/*.dto.ts",
+        "src/schemas/**",
+        "src/**/*.schema.ts"
+      ],
+      "puede_usar": [
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "tipos",
+      "rutas": [
+        "src/types/**",
+        "src/**/*.types.ts",
+        "src/enums/**"
+      ],
+      "puede_usar": []
+    },
+    {
+      "nombre": "arranque",
+      "rutas": [
+        "src/main.ts",
+        "src/index.ts",
+        "src/app.ts",
+        "src/server.ts",
+        "src/**/*.module.ts",
+        "src/config/**"
+      ],
+      "puede_usar": [
+        "http",
+        "servicios",
+        "repositorios",
+        "modelos",
+        "dto",
+        "tipos"
+      ]
+    }
+  ],
+  "controladores": {
+    "rutas": [
+      "src/**/*.controller.ts",
+      "src/controllers/**",
+      "src/routes/**",
+      "src/**/*.routes.ts",
+      "app/api/**/route.ts"
+    ],
+    "orm": "(\\b(prisma|db|knex|this\\.prisma|this\\.db)\\s*(\\.\\w+)?\\s*\\.(create|createMany|findMany|findUnique|findFirst|update|updateMany|delete|deleteMany|upsert|insert|select|query|\\$queryRaw)\\s*\\(|\\.getRepository\\(|\\b[A-Z]\\w*\\.(find|findOne|findById|findByIdAndUpdate|updateOne|deleteOne|aggregate)\\s*\\()",
+    "logica_en": "un servicio o una acción",
+    "dto": "(\\bthis\\.\\w+\\.\\w+|\\b\\w+(Service|UseCase|Servicio|CasoDeUso)\\.\\w+)\\(\\s*(req|request)\\.body\\s*[,)]",
+    "dto_en": "un tipo inferido del schema de validación (zod) o una clase DTO"
+  },
+  "excepciones": [
+    "prisma/**",
+    "migrations/**",
+    "scripts/**",
+    "test/**",
+    "tests/**",
+    "drizzle/**"
+  ]
+}

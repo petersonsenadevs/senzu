@@ -62,6 +62,13 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
   estén en `.env.example`. Mientras escribes, `backend-guard` para las migraciones sin `down()`, la asignación
   masiva (`create($request->all())`, `req.body` al ORM) y los errores tragados (`catch {}`), y avisa si varias
   escrituras van sin transacción.
+- **La arquitectura que elijas, cumplida**: con `/adoptar` (proyecto heredado) o `/plan` (nuevo) se declara en
+  `senzu/arquitectura/capas.json`: MVC con servicios y DTO, hexagonal o DDD + hexagonal, con plantillas para
+  Laravel, Node/TS y Python. Desde ahí `arquitectura-guard` bloquea lo que la rompa (el dominio usando el
+  framework o el ORM, la aplicación usando HTTP, un contexto usando otro por dentro, el controlador consultando
+  la base de datos) y avisa del DTO que falta y del código fuera de su carpeta. Lo heredado no bloquea: solo lo
+  nuevo. `arquitectura.mjs --comprobar` revisa el proyecto entero (lo usa `/verificar`). Sin declararla, no se
+  impone ninguna.
 - **El método antes que el código**: al empezar la sesión te dice el **siguiente paso** que falta y por qué:
   `/instalar` si Senzu no está en el proyecto; `/adoptar` si hay código previo sin convenciones selladas. El muro
   `arranque-guard` los hace cumplir: la primera vez que el agente va a escribir código sin ellos, lo para y te lo

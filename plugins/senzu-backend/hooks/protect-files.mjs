@@ -54,6 +54,10 @@ if (/(^|\/)design-system\/[^/]+\/logos\/final\//i.test(rel) && exists) {
 if (/^(senzu\/)?conventions\.(md|json)$/i.test(rel) && exists && /(senzu|dev-standards):inmutable/.test(readText(file) || '')) {   // compat-dev-standards
     deny('Convenciones del proyecto SELLADAS como inmutables (/adoptar): no se editan sin decision explicita del usuario. Con su aprobacion: borra los archivos conventions.json y conventions.md y re-ejecuta /adoptar, o que los edite el mismo.');
 }
+// 1c) Arquitectura declarada sellada (senzu/arquitectura/capas.json): relajarla para que pase un cambio no es arreglarlo
+if (/^(senzu\/)?arquitectura\/capas\.json$/i.test(rel) && exists && /senzu:inmutable/.test(readText(file) || '')) {
+    deny('Arquitectura del proyecto SELLADA (capas.json): no se edita para que pase un cambio. Mueve el código a la capa que le toca; si el usuario decide cambiar la arquitectura o añadir una excepción, que la edite él (o que quite el sello) y se anota en el devlog.');
+}
 
 // 2) Secretos
 // (.env.example y parecidos NO: son la documentación de las claves, sin valores reales; feature-guard pide tenerlos al día)

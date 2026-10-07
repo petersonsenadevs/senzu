@@ -1,0 +1,101 @@
+{
+  "_que_es": "Arquitectura declarada del proyecto: capas, carpetas y quién puede usar a quién. La hacen cumplir arquitectura-guard (al escribir) y code-quality/scripts/arquitectura.mjs --comprobar (el proyecto entero). Ajusta las rutas a las reales del proyecto antes de sellarla. Una ruta o un archivo que no encaje y sea correcto va a \"excepciones\".",
+  "estilo": "hexagonal",
+  "stack": "laravel",
+  "descripcion": "Hexagonal (puertos y adaptadores): dominio en el centro sin framework, casos de uso en aplicación, adaptadores en infraestructura y entrada. Cuando hay integraciones externas o reglas de negocio que deben probarse sin la base de datos.",
+  "capas": [
+    {
+      "nombre": "dominio",
+      "rutas": [
+        "app/Domain/**",
+        "src/*/Domain/**"
+      ],
+      "puede_usar": [],
+      "prohibido": [
+        "Illuminate\\",
+        "Laravel\\",
+        "Doctrine\\ORM",
+        "GuzzleHttp\\",
+        "Symfony\\Component\\HttpFoundation"
+      ],
+      "por_que": "el dominio no conoce el framework, la base de datos ni HTTP: así se prueba sin ellos y sobrevive a un cambio de infraestructura"
+    },
+    {
+      "nombre": "aplicacion",
+      "rutas": [
+        "app/Application/**",
+        "src/*/Application/**"
+      ],
+      "puede_usar": [
+        "dominio"
+      ],
+      "prohibido": [
+        "Illuminate\\Http",
+        "Illuminate\\Database",
+        "Illuminate\\Support\\Facades\\DB",
+        "Illuminate\\Support\\Facades\\Http",
+        "GuzzleHttp\\"
+      ],
+      "por_que": "los casos de uso hablan con puertos (interfaces del dominio o de la aplicación), no con la base de datos ni con HTTP"
+    },
+    {
+      "nombre": "infraestructura",
+      "rutas": [
+        "app/Infrastructure/**",
+        "src/*/Infrastructure/**",
+        "app/Models/**"
+      ],
+      "puede_usar": [
+        "dominio",
+        "aplicacion"
+      ]
+    },
+    {
+      "nombre": "entrada",
+      "rutas": [
+        "app/Http/**",
+        "routes/**",
+        "app/Console/**",
+        "src/*/UI/**",
+        "src/*/Http/**"
+      ],
+      "puede_usar": [
+        "aplicacion"
+      ],
+      "por_que": "los adaptadores de entrada (HTTP, consola, colas) llaman a casos de uso; no tocan el dominio ni la base de datos por dentro"
+    },
+    {
+      "nombre": "arranque",
+      "rutas": [
+        "app/Providers/**",
+        "bootstrap/**"
+      ],
+      "puede_usar": [
+        "dominio",
+        "aplicacion",
+        "infraestructura",
+        "entrada"
+      ],
+      "por_que": "la raíz de composición conecta puertos con adaptadores"
+    }
+  ],
+  "controladores": {
+    "rutas": [
+      "app/Http/Controllers/**"
+    ],
+    "orm": "(\\b(?!Carbon|CarbonImmutable|Date|Str|Arr|Http|Validator|Rule|Response|Route|Auth|Gate|Inertia|Log|Cache|Storage)[A-Z]\\w*::(create|where|find|findOrFail|firstWhere|all|query|insert|firstOrCreate|updateOrCreate|destroy|paginate|with)\\s*\\(|\\bDB::|(?<!\\$this->\\w{1,60})->(save|delete|update|fill|forceDelete)\\s*\\()",
+    "logica_en": "un caso de uso de la capa de aplicación",
+    "dto": "(->|::)\\w+\\(\\s*\\$request->(validated|all|input)\\(\\s*\\)\\s*[,)]",
+    "dto_en": "app/Data (spatie/laravel-data) o una clase readonly con lo validado"
+  },
+  "excepciones": [
+    "database/**",
+    "config/**",
+    "bootstrap/**",
+    "public/**",
+    "resources/**",
+    "routes/console.php",
+    "lang/**",
+    "storage/**"
+  ]
+}

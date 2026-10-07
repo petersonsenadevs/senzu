@@ -10,6 +10,11 @@ Aplica la skill `project-planner`:
 2. Si no existe (o lo que el usuario escribió tras el comando describe algo nuevo): descubrimiento breve del proyecto, brief con alcance IN/OUT en
    `senzu/plan/brief.md`, y plan completo en `senzu/plan/PLAN.md` (fases entregables; tarjetas `### F1-T1 · título  [S] [todo]` con
    skill+sección, "hecho cuando" y "verificar"). Presenta el plan y espera mi OK antes de ejecutar.
+3. Proyecto nuevo con backend y sin `senzu/arquitectura/capas.json`: elige con el usuario la arquitectura
+   (`code-quality §references/arquitectura-declarada.md`: MVC con servicios para la mayoría, hexagonal con
+   integraciones o reglas que se prueban sin BD, DDD + hexagonal solo con dominio complejo) y la primera
+   tarjeta la declara: `node <skills-dir>/code-quality/scripts/arquitectura.mjs --plantilla <estilo> --stack <s>`,
+   carpetas de cada capa, ADR en `senzu/arquitectura/adr/` y `--sellar` con su OK.
 
 Petición: lo que el usuario escribió tras el comando
 

@@ -20,6 +20,13 @@ Aplica `code-quality §references/adopt-conventions.md` paso a paso (lo que el u
    (`backend-audit §references/reglas-arquitectura.md`) como tests de arquitectura (Pest, ArchUnit,
    NetArchTest) o configuración de Deptrac / dependency-cruiser / import-linter. Con el ok del usuario
    se crean, y `/verificar` las comprueba en cada cierre de tarea.
+3c. **Arquitectura declarada** (backend; `code-quality §references/arquitectura-declarada.md`):
+   `node <skills-dir>/code-quality/scripts/arquitectura.mjs --detectar` propone el estilo (MVC con servicios,
+   hexagonal o DDD + hexagonal) y `--plantilla <estilo> --stack <laravel|node|python>` escribe
+   `senzu/arquitectura/capas.json`. Ajusta sus rutas a las carpetas REALES (no se mueve código para encajar),
+   y `--comprobar` dice cuántas infracciones hay hoy: van a tarjetas de la fase AU o, si son correctas aquí,
+   a "excepciones". Con el ok del usuario, `--sellar`: desde ahí el muro arquitectura-guard la hace cumplir
+   en lo que se escriba (lo heredado no bloquea).
 4. Enséñale al usuario el resumen de lo adoptado y las reglas ejecutables ANTES de sellar; con su ok,
    guarda y anota en el devlog qué se adoptó y qué quedó pendiente de decidir.
 

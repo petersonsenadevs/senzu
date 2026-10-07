@@ -99,7 +99,7 @@ if (escribeEn(c, /\.dev-standards\.json|\bsenzu\.json\b/i)) {
 // --- Convenciones SELLADAS (/adoptar): tampoco desde la terminal ---
 // protect-files para las ediciones; esto, para los comandos (sed -i, >, rm, mv, Set-Content, git checkout…).
 // No hay escape para el agente: si el usuario decide cambiarlas, lo hace él (o las borra y re-ejecuta /adoptar).
-if (/\bconventions\.(md|json)\b/i.test(c) && convencionesSelladas(root) && escribeEn(c, /\bconventions\.(md|json)\b/i)) {
+if (/\bconventions\.(md|json)\b|\bcapas\.json\b/i.test(c) && convencionesSelladas(root) && escribeEn(c, /\bconventions\.(md|json)\b|\bcapas\.json\b/i)) {
     deny(['[BLOQUEADO por Senzu] Las convenciones del proyecto están SELLADAS como inmutables (/adoptar): no se escriben, mueven, borran ni restauran desde el agente, por ningún camino.',
         'Léelas y escribe el código como dicen. Si el usuario quiere cambiarlas, que lo haga él: borra conventions.md y conventions.json y re-ejecuta /adoptar.']);
 }

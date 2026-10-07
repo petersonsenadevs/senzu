@@ -10,7 +10,7 @@ esac
 # Convenciones SELLADAS por /adoptar: ningún commit las cambia ni las borra, venga de donde venga el cambio
 # (agente, script, otra herramienta). Solo el usuario, si lo decide: SENZU_ALLOW_CONVENCIONES=1 git commit ...
 if [ "${SENZU_ALLOW_CONVENCIONES:-$DEV_STANDARDS_ALLOW_CONVENCIONES}" != "1" ]; then
-  for f in senzu/conventions.md senzu/conventions.json conventions.md conventions.json; do
+  for f in senzu/conventions.md senzu/conventions.json conventions.md conventions.json senzu/arquitectura/capas.json; do
     if git cat-file -e "HEAD:$f" 2>/dev/null && git show "HEAD:$f" 2>/dev/null | grep -qE '(senzu|dev-standards):inmutable' \
        && ! git diff --cached --quiet -- "$f"; then
       echo "[senzu] $f está SELLADO (/adoptar) y este commit lo cambia o lo borra. No se commitea." >&2

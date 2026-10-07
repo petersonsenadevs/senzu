@@ -45,6 +45,7 @@ Completo: **`references/backend-catalog.md`** (tarea/síntoma → receta §secci
 | Abrir o revisar un PR, commits | `references/git-and-reviews.md` §checklist |
 | Qué API/sintaxis permite la versión del stack, upgrades, EOL | `references/stack-versions.md` (la versión REAL manda) |
 | Proyecto heredado: adoptar sus convenciones (/adoptar) | `references/adopt-conventions.md` |
+| Arquitectura: capas, servicios, DTO, carpetas, hexagonal o DDD declarados (`senzu/arquitectura/capas.json`) | `references/arquitectura-declarada.md` + `scripts/arquitectura.mjs` (`--detectar`, `--plantilla`, `--comprobar`) |
 | Auditar el backend, deuda técnica, refactor grande (/auditar, /refactor) | skill `backend-audit` (encuentra con pruebas; las recetas de aquí lo arreglan) |
 | Explicar un proyecto a quien llega nuevo: estructura, flujos, dónde tocar (/mapa) | `references/mapa-proyecto.md` |
 | Algo falla o no funciona mientras construyes | skill `depurar` (método: reproducir, test que falla, hipótesis, acotar) |

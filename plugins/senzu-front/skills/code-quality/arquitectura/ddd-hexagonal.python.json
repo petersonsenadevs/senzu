@@ -1,0 +1,128 @@
+{
+  "_que_es": "Arquitectura declarada del proyecto: capas, carpetas y quién puede usar a quién. La hacen cumplir arquitectura-guard (al escribir) y code-quality/scripts/arquitectura.mjs --comprobar (el proyecto entero). Ajusta las rutas a las reales del proyecto antes de sellarla. Una ruta o un archivo que no encaje y sea correcto va a \"excepciones\".",
+  "estilo": "ddd-hexagonal",
+  "stack": "python",
+  "descripcion": "DDD + hexagonal por contextos acotados: cada contexto con su dominio, aplicación e infraestructura; entre contextos solo la capa pública (aplicación), eventos o capa anticorrupción. Para dominios complejos (ddd-hexagonal §cuándo NO antes de elegirla).",
+  "capas": [
+    {
+      "nombre": "dominio",
+      "rutas": [
+        "app/contexts/*/domain/**",
+        "src/*/domain/**"
+      ],
+      "puede_usar": [],
+      "prohibido": [
+        "sqlalchemy",
+        "fastapi",
+        "starlette",
+        "django",
+        "flask",
+        "pydantic_settings",
+        "requests",
+        "httpx",
+        "boto3",
+        "redis",
+        "celery"
+      ],
+      "por_que": "el dominio no conoce el framework, la base de datos ni HTTP: así se prueba sin ellos y sobrevive a un cambio de infraestructura"
+    },
+    {
+      "nombre": "aplicacion",
+      "rutas": [
+        "app/contexts/*/application/**",
+        "src/*/application/**"
+      ],
+      "puede_usar": [
+        "dominio"
+      ],
+      "prohibido": [
+        "fastapi",
+        "starlette",
+        "sqlalchemy",
+        "django.db",
+        "flask",
+        "requests",
+        "httpx"
+      ],
+      "por_que": "los casos de uso hablan con puertos (interfaces del dominio o de la aplicación), no con la base de datos ni con HTTP"
+    },
+    {
+      "nombre": "infraestructura",
+      "rutas": [
+        "app/contexts/*/infrastructure/**",
+        "src/*/infrastructure/**"
+      ],
+      "puede_usar": [
+        "dominio",
+        "aplicacion"
+      ]
+    },
+    {
+      "nombre": "entrada",
+      "rutas": [
+        "app/api/**",
+        "app/routers/**",
+        "app/entrypoints/**",
+        "app/*/api/**",
+        "app/contexts/*/api/**",
+        "app/contexts/*/entrypoints/**",
+        "src/*/api/**",
+        "src/*/entrypoints/**"
+      ],
+      "puede_usar": [
+        "aplicacion"
+      ],
+      "por_que": "los adaptadores de entrada (HTTP, consola, colas) llaman a casos de uso; no tocan el dominio ni la base de datos por dentro"
+    },
+    {
+      "nombre": "arranque",
+      "rutas": [
+        "app/main.py",
+        "app/bootstrap.py",
+        "app/container.py",
+        "app/config.py"
+      ],
+      "puede_usar": [
+        "dominio",
+        "aplicacion",
+        "infraestructura",
+        "entrada"
+      ],
+      "por_que": "la raíz de composición conecta puertos con adaptadores"
+    }
+  ],
+  "controladores": {
+    "rutas": [
+      "app/api/**",
+      "app/routers/**",
+      "app/views/**",
+      "app/routes/**",
+      "app/entrypoints/**"
+    ],
+    "orm": "(\\b(session|db)\\.(query|add|delete|execute|merge|commit)\\s*\\(|\\.objects\\.(create|filter|get|all|update|delete)\\s*\\(|\\bselect\\(\\s*[A-Z])",
+    "logica_en": "un caso de uso de la capa de aplicación",
+    "dto": "\\w+(service|use_case|servicio|caso_de_uso)\\.\\w+\\(\\s*(\\*\\*\\s*)?(await\\s+)?request\\.(json\\(\\s*\\)|data|form)",
+    "dto_en": "un modelo de pydantic (schema) con lo validado"
+  },
+  "excepciones": [
+    "alembic/**",
+    "migrations/**",
+    "scripts/**",
+    "tests/**"
+  ],
+  "contextos": {
+    "rutas": [
+      "app/contexts/*",
+      "src/*"
+    ],
+    "publico": [
+      "application"
+    ],
+    "compartido": [
+      "Shared",
+      "SharedKernel",
+      "shared",
+      "common"
+    ]
+  }
+}

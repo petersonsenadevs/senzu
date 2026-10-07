@@ -1,0 +1,110 @@
+{
+  "_que_es": "Arquitectura declarada del proyecto: capas, carpetas y quién puede usar a quién. La hacen cumplir arquitectura-guard (al escribir) y code-quality/scripts/arquitectura.mjs --comprobar (el proyecto entero). Ajusta las rutas a las reales del proyecto antes de sellarla. Una ruta o un archivo que no encaje y sea correcto va a \"excepciones\".",
+  "estilo": "mvc-servicios",
+  "stack": "python",
+  "descripcion": "MVC con servicios y DTO: el controlador traduce HTTP, la lógica va en servicios (o acciones), los datos viajan en DTO y el acceso a datos en modelos o repositorios. Para la mayoría de CRUD y webs de negocio.",
+  "capas": [
+    {
+      "nombre": "http",
+      "rutas": [
+        "app/api/**",
+        "app/routers/**",
+        "app/views/**",
+        "app/routes/**"
+      ],
+      "puede_usar": [
+        "servicios",
+        "esquemas",
+        "tipos"
+      ],
+      "por_que": "el controlador traduce HTTP ↔ aplicación; el acceso a datos va en servicios o repositorios"
+    },
+    {
+      "nombre": "servicios",
+      "rutas": [
+        "app/services/**"
+      ],
+      "puede_usar": [
+        "repositorios",
+        "modelos",
+        "esquemas",
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "repositorios",
+      "rutas": [
+        "app/repositories/**",
+        "app/crud/**"
+      ],
+      "puede_usar": [
+        "modelos",
+        "esquemas",
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "modelos",
+      "rutas": [
+        "app/models/**",
+        "app/db/**"
+      ],
+      "puede_usar": [
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "esquemas",
+      "rutas": [
+        "app/schemas/**"
+      ],
+      "puede_usar": [
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "tipos",
+      "rutas": [
+        "app/core/**",
+        "app/enums/**"
+      ],
+      "puede_usar": []
+    },
+    {
+      "nombre": "arranque",
+      "rutas": [
+        "app/main.py",
+        "app/dependencies.py",
+        "app/deps.py",
+        "app/config.py"
+      ],
+      "puede_usar": [
+        "http",
+        "servicios",
+        "repositorios",
+        "modelos",
+        "esquemas",
+        "tipos"
+      ]
+    }
+  ],
+  "controladores": {
+    "rutas": [
+      "app/api/**",
+      "app/routers/**",
+      "app/views/**",
+      "app/routes/**",
+      "app/entrypoints/**"
+    ],
+    "orm": "(\\b(session|db)\\.(query|add|delete|execute|merge|commit)\\s*\\(|\\.objects\\.(create|filter|get|all|update|delete)\\s*\\(|\\bselect\\(\\s*[A-Z])",
+    "logica_en": "un servicio o una acción",
+    "dto": "\\w+(service|use_case|servicio|caso_de_uso)\\.\\w+\\(\\s*(\\*\\*\\s*)?(await\\s+)?request\\.(json\\(\\s*\\)|data|form)",
+    "dto_en": "un modelo de pydantic (schema) con lo validado"
+  },
+  "excepciones": [
+    "alembic/**",
+    "migrations/**",
+    "scripts/**",
+    "tests/**"
+  ]
+}

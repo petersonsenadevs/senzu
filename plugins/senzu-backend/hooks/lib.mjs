@@ -110,7 +110,7 @@ export const rutaMarcador = root => ruta(root, 'senzu.json');
 //   "hooksApagados": ["format-on-save", "front-skill-reminder"]
 // Solo cuenta el valor booleano true. guard, secrets-guard, protect-files y conventions-guard NO se pueden apagar: el push forzado,
 // lo destructivo, los secretos y los archivos protegidos siguen bloqueados siempre.
-export const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard'];   // las convenciones selladas tampoco se apagan
+export const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];   // las convenciones selladas tampoco se apagan
 // Ramas PRINCIPALES: ni commit directo ni push del agente (salvo permiso commitEnMain / pushMain del usuario).
 // Todas las de entorno, no solo main: un push a staging o production también despliega. El usuario puede añadir
 // las suyas en el marcador: "ramasProtegidas": ["demo", "cliente-x"].
@@ -210,8 +210,9 @@ export function relDelProyecto(root, file) {
 }
 
 // ¿El proyecto tiene convenciones SELLADAS por /adoptar? (conventions.md o .json con la marca senzu:inmutable)
-export function convencionesSelladas(root) {
-    return ['conventions.md', 'conventions.json'].some(n => /(senzu|dev-standards):inmutable/.test(readText(ruta(root, n)) || ''));   // compat-dev-standards
+export function convencionesSelladas(root) {   // también la arquitectura declarada (capas.json), cuando está sellada
+    return ['conventions.md', 'conventions.json'].some(n => /(senzu|dev-standards):inmutable/.test(readText(ruta(root, n)) || ''))   // compat-dev-standards
+        || /senzu:inmutable/.test(readText(rutaArquitectura(root)) || '');
 }
 
 export function projectRoot() { return rutaNativa(process.env.CLAUDE_PROJECT_DIR || process.cwd()); }
@@ -1035,3 +1036,148 @@ export function esMensajeDelUsuario(prompt) {
     const s = String(prompt || '');
     return !/<agent-message\b|<task-notification\b|^\s*\[SYSTEM NOTIFICATION|\[Subagent hand-back\]/i.test(s);
 }
+
+// ---------------------------------------------------------------- arquitectura DECLARADA (senzu/arquitectura/capas.json)
+// El proyecto dice qué arquitectura tiene (capas, carpetas, quién puede usar a quién, contextos de DDD) y los
+// muros la hacen cumplir. Sin capas.json no se aplica nada: no se impone DDD a quien no lo usa (ver 096).
+// Lo comparten arquitectura-guard (lo que introduce cada cambio) y code-quality/scripts/arquitectura.mjs
+// (el proyecto entero: /adoptar, /verificar, CI). Plantillas en code-quality/arquitectura/<estilo>.<stack>.json.
+export function rutaArquitectura(root) { return path.join(path.dirname(rutaMarcador(root)), 'arquitectura', 'capas.json'); }
+export function leerArquitectura(root) {
+    const a = leerJsonSeguro(rutaArquitectura(root));
+    return a && Array.isArray(a.capas) && a.capas.length ? a : null;
+}
+// Glob simple → regex: ** cualquier cosa (también nada), * un segmento. El primer * de un patrón de contextos se captura.
+export function globARegex(glob, capturar = false) {
+    let g = String(glob).replace(/\\/g, '/').replace(/^\.\//, ''), out = '', capturado = false;
+    for (let i = 0; i < g.length; i++) {
+        const c = g[i];
+        if (c === '*' && g[i + 1] === '*') { out += g[i + 2] === '/' ? '(?:.*/)?' : '.*'; i += g[i + 2] === '/' ? 2 : 1; continue; }
+        if (c === '*') { out += capturar && !capturado ? '([^/]+)' : '[^/]*'; capturado = true; continue; }
+        out += /[.+?^${}()|[\]\\]/.test(c) ? '\\' + c : c;
+    }
+    return new RegExp('^' + out + (g.endsWith('/') ? '' : '(?:/.*)?') + '$', 'i');
+}
+const encaja = (rel, globs) => [].concat(globs || []).some(g => globARegex(g).test(rel));
+export function capaDe(arq, rel) { return arq.capas.find(c => encaja(rel, c.rutas)) || null; }
+export function contextoDe(arq, rel) {
+    for (const g of [].concat((arq.contextos && arq.contextos.rutas) || [])) { const m = globARegex(g, true).exec(rel); if (m && m[1]) return m[1]; }
+    return null;
+}
+
+// Imports de un trozo de código (sin comentarios). PHP: use; TS/JS: import/require/export from; Python: import/from.
+export function importsDe(txt, rel) {
+    const t = soloCodigo(txt, { strings: false, almohadilla: /\.(php|py|rb)$/i.test(rel) });
+    const out = [], add = (spec, idx) => { const linea = txt.slice(txt.lastIndexOf('\n', idx) + 1, (txt.indexOf('\n', idx) + 1 || txt.length + 1) - 1).trim(); out.push({ spec, linea }); };
+    if (/\.php$/i.test(rel)) {
+        for (const m of t.matchAll(/^\s*use\s+(?:function\s+|const\s+)?([A-Za-z_\\][\w\\]*)(?:\s*\{|\s*;|\s+as\s)/gm)) add(m[1].replace(/^\\/, ''), m.index + m[0].length - 1);
+        for (const m of t.matchAll(/new\s+\\([A-Z][\w\\]+)\s*\(|\\([A-Z][\w]*\\[\w\\]+)::/g)) add((m[1] || m[2]), m.index + m[0].length - 1);
+    } else if (/\.(ts|tsx|js|jsx|mjs|cjs|vue|svelte)$/i.test(rel)) {
+        for (const m of t.matchAll(/(?:^|[;\s])(?:import|export)\s+(?:type\s+)?(?:[^'"`;]*?\s+from\s+)?['"]([^'"]+)['"]|require\(\s*['"]([^'"]+)['"]\s*\)|import\(\s*['"]([^'"]+)['"]\s*\)/g)) add(m[1] || m[2] || m[3], m.index + m[0].length - 1);
+    } else if (/\.py$/i.test(rel)) {
+        for (const m of t.matchAll(/^\s*from\s+([.\w]+)\s+import\b|^\s*import\s+([\w.]+(?:\s*,\s*[\w.]+)*)/gm)) {
+            if (m[1]) add(m[1], m.index + m[0].length - 1); else for (const x of m[2].split(',')) add(x.trim().split(/\s+as\s+/)[0], m.index + m[0].length - 1);
+        }
+    }
+    return out;
+}
+
+// ¿Adónde apunta un import? { ruta: rel dentro del proyecto } o { paquete: nombre externo }
+const cacheResolver = new Map();
+function mapasDelProyecto(root) {
+    if (cacheResolver.has(root)) return cacheResolver.get(root);
+    const comp = leerJsonSeguro(path.join(root, 'composer.json')) || {};
+    const psr4 = Object.entries(Object.assign({}, ((comp.autoload || {})['psr-4']) || {}, ((comp['autoload-dev'] || {})['psr-4']) || {}))
+        .flatMap(([ns, dirs]) => [].concat(dirs).map(d => [ns, String(d).replace(/\\/g, '/').replace(/\/?$/, '/')])).sort((a, b) => b[0].length - a[0].length);
+    let alias = [];
+    try {
+        const ts = JSON.parse(soloCodigo(readText(path.join(root, 'tsconfig.json')) || '{}', { strings: false }).replace(/,(\s*[}\]])/g, '$1'));
+        const co = ts.compilerOptions || {}, baseUrl = String(co.baseUrl || '.').replace(/^\.\/?/, '');
+        alias = Object.entries(co.paths || {}).map(([k, v]) => [k.replace(/\*$/, ''), path.posix.join(baseUrl, String([].concat(v)[0] || '').replace(/\*$/, ''))]);
+    } catch { }
+    if (!alias.length && fs.existsSync(path.join(root, 'src'))) alias = [['@/', 'src/'], ['~/', 'src/']];
+    const m = { psr4, alias };
+    cacheResolver.set(root, m);
+    return m;
+}
+export function resolverImport(root, rel, spec) {
+    const { psr4, alias } = mapasDelProyecto(root);
+    if (/\.php$/i.test(rel)) {
+        const s = spec.replace(/^\\/, '');
+        for (const [ns, dir] of psr4) if (s.startsWith(ns)) return { ruta: path.posix.join(dir, s.slice(ns.length).replace(/\\/g, '/')) + '.php' };
+        return { paquete: s };
+    }
+    if (/\.py$/i.test(rel)) {
+        if (spec.startsWith('.')) {   // relativo: from ..infra import x
+            const sube = spec.match(/^\.+/)[0].length;
+            let dir = path.posix.dirname(rel); for (let i = 1; i < sube; i++) dir = path.posix.dirname(dir);
+            return { ruta: path.posix.join(dir, spec.slice(sube).replace(/\./g, '/')) };
+        }
+        const como = spec.replace(/\./g, '/');
+        for (const pre of ['', 'src/']) if (fs.existsSync(path.join(root, pre + como)) || fs.existsSync(path.join(root, pre + como + '.py'))) return { ruta: pre + como };
+        return { paquete: spec };   // completo: «django.db» se distingue de «django.utils»
+    }
+    if (spec.startsWith('.')) return { ruta: path.posix.normalize(path.posix.join(path.posix.dirname(rel), spec)) };
+    for (const [a, dest] of alias) if (spec.startsWith(a)) return { ruta: path.posix.normalize(path.posix.join(dest, spec.slice(a.length))) };
+    return { paquete: spec.startsWith('@') ? spec.split('/').slice(0, 2).join('/') : spec.split('/')[0] };
+}
+
+// Infracciones que INTRODUCE un cambio (antes → después). Con antes = '' revisa el archivo entero (el script).
+export function infraccionesArquitectura(root, arq, rel, antes, despues, { nuevo = false } = {}) {
+    const out = [];
+    if (encaja(rel, arq.excepciones) || esTest(rel)) return out;
+    const capa = capaDe(arq, rel);
+    const viejos = new Set(importsDe(antes || '', rel).map(i => i.spec));
+    const nombre = c => c.nombre;
+    if (capa) {
+        const ctx = contextoDe(arq, rel);
+        for (const imp of importsDe(despues || '', rel)) {
+            if (viejos.has(imp.spec) || /senzu-allow/i.test(imp.linea)) continue;
+            const r = resolverImport(root, rel, imp.spec);
+            if (r.paquete) {
+                // por segmentos: «pg» no atrapa «pg-pool» ni «django» a «djangorestframework»; un prefijo que acaba en \ o / sí
+                const prohibido = [].concat(capa.prohibido || []).find(pfx => r.paquete === pfx
+                    || (/[\\/.]$/.test(pfx) ? r.paquete.startsWith(pfx) : ['/', '.', '\\'].some(sep => r.paquete.startsWith(pfx + sep))));
+                if (prohibido) out.push({ tipo: 'bloquea', regla: 'prohibido', linea: imp.linea,
+                    msg: `la capa «${capa.nombre}» no puede usar ${prohibido} (${r.paquete})${capa.por_que ? ': ' + capa.por_que : ''}` });
+                continue;
+            }
+            const destino = capaDe(arq, r.ruta);
+            if (!destino || destino === capa) {
+                // DDD: dentro de la misma capa, otro contexto
+                const ctxDest = contextoDe(arq, r.ruta);
+                if (ctx && ctxDest && ctx !== ctxDest && destino && !compartido(arq, ctxDest) && !publico(arq, r.ruta)) out.push({ tipo: 'bloquea', regla: 'contexto', linea: imp.linea,
+                    msg: `el contexto «${ctx}» usa por dentro el contexto «${ctxDest}» (${r.ruta}): entre contextos solo se usa su capa pública (${[].concat((arq.contextos || {}).publico || ['Application']).join(', ')}), eventos o una capa anticorrupción` });
+                continue;
+            }
+            if (![].concat(capa.puede_usar || []).includes(destino.nombre)) out.push({ tipo: 'bloquea', regla: 'dependencia', linea: imp.linea,
+                msg: `la capa «${capa.nombre}» no puede usar la capa «${destino.nombre}» (${r.ruta}). Puede usar: ${[].concat(capa.puede_usar || []).join(', ') || 'ninguna (es el centro)'}` });
+            else {
+                const ctxDest = contextoDe(arq, r.ruta);
+                if (ctx && ctxDest && ctx !== ctxDest && !compartido(arq, ctxDest) && !publico(arq, r.ruta)) out.push({ tipo: 'bloquea', regla: 'contexto', linea: imp.linea,
+                    msg: `el contexto «${ctx}» usa por dentro el contexto «${ctxDest}» (${r.ruta}): entre contextos solo se usa su capa pública (${[].concat((arq.contextos || {}).publico || ['Application']).join(', ')}), eventos o una capa anticorrupción` });
+            }
+        }
+    }
+    // Controlador gordo: el controlador habla con el ORM en vez de con el servicio / caso de uso
+    const ctl = arq.controladores;
+    if (ctl && encaja(rel, ctl.rutas) && ctl.orm) {
+        let rx = null; try { rx = new RegExp(ctl.orm); } catch { }
+        const hit = rx && testIntroduced(rx, despues, antes, { strings: false, almohadilla: /\.(php|py|rb)$/i.test(rel) });
+        if (hit) out.push({ tipo: 'bloquea', regla: 'controlador', linea: hit,
+            msg: `el controlador accede a la base de datos directamente; en este proyecto la lógica va en ${ctl.logica_en || 'el servicio o caso de uso'} y el controlador solo traduce HTTP ↔ aplicación` });
+        if (ctl.dto) {
+            let rd = null; try { rd = new RegExp(ctl.dto); } catch { }
+            const hd = rd && testIntroduced(rd, despues, antes, { strings: false, almohadilla: /\.(php|py|rb)$/i.test(rel) });
+            if (hd) out.push({ tipo: 'aviso', regla: 'dto', linea: hd,
+                msg: `pasas el array o el cuerpo de la petición tal cual a la capa de aplicación: crea un DTO (${ctl.dto_en || 'objeto de datos tipado'}) con lo validado, así el servicio no depende de HTTP` });
+        }
+    }
+    // Árbol de carpetas: código nuevo fuera de las carpetas declaradas
+    if (nuevo && !capa && esCodigoBackend(rel)) out.push({ tipo: 'aviso', regla: 'carpetas', linea: rel,
+        msg: `${rel} no está en ninguna carpeta de la arquitectura declarada (${arq.estilo}). Donde va cada cosa: `
+            + arq.capas.map(c => `${c.nombre} → ${[].concat(c.rutas).join(', ')}`).join(' · ') });
+    return out;
+}
+const compartido = (arq, ctx) => [].concat((arq.contextos && arq.contextos.compartido) || []).map(s => s.toLowerCase()).includes(String(ctx).toLowerCase());
+const publico = (arq, ruta) => [].concat((arq.contextos && arq.contextos.publico) || []).some(seg => new RegExp(`(^|/)${seg}(/|$)`, 'i').test(ruta));

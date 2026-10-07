@@ -1,0 +1,105 @@
+{
+  "_que_es": "Arquitectura declarada del proyecto: capas, carpetas y quién puede usar a quién. La hacen cumplir arquitectura-guard (al escribir) y code-quality/scripts/arquitectura.mjs --comprobar (el proyecto entero). Ajusta las rutas a las reales del proyecto antes de sellarla. Una ruta o un archivo que no encaje y sea correcto va a \"excepciones\".",
+  "estilo": "mvc-servicios",
+  "stack": "laravel",
+  "descripcion": "MVC con servicios y DTO: el controlador traduce HTTP, la lógica va en servicios (o acciones), los datos viajan en DTO y el acceso a datos en modelos o repositorios. Para la mayoría de CRUD y webs de negocio.",
+  "capas": [
+    {
+      "nombre": "http",
+      "rutas": [
+        "app/Http/**",
+        "routes/**"
+      ],
+      "puede_usar": [
+        "servicios",
+        "dto",
+        "modelos",
+        "tipos"
+      ],
+      "por_que": "el controlador traduce HTTP ↔ aplicación; el acceso a datos va en servicios o repositorios"
+    },
+    {
+      "nombre": "servicios",
+      "rutas": [
+        "app/Services/**",
+        "app/Actions/**"
+      ],
+      "puede_usar": [
+        "dto",
+        "modelos",
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "dto",
+      "rutas": [
+        "app/Data/**",
+        "app/DTOs/**",
+        "app/DTO/**",
+        "app/Dto/**"
+      ],
+      "puede_usar": [
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "modelos",
+      "rutas": [
+        "app/Models/**"
+      ],
+      "puede_usar": [
+        "tipos"
+      ]
+    },
+    {
+      "nombre": "tipos",
+      "rutas": [
+        "app/Enums/**",
+        "app/ValueObjects/**"
+      ],
+      "puede_usar": []
+    },
+    {
+      "nombre": "soporte",
+      "rutas": [
+        "app/Providers/**",
+        "app/Console/**",
+        "app/Jobs/**",
+        "app/Listeners/**",
+        "app/Events/**",
+        "app/Policies/**",
+        "app/Mail/**",
+        "app/Notifications/**",
+        "app/Exceptions/**",
+        "app/Observers/**",
+        "app/Rules/**",
+        "app/Support/**"
+      ],
+      "puede_usar": [
+        "servicios",
+        "dto",
+        "modelos",
+        "tipos"
+      ]
+    }
+  ],
+  "controladores": {
+    "rutas": [
+      "app/Http/Controllers/**"
+    ],
+    "orm": "(\\b(?!Carbon|CarbonImmutable|Date|Str|Arr|Http|Validator|Rule|Response|Route|Auth|Gate|Inertia|Log|Cache|Storage)[A-Z]\\w*::(create|where|find|findOrFail|firstWhere|all|query|insert|firstOrCreate|updateOrCreate|destroy|paginate|with)\\s*\\(|\\bDB::|(?<!\\$this->\\w{1,60})->(save|delete|update|fill|forceDelete)\\s*\\()",
+    "logica_en": "un servicio o una acción",
+    "dto": "(->|::)\\w+\\(\\s*\\$request->(validated|all|input)\\(\\s*\\)\\s*[,)]",
+    "dto_en": "app/Data (spatie/laravel-data) o una clase readonly con lo validado"
+  },
+  "excepciones": [
+    "database/**",
+    "config/**",
+    "bootstrap/**",
+    "public/**",
+    "resources/**",
+    "routes/console.php",
+    "lang/**",
+    "storage/**"
+  ]
+}

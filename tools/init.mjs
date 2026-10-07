@@ -418,7 +418,7 @@ function hookSet(hasFront) {
         UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs', 'memoria-viva.mjs'] }],
         PreToolUse: [
             { matcher: 'Bash|PowerShell', files: ['guard.mjs'] },
-            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
+            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
         ],
         PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs', 'feature-guard.mjs'] }],
         Stop: [{ matcher: null, files: ['stop-guard.mjs', 'cierre-limpio.mjs', 'feature-guard.mjs', 'estado-sesion.mjs'] }],
@@ -436,7 +436,7 @@ const PERMISOS = [
     ['push-main', 'Hacer git push también a main, master y develop', 'pushMain'],
     ['commit-main', 'Commitear directamente en main, master o develop', 'commitEnMain'],
 ];
-const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard'];
+const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];
 function permisosDesde(lista) {   // ['push', 'push-main'] -> { push: true, pushMain: true }
     const o = {};
     for (const [id, , clave] of PERMISOS) if (lista.includes(id)) o[clave] = true;
@@ -456,6 +456,7 @@ const HOOKS_ELEGIBLES = [
     ['format-on-save', 'Formatea cada archivo con la herramienta del stack'],
     ['stop-guard', 'No deja cerrar sin verificar ni documentar'],
     ['cierre-limpio', 'No deja cerrar con archivos propios sin commitear; avisa de los de otro agente'],
+    ['arquitectura-guard', 'Hace cumplir la arquitectura declarada (capas, contextos de DDD, controlador sin ORM, DTO, carpetas)'],
     ['feature-guard', 'Backend: no deja cerrar una feature sin test, con migraciones sin probar o claves nuevas sin .env.example'],
     ['tarjeta-guard', 'Una tarjeta del plan no pasa a done sin Verificado, Cumple y su devlog'],
     ['arranque-guard', 'No deja escribir código sin el paso del método que falta (instalar, adoptar, brief o plan)'],

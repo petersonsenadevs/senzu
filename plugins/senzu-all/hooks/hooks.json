@@ -63,6 +63,11 @@
                                                        },
                                                        {
                                                            "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/arquitectura-guard.mjs\"",
+                                                           "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/backend-guard.mjs\"",
                                                            "timeout":  30
                                                        },

@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **feature** — Arquitectura declarada: MVC con servicios, hexagonal o DDD, cumplida por un muro · v2.18.0 (entrada 096)
 - **feature** — La cadena del método entre comandos y muros de backend para que una feature no falle · v2.17.0 (entrada 095)
 
 ## 2026-10-05

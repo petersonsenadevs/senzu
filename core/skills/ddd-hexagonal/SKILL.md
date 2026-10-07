@@ -65,6 +65,6 @@ y `references/examples/crud-vs-ddd-side-by-side.md`. Sobre-arquitectura cuesta t
 
 ## 5. Salida esperada
 Antes del código: contexto + glosario, decisión "aplica / no aplica" (checklist), estructura elegida, casos de uso y puertos.
-Después: código por capas + tests de dominio + verificación (tests y reglas de dependencia en verde). Documenta la decisión con `templates/docs/adr.md`.
+Después: código por capas + tests de dominio + verificación (tests y reglas de dependencia en verde). Documenta la decisión con `templates/docs/adr.md` y **declárala** en `senzu/arquitectura/capas.json` (`code-quality` → `scripts/arquitectura.mjs --plantilla hexagonal|ddd-hexagonal --stack …`): el muro arquitectura-guard hace cumplir capas y contextos en cada cambio.
 La documentación va a `senzu/arquitectura/` (`adr/`, `contextos/`, `glosario/`, `event-storming/`, `context-map.md`), salvo que el
 proyecto ya tenga la suya (`docs/adr`, `docs/architecture`…): entonces se usa la del proyecto.

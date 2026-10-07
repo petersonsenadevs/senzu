@@ -159,6 +159,17 @@ ejecutan y no cuenta los que fallan) y las claves nuevas en el `.env.example` m�
 con git: solo lo nuevo). protect-files ya deja editar `.env.example`. Los informes de subagentes no se enrutan
 ni se apuntan como correcciones del usuario (`esMensajeDelUsuario`).
 
+## Arquitectura declarada
+`senzu/arquitectura/capas.json` dice qué arquitectura tiene el proyecto: capas (rutas con `*` y `**`), qué puede
+usar cada una (`puede_usar`), qué paquetes tiene prohibidos (`prohibido`), los controladores (regex del ORM y
+del DTO), los contextos de DDD (`rutas`, capa `publico`, núcleo `compartido`) y las `excepciones`. Nueve
+plantillas en `code-quality/arquitectura/` (mvc-servicios, hexagonal, ddd-hexagonal × laravel, node, python).
+La lógica está en lib.mjs (`importsDe`, `resolverImport` con PSR-4, alias de tsconfig y módulos de Python,
+`infraccionesArquitectura`) y la comparten `arquitectura-guard` (lo que introduce cada cambio; no apagable) y
+`code-quality/scripts/arquitectura.mjs` (`--detectar`, `--plantilla`, `--comprobar` del proyecto entero,
+`--sellar`). Sellada, la protegen protect-files, el guard y el pre-commit como las convenciones. Sin
+`capas.json` no se aplica nada: no se impone arquitectura a quien no la ha elegido.
+
 ## Perfiles de instalación
 `core/perfiles.json` responde «¿qué es el proyecto?» con un conjunto de grupos de skills. Un perfil es una
 selección por categorías con nombre: se guarda en `senzu/senzu.json` y cada actualización la respeta, con
