@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **feature** — Enlaces entre hechos y expansión de un salto (F6-T1) (entrada 113)
 - **test** — Garantías: sin contexto no inventa y nunca da por vigente lo que no lo es (X-T1) (entrada 112)
 - **docs** — Memoria de hechos documentada y propuesta de fusión para después de la prueba real (F5-T1) (entrada 111)
 - **fix** — Afinado de la memoria de hechos con cifras, y su límite honesto (F4-T4) (entrada 110)

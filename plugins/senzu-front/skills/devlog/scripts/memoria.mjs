@@ -8,6 +8,7 @@
 //   node memoria.mjs --contexto [--presupuesto 12]      lo vigente, repartido por familias (lo usa el inicio de sesión)
 //   node memoria.mjs --lista [--todo] | --olvidar <id>
 //   node memoria.mjs --nada [--motivo "…"]              revisado: nada estable que guardar en esta sesión
+//   node memoria.mjs --enlazar <dimensión A> <dimensión B>  (o --enlaces A,B al guardar): al recordar uno, llega el otro
 // Dimensiones: «familia.tema» libre (identidad.nombre, proyecto.stack, preferencia.gestor-paquetes, restriccion.presupuesto…).
 // Un valor nuevo en la misma dimensión SUSTITUYE al anterior (queda en el histórico); objetivo.*, pendiente.*, nota.*,
 // hecho.* y aprendizaje.* acumulan. --duda: el usuario no lo afirmó del todo («creo que…»): se guarda sin sustituir.
@@ -40,6 +41,7 @@ if (opt('--guardar')) {
         dimension: opt('--dimension'), valor: opt('--valor'), texto: opt('--texto') === true ? undefined : opt('--texto'),
         claves: opt('--claves') && opt('--claves') !== true ? String(opt('--claves')).split(',') : [], idioma: opt('--idioma') || undefined,
         devlog: opt('--devlog') && opt('--devlog') !== true ? String(opt('--devlog')) : undefined,   // por defecto, la entrada de hoy
+        enlaces: opt('--enlaces') && opt('--enlaces') !== true ? String(opt('--enlaces')).split(',') : [],   // dimensiones relacionadas
         alcance: opt('--alcance') || 'proyecto', duda: !!opt('--duda'),
         desde: opt('--desde') && opt('--desde') !== true ? new Date(opt('--desde')).toISOString() : undefined,
         hasta: opt('--hasta') && opt('--hasta') !== true ? new Date(opt('--hasta')).toISOString() : undefined,
@@ -74,6 +76,12 @@ if (opt('--lista')) {
     const l = m.todosLosHechos(root).filter(h => opt('--todo') || h.estado === 'activo' || h.estado === 'dudoso');
     out(l.length ? l.map(linea).join('\n') : 'Sin hechos guardados.');
     process.exit(0);
+}
+if (opt('--enlazar')) {   // --enlazar <dimensión A> <dimensión B>: al recordar A, llega también lo vigente de B (y al revés)
+    const i = args.indexOf('--enlazar'), a = args[i + 1], b = args[i + 2];
+    const h = a && b && !a.startsWith('--') && !b.startsWith('--') ? m.enlazarHechos(root, a, b) : null;
+    out(h ? `Enlazado: ${linea(h)} → [${m.claveDimension(b)}]` : 'No hay un hecho vigente en esa dimensión (o faltan las dos dimensiones).');
+    process.exit(h ? 0 : 2);
 }
 if (opt('--nada')) {   // revisado: el usuario no dijo nada estable que guardar (cuenta como revisión para el cierre)
     out('Revisado: nada nuevo que guardar en la memoria' + (opt('--motivo') && opt('--motivo') !== true ? ` (${opt('--motivo')})` : '') + '.');

@@ -164,6 +164,8 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
         estado: entrada.duda ? 'dudoso' : 'activo', creado: ahora,
         desde: entrada.desde || undefined, hasta: entrada.hasta || undefined,
         devlog: entrada.devlog ? String(entrada.devlog) : (entradaDelDia(root, ahora) || undefined),
+        // enlaces a DIMENSIONES (no a hechos): si el valor del otro lado cambia, el enlace sigue llevando al vigente
+        enlaces: (() => { const e = [...new Set([].concat(entrada.enlaces || []).flatMap(x => String(x).split(',')).map(claveDimension).filter(x => x && x !== dimension))]; return e.length ? e : undefined; })(),
     };
     const sustituidos = [];
     if (!entrada.duda && !FAMILIAS_VARIOS.test(dimension)) {
@@ -175,11 +177,29 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
         // Sin claves propias hereda las del que sustituye: describen la dimensión («idioma», «language»), y sin
         // ellas el valor nuevo dejaría de encontrarse desde otro idioma
         if (!hecho.claves && sustituidos.some(h => h.claves && h.claves.length)) hecho.claves = [...new Set(sustituidos.flatMap(h => h.claves || []))];
+        if (!hecho.enlaces && sustituidos.some(h => h.enlaces && h.enlaces.length)) hecho.enlaces = [...new Set(sustituidos.flatMap(h => h.enlaces || []))];   // igual con los enlaces
     }
     lista.push(JSON.parse(JSON.stringify(hecho)));
     escribirHechos(file, lista, ilegibles);
     return { accion: entrada.duda ? 'dudoso' : sustituidos.length ? 'sustituye' : 'nuevo', hecho, sustituidos };
     });
+}
+// Enlaza la dimensión A (su hecho vigente, en el alcance donde esté) con la dimensión B. Devuelve el hecho o null.
+export function enlazarHechos(root, dimA, dimB) {
+    const a = claveDimension(dimA), b = claveDimension(dimB);
+    if (!a || !b || a === b) return null;
+    for (const alcance of ['proyecto', 'usuario']) {
+        const file = rutaHechos(root, alcance);
+        if (!fs.existsSync(file)) continue;
+        const h = conCerrojo(file, () => {
+            const { validos: lista, ilegibles } = leerArchivo(file);
+            const x = lista.filter(y => y.dimension === a && (y.estado === 'activo' || y.estado === 'dudoso')).pop();
+            if (x) { x.enlaces = [...new Set([...(x.enlaces || []), b])]; escribirHechos(file, lista, ilegibles); }
+            return x || null;
+        });
+        if (h) return h;
+    }
+    return null;
 }
 export function olvidarHecho(root, id) {
     for (const alcance of ['proyecto', 'usuario']) {
@@ -264,8 +284,25 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
         for (const x of hits) if (mejorPorDim.has(x.hecho.dimension)) x.puntuacion = +(mejorPorDim.get(x.hecho.dimension) * (vigente(x.hecho, ahora) ? 1 : 1.05)).toFixed(3);
     }
     hits.sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
+    // Expansión de UN salto por los enlaces (F6-T1): de los 3 mejores, lo que está enlazado a su dimensión (en los dos
+    // sentidos), con su valor vigente, como mucho 2 y marcado «vía enlace»
+    const yaEnHits = new Set(hits.map(x => x.hecho.id));
+    const porDimension = d => docs.filter(h => h.dimension === d && (historico ? h.estado !== 'invalidado' : vigente(h, ahora)));
+    let presupuesto = 2;
+    for (const padre of hits.slice(0, 3)) {
+        if (presupuesto <= 0) break;
+        const destinos = new Set([...(padre.hecho.enlaces || []), ...docs.filter(h => (h.enlaces || []).includes(padre.hecho.dimension)).map(h => h.dimension)]);
+        for (const d of destinos) {
+            for (const h of porDimension(d)) {
+                if (presupuesto <= 0 || yaEnHits.has(h.id)) continue;
+                hits.push({ hecho: h, puntuacion: +(padre.puntuacion * 0.7).toFixed(3), motivo: [`vía enlace con ${padre.hecho.dimension}`], via: padre.hecho.dimension });
+                yaEnHits.add(h.id); presupuesto--;
+            }
+        }
+    }
+    hits.sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
     return conCupos(hits, limite, x => familia(x.hecho.dimension)).map(x => ({ ...x,
-        motivo: `coincide: ${x.motivo.join(', ')}` + (x.hecho.estado === 'sustituido' ? ` · ya no vigente (sustituido el ${String(x.hecho.hasta || '').slice(0, 10)})` : '')
+        motivo: (x.via ? `vía enlace con ${x.via}` : `coincide: ${x.motivo.join(', ')}`) + (x.hecho.estado === 'sustituido' ? ` · ya no vigente (sustituido el ${String(x.hecho.hasta || '').slice(0, 10)})` : '')
             + (x.hecho.estado === 'dudoso' ? ' · dudoso (el usuario no lo afirmó del todo)' : '')
             + (x.debil ? ` · relación débil (solo coincide «${x.solo}»: úsalo solo si de verdad viene al caso)` : '') }));
 }

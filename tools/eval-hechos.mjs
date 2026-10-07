@@ -29,7 +29,7 @@ fs.writeFileSync(path.join(P, 'senzu', 'senzu.json'), '{}');
 const T0 = Date.UTC(2026, 9, 1, 9, 0, 0);
 const ids = new Map();
 for (const h of [...corpus.hechos].sort((a, b) => a.t - b.t)) {
-    const r = m.guardarHecho(P, { dimension: h.dimension, valor: h.valor, texto: h.texto, claves: h.claves, alcance: h.alcance, idioma: h.idioma, duda: h.duda, desde: h.desde, hasta: h.hasta },
+    const r = m.guardarHecho(P, { dimension: h.dimension, valor: h.valor, texto: h.texto, claves: h.claves, alcance: h.alcance, idioma: h.idioma, duda: h.duda, desde: h.desde, hasta: h.hasta, enlaces: h.enlaces },
         { ahora: new Date(T0 + h.t * 1000).toISOString() });
     ids.set(r.hecho.id, h.id);
 }

@@ -92,6 +92,27 @@ ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S
     ok(!m.buscarHechos(D, '¿y el servidor?')[0].debil, 'una pregunta con UNA sola palabra con peso no es débil (es todo lo que pregunta)');
 }
 
+// 3d. enlaces entre hechos y expansión de un salto (F6-T1)
+{
+    const L = proyecto('enlaces');
+    m.guardarHecho(L, { dimension: 'proyecto.pasarela-pago', valor: 'Stripe en modo test', claves: ['pagos', 'pasarela', 'payments'] }, { ahora: T(L, 0) });
+    m.guardarHecho(L, { dimension: 'restriccion.pci', valor: 'no guardamos números de tarjeta: todo en el checkout alojado', enlaces: ['proyecto.pasarela-pago'] }, { ahora: T(L, 1) });
+    m.guardarHecho(L, { dimension: 'proyecto.cliente', valor: 'Cerámicas Sol', claves: ['cliente'] }, { ahora: T(L, 2) });
+    m.guardarHecho(L, { dimension: 'proyecto.contacto-cliente', valor: 'Lucía Martín (marketing)' }, { ahora: T(L, 3) });
+    let r = m.buscarHechos(L, '¿qué pasarela de pagos usamos?');
+    ok(r[0].hecho.dimension === 'proyecto.pasarela-pago' && r.some(x => x.hecho.dimension === 'restriccion.pci' && /vía enlace con proyecto\.pasarela-pago/.test(x.motivo)), 'al buscar la pasarela llega lo enlazado (sentido inverso), marcado «vía enlace»', JSON.stringify(r.map(x => x.motivo)));
+    ok(!r.some(x => x.hecho.dimension === 'proyecto.contacto-cliente'), 'lo NO enlazado no llega por expansión');
+    ok(m.enlazarHechos(L, 'proyecto.cliente', 'proyecto.contacto-cliente') && m.buscarHechos(L, 'Cerámicas Sol').some(x => x.hecho.dimension === 'proyecto.contacto-cliente'), '--enlazar después: al recordar el cliente llega su contacto');
+    m.guardarHecho(L, { dimension: 'proyecto.contacto-cliente', valor: 'Pedro Gil (gerente)' }, { ahora: T(L, 4) });
+    r = m.buscarHechos(L, 'Cerámicas Sol');
+    ok(r.some(x => x.hecho.valor === 'Pedro Gil (gerente)') && !r.some(x => x.hecho.valor.startsWith('Lucía')), 'el enlace es a la DIMENSIÓN: si cambia el contacto, llega el vigente', JSON.stringify(r.map(x => x.hecho.valor)));
+    m.guardarHecho(L, { dimension: 'proyecto.pasarela-pago', valor: 'Redsys' }, { ahora: T(L, 5) });
+    ok(m.todosLosHechos(L).find(h => h.valor === 'Redsys').claves.includes('pagos'), 'al sustituir sin claves propias, el nuevo hereda claves (y enlaces) del anterior');
+    for (let i = 0; i < 5; i++) m.guardarHecho(L, { dimension: `nota.pago-${i}`, valor: `detalle ${i}`, enlaces: ['proyecto.pasarela-pago'] }, { ahora: T(L, 10 + i) });
+    ok(m.buscarHechos(L, 'pasarela de pagos', { limite: 10 }).filter(x => x.via).length <= 2, 'la expansión tiene presupuesto: como mucho 2 por consulta');
+    ok(m.enlazarHechos(L, 'no.existe', 'proyecto.cliente') === null && m.enlazarHechos(L, 'proyecto.cliente', 'proyecto.cliente') === null, 'enlazar algo que no existe o a sí mismo: nada');
+}
+
 // 4. cupos por familia: que una familia no se coma el espacio
 const C = proyecto('cupos');
 for (let i = 0; i < 6; i++) m.guardarHecho(C, { dimension: `nota.${i}`, valor: `nota de diseño ${i}`, claves: ['diseño'] }, { ahora: T(C, i) });

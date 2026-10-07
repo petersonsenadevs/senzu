@@ -23,7 +23,7 @@
     { "id": "p11", "dimension": "proyecto.dominio", "valor": "ceramicassol.es", "claves": ["dominio", "domain", "url", "web"], "t": 20 },
     { "id": "p12", "dimension": "objetivo.ventas", "valor": "vender 200 piezas al mes online", "claves": ["objetivo", "goal", "ventas", "sales"], "t": 21 },
     { "id": "p13", "dimension": "pendiente.fotos", "valor": "faltan las fotos de producto de la colección de otoño", "claves": ["fotos", "photos", "pendiente", "imágenes"], "t": 22 },
-    { "id": "p14", "dimension": "proyecto.contacto-cliente", "valor": "Lucía Martín, responsable de marketing del cliente", "claves": ["contacto", "contact", "marketing", "persona"], "t": 23 },
+    { "id": "p14", "dimension": "proyecto.contacto-cliente", "valor": "Lucía Martín, responsable de marketing del cliente", "claves": ["contacto", "contact", "marketing", "persona"], "enlaces": ["proyecto.cliente"], "t": 23 },
     { "id": "p15", "dimension": "nota.mascota", "valor": "la mascota del cliente es una pitón llamada Monty", "claves": ["mascota", "pet"], "t": 24 },
     { "id": "p16", "dimension": "proyecto.lenguaje-scripts", "valor": "Python 3.12 scripts for the stock import", "claves": ["python", "scripts", "import", "stock", "inventario"], "idioma": "en", "t": 25 },
     { "id": "p17", "dimension": "proyecto.analitica", "valor": "creo que quieren Plausible en vez de Google Analytics", "claves": ["analítica", "analytics"], "duda": true, "t": 26 },
@@ -41,7 +41,8 @@
     { "id": "p29", "dimension": "restriccion.accesibilidad", "valor": "WCAG 2.2 AA required by the client", "claves": ["accessibility", "WCAG"], "idioma": "en", "t": 38 },
     { "id": "p30a", "dimension": "preferencia.tipografia", "valor": "Inter", "claves": ["tipografía", "fuente", "font", "typography"], "t": 39 },
     { "id": "p30b", "dimension": "preferencia.tipografia", "valor": "Fraunces para títulos e Inter para el texto", "claves": ["tipografía", "fuente", "font", "typography"], "t": 80 },
-    { "id": "p31", "dimension": "proyecto.repositorio", "valor": "GitLab privado del cliente, rama develop para pruebas", "t": 40 }
+    { "id": "p31", "dimension": "proyecto.repositorio", "valor": "GitLab privado del cliente, rama develop para pruebas", "t": 40 },
+    { "id": "p32", "dimension": "restriccion.pci", "valor": "no guardamos números de tarjeta: todo se cobra en la página alojada", "claves": ["pci", "tarjeta", "card"], "enlaces": ["proyecto.pasarela-pago"], "t": 41 }
   ],
   "preguntas": [
     { "q": "¿cómo se llama el usuario?", "lang": "es", "espera": "u1", "cat": "directa" },
@@ -172,6 +173,10 @@
     { "q": "¿dónde está el repositorio del código?", "lang": "es", "espera": "p31", "cat": "sin-claves" },
     { "q": "where is the git repository?", "lang": "en", "espera": "p31", "cat": "sin-claves", "reservada": true },
     { "q": "rama develop gitlab", "lang": "es", "espera": "p31", "cat": "sin-claves" },
+
+    { "q": "¿qué pasarela de pagos usamos y qué hay que vigilar?", "lang": "es", "espera": "p32", "cat": "expansion" },
+    { "q": "Cerámicas Sol", "lang": "es", "espera": "p14", "cat": "expansion" },
+    { "q": "which payment gateway do we use?", "lang": "en", "espera": "p32", "cat": "expansion", "reservada": true },
 
     { "q": "¿qué tiempo hace hoy en Sevilla?", "lang": "es", "espera": null, "cat": "sin-respuesta" },
     { "q": "¿cuántos empleados tiene el equipo de soporte?", "lang": "es", "espera": null, "cat": "sin-respuesta" },
