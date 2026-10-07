@@ -509,3 +509,80 @@ export function contextoHechos(root, { presupuesto = 12, ahora = hoy() } = {}) {
     const vigentes = todosLosHechos(root).filter(h => vigente(h, ahora)).sort((a, b) => activo(b).localeCompare(activo(a)));
     return conCupos(vigentes, presupuesto, h => familia(h.dimension));
 }
+
+// ---------------------------------------------------------------- Cortex (F7-T3): la memoria entera, por zonas, para VERLA
+// Zonas del cerebro (plan/design-system/cortex/MASTER.md §5): lo que se quiere conseguir, el proyecto, normas y
+// decisiones, quién es el usuario y lo vivido. Con cliente, lo privado NO SE INCLUYE (no basta con ocultarlo en la
+// pantalla: el archivo se manda): nada del usuario, nada deducido ni dudoso, ni aprendizajes, devlog o comandos.
+export { ruta };
+const ZONAS_FAMILIA = [
+    [/^(objetivo|pendiente|restriccion|limite|plazo|presupuesto|meta)(\.|$)/, 'frontal'],
+    [/^(identidad|preferencia|usuario|persona)(\.|$)/, 'temporal'],
+    [/^(aprendizaje|nota|hecho|leccion)(\.|$)/, 'hipocampo'],
+];
+export function zonaDe(h) {
+    if (h.alcance === 'usuario') return 'temporal';
+    for (const [re, z] of ZONAS_FAMILIA) if (re.test(h.dimension)) return z;
+    return 'parietal';
+}
+const temaDe = d => { const t = (d.includes('.') ? d.slice(d.indexOf('.') + 1) : d).replace(/[-._]+/g, ' ').trim(); return t.charAt(0).toUpperCase() + t.slice(1); };
+function leerSeccion(texto, titulo) {
+    const m = new RegExp('^##\\s*' + titulo + '[^\\n]*\\n([\\s\\S]*?)(?=^##\\s|(?![\\s\\S]))', 'mi').exec(texto);
+    return m ? m[1] : '';
+}
+function memoriaDelProyecto(root) {
+    let t = '';
+    try { t = fs.readFileSync(path.join(ruta(root, 'devlog'), 'MEMORIA.md'), 'utf8').replace(/\r/g, ''); } catch { return []; }
+    const decisiones = leerSeccion(t, 'Decisiones vigentes').split('\n').map(l => /^\s*[-*]\s+(D-\d+)\s*·\s*(.+?)(?:\s*·\s*ver\s+([\d,\s]+))?\s*$/.exec(l)).filter(Boolean)
+        .map(m => ({ id: m[1], zona: 'occipital', tipo: 'decision', tema: m[1], valor: m[2].trim(), fuente: 'devlog', devlog: m[3] ? m[3].trim() : undefined }));
+    const reglas = leerSeccion(t, 'Reglas').split('\n').map(l => /^\s*[-*]\s+(.+)$/.exec(l)).filter(Boolean)
+        .map((m, i) => ({ id: `regla-${i + 1}`, zona: 'occipital', tipo: 'regla', tema: 'Regla', valor: m[1].trim(), fuente: 'devlog' }));
+    return [...decisiones, ...reglas];
+}
+function entradasDelDevlog(root, maximo) {
+    let t = '';
+    try { t = fs.readFileSync(path.join(ruta(root, 'devlog'), 'INDEX.md'), 'utf8').replace(/\r/g, ''); } catch { return []; }
+    return t.split('\n').map(l => /^\|\s*(\d{2,})\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|\s*([^|]+?)\s*\|\s*([^|]*?)\s*\|/.exec(l)).filter(Boolean)
+        .map(m => ({ id: `devlog-${m[1]}`, zona: 'hipocampo', tipo: 'entrada', tema: `Entrada ${m[1]}`, privado: true, valor: m[3], fuente: 'devlog', devlog: m[1], creado: m[2], nota: m[4] || undefined }))
+        .sort((a, b) => b.devlog.localeCompare(a.devlog, undefined, { numeric: true })).slice(0, maximo);
+}
+export function datosCortex(root, { cliente = false, ahora = hoy(), dias = 7, entradas = 12 } = {}) {
+    const todos = todosLosHechos(root).filter(h => h.estado !== 'invalidado');
+    const privado = h => h.alcance === 'usuario' || zonaDe(h) === 'temporal' || zonaDe(h) === 'hipocampo' || h.fuente === 'agente' || h.estado === 'dudoso';
+    const visibles = cliente ? todos.filter(h => !privado(h)) : todos;
+    const porDim = new Map();
+    for (const h of visibles) { if (!porDim.has(h.dimension)) porDim.set(h.dimension, []); porDim.get(h.dimension).push(h); }
+    const vigenteDe = d => (porDim.get(d) || []).filter(h => vigente(h, ahora) || h.estado === 'dudoso').pop();
+    const actuales = visibles.filter(h => vigente(h, ahora) || h.estado === 'dudoso');
+    const item = h => {
+        const historia = FAMILIAS_VARIOS.test(h.dimension) ? [h] : (porDim.get(h.dimension) || []);
+        const enlazadas = new Set([...(h.enlaces || []), ...actuales.filter(x => (x.enlaces || []).includes(h.dimension)).map(x => x.dimension)]);
+        return {
+            id: h.id, zona: zonaDe(h), tipo: 'hecho', privado: privado(h) || undefined, dimension: h.dimension, tema: temaDe(h.dimension), valor: h.valor,
+            texto: h.texto || undefined, fuente: h.fuente || 'usuario', estado: h.estado, progreso: h.progreso || undefined,
+            usos: cliente ? undefined : Number(h.usos) || 0, ultimo_uso: cliente ? undefined : h.ultimo_uso, creado: h.creado,
+            desde: h.desde, hasta: h.hasta, devlog: cliente ? undefined : h.devlog,
+            historia: historia.slice().sort((a, b) => String(a.desde || a.creado).localeCompare(String(b.desde || b.creado)))
+                .map(x => ({ valor: x.valor, estado: x.estado, desde: x.desde || x.creado, hasta: x.hasta || undefined, nota: x.nota_cierre || undefined })),
+            enlaces: [...enlazadas].map(d => vigenteDe(d)).filter(Boolean).map(x => ({ dimension: x.dimension, tema: temaDe(x.dimension), valor: x.valor, zona: zonaDe(x) })),
+        };
+    };
+    const zonas = { frontal: [], parietal: [], occipital: [], temporal: [], hipocampo: [] };
+    for (const h of actuales.sort((a, b) => String(b.ultimo_uso || b.creado).localeCompare(String(a.ultimo_uso || a.creado)))) zonas[zonaDe(h)].push(item(h));
+    // con cliente, sin «ver NNN»: el devlog es interno
+    zonas.occipital.push(...memoriaDelProyecto(root).map(x => (cliente ? { ...x, devlog: undefined } : x)));
+    if (!cliente) zonas.hipocampo.push(...entradasDelDevlog(root, entradas));
+    // qué ha cambiado: lo nuevo, lo sustituido y lo cerrado en los últimos `dias` días
+    const desde = new Date(Date.parse(ahora) - dias * 864e5).toISOString(), cambios = [];
+    for (const h of visibles) {
+        if (h.estado === 'sustituido' && h.hasta >= desde && h.hasta <= ahora) {
+            const nuevo = visibles.find(x => x.id === h.sustituido_por);
+            cambios.push({ tipo: 'sustituido', privado: privado(h) || undefined, fecha: h.hasta, zona: zonaDe(h), tema: temaDe(h.dimension), antes: h.valor, ahora: nuevo ? nuevo.valor : undefined });
+        } else if (h.estado === 'cerrado' && h.cerrado >= desde) cambios.push({ tipo: h.progreso || 'cerrado', privado: privado(h) || undefined, fecha: h.cerrado, zona: zonaDe(h), tema: temaDe(h.dimension), ahora: h.valor, nota: h.nota_cierre });
+        else if (h.creado >= desde && !h.sustituye && (vigente(h, ahora) || h.estado === 'dudoso')) cambios.push({ tipo: zonaDe(h) === 'hipocampo' ? 'aprendido' : 'nuevo', privado: privado(h) || undefined, fecha: h.creado, zona: zonaDe(h), tema: temaDe(h.dimension), ahora: h.valor });
+    }
+    cambios.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
+    const abiertosV = abiertos(root, { ahora }).filter(h => !cliente || !privado(h))
+        .map(h => ({ id: h.id, privado: privado(h) || undefined, tema: temaDe(h.dimension), valor: h.valor, zona: zonaDe(h), progreso: h.progreso || 'abierto', dias: Math.max(0, Math.floor((Date.parse(ahora) - Date.parse(h.creado)) / 864e5)) }));
+    return { proyecto: path.basename(path.resolve(root)), generado: ahora, cliente, zonas, cambios: cambios.slice(0, 20), abiertos: abiertosV };
+}

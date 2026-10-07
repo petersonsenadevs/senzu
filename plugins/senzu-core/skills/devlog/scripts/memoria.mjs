@@ -9,6 +9,7 @@
 //   node memoria.mjs --lista [--todo] | --olvidar <id>
 //   node memoria.mjs --nada [--motivo "…"]              revisado: nada estable que guardar en esta sesión
 //   node memoria.mjs --enlazar <dimensión A> <dimensión B>  (o --enlaces A,B al guardar): al recordar uno, llega el otro
+//   node memoria.mjs --cortex [--cliente] [--salida <carpeta>]   la memoria en un HTML local (senzu/cortex/), sin red
 // Dimensiones: «familia.tema» libre (identidad.nombre, proyecto.stack, preferencia.gestor-paquetes, restriccion.presupuesto…).
 // Un valor nuevo en la misma dimensión SUSTITUYE al anterior (queda en el histórico); objetivo.*, pendiente.*, nota.*,
 // hecho.* y aprendizaje.* acumulan. --duda: el usuario no lo afirmó del todo («creo que…»): se guarda sin sustituir.
@@ -112,5 +113,23 @@ if (opt('--olvidar')) {
     out(h ? `Olvidado (queda en el archivo como invalidado): ${linea(h)}` : 'No existe ese id.');
     process.exit(h ? 0 : 2);
 }
-out('Uso: --guardar --dimension <familia.tema> --valor <texto> [--claves a,b] [--alcance usuario] [--duda] | --buscar <consulta> [--historico] | --contexto | --lista [--todo] | --olvidar <id>');
+if (opt('--cortex')) {   // Cortex: la memoria en un HTML local, sin red; --cliente: sin nada privado, para enseñarlo
+    if (!m.datosCortex) { out('Este Senzu no trae Cortex todavía: actualízalo.'); process.exit(2); }
+    const cliente = !!opt('--cliente');
+    const { htmlCortex } = await import(pathToFileURL(path.join(AQUI, 'cortex.mjs')).href);
+    const datos = m.datosCortex(root, { cliente });
+    const dir = opt('--salida') && opt('--salida') !== true ? path.resolve(String(opt('--salida'))) : m.ruta(root, 'cortex');
+    fs.mkdirSync(dir, { recursive: true });
+    // la memoria es privada: la carpeta se ignora a sí misma en git (nadie la commitea por descuido)
+    const gi = path.join(dir, '.gitignore');
+    if (!fs.existsSync(gi)) fs.writeFileSync(gi, '# Cortex: memoria privada del proyecto, generada. No se versiona.\n*\n');
+    const file = path.join(dir, cliente ? 'cliente.html' : 'index.html');
+    fs.writeFileSync(file, htmlCortex(datos, { cli: fileURLToPath(import.meta.url) }));
+    const n = Object.values(datos.zonas).reduce((s, l) => s + l.length, 0);
+    out(`Cortex${cliente ? ' (vista para el cliente)' : ''}: ${file}`);
+    out(`  ${n} recuerdos · ${datos.cambios.length} cambios en 7 días · ${datos.abiertos.length} abiertos. Ábrelo en el navegador (funciona sin red).`);
+    if (!cliente) out('  Tiene datos privados: para enseñarlo, genera la vista para el cliente con --cortex --cliente.');
+    process.exit(0);
+}
+out('Uso: --guardar --dimension <familia.tema> --valor <texto> [--claves a,b] [--alcance usuario] [--duda] | --buscar <consulta> [--historico] | --contexto | --lista [--todo] | --olvidar <id> | --cortex [--cliente] [--salida <carpeta>]');
 process.exit(2);

@@ -120,6 +120,11 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   y lo dudoso pesan algo menos y se marcan; si el usuario lo afirma después, sube a «usuario» y la duda se confirma.
 - **Avisos al guardar** (no bloquean): «casi duplicado» en la misma familia (trigramas, cualquier escritura) →
   `--olvidar` uno si es lo mismo; «contradice» otro valor vigente que no se sustituye → pregunta cuál vale.
+- **Verla (Cortex)**: `memoria.mjs --cortex` genera `senzu/cortex/index.html`, un HTML local sin red con un cerebro
+  2D/3D por zonas (lo que se quiere conseguir, el proyecto, normas y decisiones, quién eres y lo vivido), qué cambió
+  esta semana, lo abierto, el buscador y el detalle con su historia, procedencia y enlaces. Es privado: la carpeta
+  se ignora en git. `--cortex --cliente` genera `cliente.html` para enseñarlo: sin lo personal, lo deducido, lo
+  dudoso, lo aprendido, el devlog ni los comandos (no van ni dentro del archivo).
 - **Uso y enfriamiento**: lo que llega al agente (al hablar, al editar, `--buscar`, `--recordar`) suma un uso; lo
   usado sube un poco y lo que pasa de 90 días sin usarse se enfría despacio (×0,9 como mucho). Nada se borra.
 - **Llega sola**: al iniciar (lo vigente), con cada mensaje (recuerdo-vivo: hechos, decisiones y devlog de lo que

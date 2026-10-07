@@ -6,6 +6,9 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **feature** — Cortex: la memoria en un HTML local, 2D/3D por zonas, y vista de cliente sin nada privado (F7-T3) (entrada 120)
+- **design** — Design system de Cortex por rondas: Nocturno + 2D neón, giro 3D libre (F7-T2) (entrada 119)
+- **docs** — Brief de Cortex aprobado: 2D y 3D, colores votados, modo cliente (F7-T1) (entrada 118)
 - **feature** — Relevancia por uso y enfriamiento en la memoria de hechos (F6-T5) (entrada 117)
 - **feature** — Procedencia, confianza y casi-duplicados en la memoria de hechos (F6-T4) (entrada 116)
 - **feature** — Consolidación de lo aprendido al cerrar una sesión de trabajo (F6-T3) (entrada 115)
