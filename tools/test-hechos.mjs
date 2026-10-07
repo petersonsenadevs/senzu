@@ -94,6 +94,27 @@ for (const d of [D1, D2]) { m.guardarHecho(d, { dimension: 'proyecto.stack', val
 ok(fs.readFileSync(path.join(D1, 'senzu/memoria/hechos.jsonl'), 'utf8') === fs.readFileSync(path.join(D2, 'senzu/memoria/hechos.jsonl'), 'utf8')
     && JSON.stringify(m.buscarHechos(D1, 'framework estilo')) === JSON.stringify(m.buscarHechos(D2, 'framework estilo')), 'misma entrada → mismo archivo y misma búsqueda');
 
+// 7b. recuerdo UNIFICADO: hechos + MEMORIA.md + devlog (F1-T1)
+const R = proyecto('recuerdo');
+fs.mkdirSync(path.join(R, 'senzu', 'devlog', '2026-10-01'), { recursive: true });
+fs.writeFileSync(path.join(R, 'senzu', 'devlog', 'MEMORIA.md'), '# Memoria del proyecto\n\n## Decisiones vigentes\n- D-001 · Pagos con Stripe y webhooks idempotentes (una clave por evento) · ver 001\n');
+fs.writeFileSync(path.join(R, 'senzu', 'devlog', '2026-10-01', '001-pagos-stripe.md'), '# 001 — Pagos con Stripe\n\n- **Fecha/hora:** 2026-10-01\n- **Tipo:** feature\n\n## Qué se hizo\n- Checkout de Stripe y webhook con idempotencia por event.id.\n\n## Decisiones (resumen)\n- D-001 · Pagos con Stripe y webhooks idempotentes (una clave por evento) · ver 001\n');
+m.guardarHecho(R, { dimension: 'proyecto.pasarela-pago', valor: 'Stripe', texto: 'cobramos con Stripe en modo test', claves: ['pagos', 'payments', 'pasarela'] }, { ahora: T(R, 0) });
+let rec = m.recuerdo(R, 'pagos stripe webhooks');
+ok(rec.some(x => x.fuente === 'hecho' && x.hecho.valor === 'Stripe') && rec.some(x => x.fuente === 'memoria') && rec.some(x => x.fuente === 'devlog'), 'recuerdo: las tres fuentes en una consulta', JSON.stringify(rec.map(x => x.fuente)));
+ok(rec.filter(x => /D-001/.test(x.texto)).length === 1 && rec.find(x => /D-001/.test(x.texto)).fuente === 'memoria', 'recuerdo: una decisión que sale en MEMORIA y en su entrada cuenta una vez (la vigente)', JSON.stringify(rec.map(x => [x.fuente, x.texto.slice(0, 30)])));
+ok(rec[0].fuente === 'hecho' && rec.every(x => x.motivo), 'recuerdo: reparto por turnos entre fuentes y cada uno con su motivo');
+ok(m.recuerdo(R, 'which payment gateway?').some(x => x.fuente === 'hecho' && x.hecho.valor === 'Stripe'), 'recuerdo: en inglés encuentra el hecho (claves), aunque el devlog esté en español');
+ok(m.recuerdo(R, 'zzzz qwerty').length === 0, 'recuerdo: sin coincidencias en ninguna fuente, vacío');
+ok(m.recuerdo(proyecto('vacio'), 'pagos').length === 0, 'recuerdo: proyecto sin devlog ni hechos, vacío y sin error');
+fs.writeFileSync(path.join(base, 'buscador-roto.mjs'), 'process.stdout.write("esto no es JSON")\n');
+process.env.SENZU_BUSCADOR = path.join(base, 'buscador-roto.mjs');
+rec = m.recuerdo(R, 'pagos stripe');
+ok(rec.length >= 1 && rec.every(x => x.fuente === 'hecho'), 'recuerdo: si el buscador del devlog falla, quedan los hechos (no se cae)', JSON.stringify(rec.map(x => x.fuente)));
+delete process.env.SENZU_BUSCADOR;
+const rc = spawnSync(process.execPath, [CLI, '--path', R, '--recordar', 'pagos stripe webhooks'], { encoding: 'utf8', env: process.env }).stdout;
+ok(/\[hecho\] \[proyecto\.pasarela-pago\] Stripe/.test(rc) && /\[memoria\] D-001/.test(rc) && !/ver 001 · ver 001/.test(rc), 'CLI: --recordar con fuentes y sin «ver» repetido', rc);
+
 // 8. la línea de comandos
 const cli = (d, ...a) => spawnSync(process.execPath, [CLI, '--path', d, ...a], { encoding: 'utf8', env: process.env });
 const L = proyecto('cli');

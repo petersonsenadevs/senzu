@@ -13,6 +13,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { ruta, rutaMemoriaUsuario } from './lib.mjs';
 
 export const FAMILIAS_VARIOS = /^(objetivo|pendiente|nota|hecho|enlace|aprendizaje)(\.|$)/;
@@ -146,6 +148,42 @@ function conCupos(lista, limite, fam) {
     for (const x of lista) { const f = fam(x); if (!grupos.has(f)) grupos.set(f, []); grupos.get(f).push(x); }
     const out = [];
     while (out.length < limite && [...grupos.values()].some(g => g.length)) for (const g of grupos.values()) if (g.length && out.length < limite) out.push(g.shift());
+    return out;
+}
+
+// ---------------------------------------------------------------- recuerdo UNIFICADO: hechos + MEMORIA.md + devlog
+// Una consulta, las tres memorias: los hechos con este motor (cualquier idioma) y las decisiones y entradas con el
+// buscador del devlog (buscar.mjs --json). Cada resultado dice de dónde sale («hecho», «memoria», «devlog») y por qué;
+// se reparten por turnos entre fuentes (las puntuaciones de motores distintos no se comparan) y una decisión que
+// sale a la vez de MEMORIA.md y de su entrada del devlog cuenta una sola vez (gana la de MEMORIA: es la vigente).
+const AQUI = path.dirname(fileURLToPath(import.meta.url));
+export function rutaBuscador(root) {
+    const c = [process.env.SENZU_BUSCADOR, path.join(AQUI, '..', 'skills', 'devlog', 'scripts', 'buscar.mjs'),
+        path.join(root, '.claude', 'skills', 'devlog', 'scripts', 'buscar.mjs'), path.join(root, '.agents', 'skills', 'devlog', 'scripts', 'buscar.mjs')].filter(Boolean);
+    return c.find(f => fs.existsSync(f)) || null;
+}
+function buscarEnDevlog(root, consulta, limite) {
+    const b = rutaBuscador(root);
+    if (!b) return [];
+    try {
+        const r = spawnSync(process.execPath, [b, consulta, '--json', '--max', String(limite)], { cwd: root, encoding: 'utf8', timeout: 8000 });
+        return (JSON.parse(r.stdout || '{}').resultados || []);
+    } catch { return []; }
+}
+export function recuerdo(root, consulta, { limite = 6, historico = false } = {}) {
+    const hechos = buscarHechos(root, consulta, { historico, limite }).map(x => ({
+        fuente: 'hecho', id: x.hecho.id, texto: `[${x.hecho.dimension}] ${x.hecho.valor}`, motivo: x.motivo, ver: x.hecho.devlog || null, hecho: x.hecho,
+    }));
+    const vistos = new Set();
+    const dl = buscarEnDevlog(root, consulta, limite)
+        .sort((a, b) => (b.clase === 'memoria') - (a.clase === 'memoria'))   // primero lo vigente (MEMORIA.md)
+        .filter(r => { const d = (/\bD-\d+\b/.exec(r.fragmento || '') || [])[0]; if (!d) return true; if (vistos.has(d)) return false; vistos.add(d); return true; })
+        .map(r => ({ fuente: r.clase === 'memoria' ? 'memoria' : 'devlog', id: r.num ? `${r.clase === 'memoria' ? 'MEMORIA' : r.num}` : r.archivo,
+            texto: String(r.fragmento || r.titulo || '').trim(), motivo: `${r.titulo}${r.seccion && r.seccion !== r.titulo ? ' § ' + r.seccion : ''}${r.sustituida ? ' · sustituida' : ''}`,
+            ver: r.num || null, archivo: r.archivo }));
+    const grupos = [hechos, dl.filter(x => x.fuente === 'memoria'), dl.filter(x => x.fuente === 'devlog')];
+    const out = [];
+    while (out.length < limite && grupos.some(g => g.length)) for (const g of grupos) if (g.length && out.length < limite) out.push(g.shift());
     return out;
 }
 
