@@ -73,6 +73,12 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
   Deno, Makefile) lint, tipos, tests y build con sus herramientas; sin manifiesto no hay build: ejecuta las suites
   propias del repo, comprueba que el código cambiado carga (JS, Python, PowerShell, shell, JSON) y que los
   documentos cambiados no enlazan a archivos que no existen. Y deja constancia para el cierre.
+- **Recuerda los datos estables, en cualquier idioma** (memoria de hechos): dónde vives, el cliente, el stack, un
+  presupuesto, un plazo, una preferencia. El agente entiende la frase en tu idioma y la guarda estructurada; el
+  motor (sin red ni modelos) sustituye lo viejo por lo nuevo (queda en el histórico), no duplica y lo encuentra
+  aunque preguntes en otro idioma o con erratas. Llega solo: al empezar (lo vigente), con cada mensaje (lo que se
+  sabe de lo que hablas: hechos, decisiones y devlog, con su motivo) y al editar un archivo (lo de su tema). Y se
+  exige: una sesión con conversación no se cierra sin revisar la memoria. A mano: `memoria.mjs --recordar "…"`.
 - **El método antes que el código**: al empezar la sesión te dice el **siguiente paso** que falta y por qué:
   `/instalar` si Senzu no está en el proyecto; `/adoptar` si hay código previo sin convenciones selladas. El muro
   `arranque-guard` los hace cumplir: la primera vez que el agente va a escribir código sin ellos, lo para y te lo

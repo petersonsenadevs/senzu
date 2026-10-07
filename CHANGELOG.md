@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **docs** — Memoria de hechos documentada y propuesta de fusión para después de la prueba real (F5-T1) (entrada 111)
 - **fix** — Afinado de la memoria de hechos con cifras, y su límite honesto (F4-T4) (entrada 110)
 - **test** — Sesiones de punta a punta de la memoria de hechos, en Claude y en Codex (F4-T3) (entrada 109)
 - **fix** — Robustez de la memoria de hechos: archivo dañado, concurrencia, tamaño, Unicode y rutas (F4-T2) (entrada 108)
