@@ -35,6 +35,9 @@ function pushPermitido() {
     if (!permisos.push) return false;
     const pushes = c.split(/&&|\|\||;|\n/).map(s => s.trim()).filter(s => /\bgit\s+push\b/i.test(s));
     for (const s of pushes) {
+        // solo un «git push» escrito tal cual: dentro de bash -c, un heredoc, xargs o $( ) no se sabe con seguridad
+        // a qué rama va, así que no se permite (sigue bloqueado)
+        if (!/^git\s+push\b/i.test(s)) return false;
         const args = s.replace(/^.*?\bgit\s+push\b/i, '').trim().split(/\s+/).filter(Boolean);
         if (args.some(a => /^(-f|--force|--force-with-lease|--force-if-includes|--mirror|--delete|-d)(=|$)/i.test(a))) return false;
         const posicionales = args.filter(a => !a.startsWith('-'));
@@ -48,7 +51,7 @@ function pushPermitido() {
 
 // --- Patrones prohibidos: { p: patrón; m: motivo } ---
 const rules = [
-    { p: /\bgit\s+push\b/i,                                   m: 'git push está prohibido sin aprobación explícita. (Si el usuario quiere permitirlo en este proyecto: "permisos": { "push": true } en senzu/senzu.json; a una rama principal (main, develop, staging, production, release/…), además "pushMain": true. Lo decide el usuario, no el agente.)' },
+    { p: /\bgit\s+push\b/i,                                   m: 'Este git push no se permite: va a una rama principal (main, develop, staging, production, release/…), no se ve a qué rama va (dentro de bash -c, un heredoc, $( )…) o el proyecto tiene "push": false. A las ramas de trabajo (feat/…, fix/…) se sube con un git push directo. A una principal, solo si el usuario pone "pushMain": true en senzu/senzu.json (lo decide el usuario, no el agente) o lo sube él: ! git push …' },
     { p: /\bgit\s+push\s+.*--force/i,                         m: 'git push --force está terminantemente prohibido.' },
     { p: /--force-with-lease/i,                               m: 'push forzado (--force-with-lease) prohibido.' },
     { p: /\bdrop\s+(database|table|schema)\b/i,               m: 'DROP DATABASE/TABLE/SCHEMA en BD requiere aprobación explícita.' },

@@ -123,10 +123,19 @@ export function ramaProtegida(root, rama) {
     const m = getMarkerSeguro(root);
     return !!(m && Array.isArray(m.ramasProtegidas) && m.ramasProtegidas.map(x => String(x).toLowerCase()).includes(r));
 }
+// push (D-042, sustituye en parte a D-015): a las ramas de TRABAJO se sube sin configurar nada; a las principales,
+// solo con "pushMain": true. "push": false lo bloquea todo. Lo que no se entiende (marcador roto, "push": "true" en
+// texto, "permisos": true) bloquea: ante la duda, no se sube. El forzado y el borrado remoto, siempre bloqueados (guard).
 export function permisosProyecto(root) {
+    const existe = fs.existsSync(rutaMarcador(root));
     const m = getMarkerSeguro(root);
-    const p = (m && m.permisos && typeof m.permisos === 'object') ? m.permisos : {};
-    return { push: p.push === true || p.pushMain === true, pushMain: p.pushMain === true, commitEnMain: p.commitEnMain === true };
+    if (existe && !m) return { push: false, pushMain: false, commitEnMain: false };   // marcador roto
+    const tienePermisos = m && Object.prototype.hasOwnProperty.call(m, 'permisos');
+    if (tienePermisos && (!m.permisos || typeof m.permisos !== 'object' || Array.isArray(m.permisos))) return { push: false, pushMain: false, commitEnMain: false };
+    const p = tienePermisos ? m.permisos : {};
+    const pushMain = p.pushMain === true;
+    const push = pushMain || (p.push === undefined ? true : p.push === true);
+    return { push, pushMain, commitEnMain: p.commitEnMain === true };
 }
 export function hookApagado(root, nombre) {
     if (HOOKS_NO_APAGABLES.includes(nombre)) return false;

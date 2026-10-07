@@ -302,7 +302,7 @@ function skillsSection(stack, extra, bundles, relPath) {
 // (lista de skills, metodología completa de devlog y git) y pide respuestas técnicas telegráficas, salvo lo
 // dirigido al cliente. AGENTS.md (Codex) queda completo. Mismo texto exacto que _lib.ps1.
 const AHORRO_DEVLOG = 'Documenta cada paso relevante en `senzu/devlog/<fecha>/NNN-slug.md` con la skill `devlog` (numeración global e INDEX.md al día). El hook stop-guard lo exige al cerrar la tarea.\n';
-const AHORRO_GIT = 'Una rama por tarea (nunca commits en main, master ni develop), Conventional Commits de 72 caracteres como máximo y sin co-autores, y nunca `git push` sin aprobación explícita. El hook guard lo hace cumplir.\n';
+const AHORRO_GIT = 'Una rama por tarea (nunca commits en main, master ni develop), Conventional Commits de 72 caracteres como máximo y sin co-autores, y push solo a la rama de trabajo (nunca a una principal ni forzado). El hook guard lo hace cumplir.\n';
 const AHORRO_ESTILO = '\n---\n\n# Modo ahorro\n\nRespuestas técnicas en estilo telegráfico: sin preámbulos ni resúmenes repetidos, frases cortas, primero el resultado y el código. Excepciones, en lenguaje normal y completo: `/brief`, `/propuestas`, `/repaso`, `/estimar` y `/entregar`, cualquier texto para el cliente y cualquier explicación que pida el usuario. Las skills cargan sus descripciones solas: abre solo la sección que necesites.\n';
 
 // Sin front (perfil backend…): fuera las secciones de front escritas en el systemprompt del stack.
@@ -405,8 +405,10 @@ async function resolveGuideTarget(projectPath, fileName, rules, importSyntax) {
 }
 
 // ---------------------------------------------------------------- renderers
+// git push NO va aquí (D-042): settings.json se aplica antes que los hooks y bloqueaba TODO push, incluso con
+// "push": true. Decide el hook guard, que distingue ramas de trabajo y principales; aquí solo el forzado.
 const BASE_DENY = [
-    'Bash(git push:*)', 'PowerShell(git push:*)',
+    'Bash(git push --force:*)', 'Bash(git push -f:*)', 'PowerShell(git push --force:*)', 'PowerShell(git push -f:*)',
     'Bash(git reset --hard:*)', 'PowerShell(git reset --hard:*)',
     'Bash(git clean:*)',
     'Bash(rm -rf:*)', 'PowerShell(Remove-Item * -Recurse -Force:*)',
@@ -432,8 +434,8 @@ function hookSet(hasFront) {
 // El push forzado, lo destructivo y los secretos siguen bloqueados siempre (guard, secrets-guard, protect-files
 // no se pueden apagar).
 const PERMISOS = [
-    ['push', 'Hacer git push a ramas que no son main, master ni develop', 'push'],
-    ['push-main', 'Hacer git push también a main, master y develop', 'pushMain'],
+    ['push', 'Subir a ramas de trabajo (ya es lo normal; así queda escrito en el marcador)', 'push'],
+    ['push-main', 'Subir también a las ramas principales (main, develop, staging, production…)', 'pushMain'],
     ['commit-main', 'Commitear directamente en main, master o develop', 'commitEnMain'],
 ];
 const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];
@@ -509,6 +511,9 @@ function mergeSettings(file, permissions, hooks) {
         ask.push(...[].concat(existing.permissions.ask || []));
         allow.push(...[].concat(existing.permissions.allow || []));
     }
+    // lo que puso Senzu y ya no debe estar (D-042: el push normal lo decide el hook, no settings.json)
+    const OBSOLETOS = new Set(['Bash(git push:*)', 'PowerShell(git push:*)']);
+    deny = deny.filter(d => !OBSOLETOS.has(d));
     const perm = { deny: [...new Set(deny)], ask: [...new Set(ask)] };
     if (allow.length) perm.allow = [...new Set(allow)];
     out.permissions = perm;
@@ -825,7 +830,7 @@ async function modoInteractivo(a) {
         }
         const ah = await preguntar(rl, '\n¿Modo ahorro de tokens? CLAUDE.md compacto y respuestas técnicas telegráficas (lo del cliente sigue en lenguaje normal) [s/N]: ');
         a.ahorro = /^s/i.test(ah);
-        const per = await elegirVarios(rl, '¿Permisos especiales para el agente en ESTE proyecto? (por defecto no hace push ni commitea en main; el push forzado y lo destructivo siguen bloqueados siempre)', PERMISOS.map(([id, t]) => [id, t]), 'ninguno');
+        const per = await elegirVarios(rl, '¿Permisos especiales para el agente en ESTE proyecto? (por defecto sube solo a ramas de trabajo y no commitea en main; para que no suba nada, "push": false en senzu/senzu.json; el push forzado y lo destructivo siguen bloqueados siempre)', PERMISOS.map(([id, t]) => [id, t]), 'ninguno');
         a.permitir = per;
         const apagables = HOOKS_ELEGIBLES.filter(([id]) => !HOOKS_NO_APAGABLES.includes(id));
         const off = await elegirVarios(rl, '¿Apagar algún hook en este proyecto? (guard, secretos y archivos protegidos no se pueden apagar)', apagables, 'ninguno');

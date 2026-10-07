@@ -1,14 +1,26 @@
 #!/usr/bin/env sh
-# Senzu: bloquea git push salvo aprobacion explicita (SENZU_ALLOW_PUSH=1 en el entorno; vale el antiguo DEV_STANDARDS_ALLOW_PUSH=1).
-# Y aun con ella, a una rama PRINCIPAL (main, master, develop, staging, production, release/*... la misma lista que
-# lib.mjs) solo con SENZU_ALLOW_PUSH_MAIN=1: un push a staging o production tambien despliega.
-# Instalado por sync.ps1 -GitHooks. Capa dura comun a Claude Code, Codex, Cursor, Windsurf.
-if [ "${SENZU_ALLOW_PUSH:-$DEV_STANDARDS_ALLOW_PUSH}" != "1" ]; then
-  echo "[senzu] git push bloqueado: requiere aprobacion explicita." >&2
+# Senzu: capa dura del push, comun a Claude Code, Codex, Cursor y Windsurf. Instalado por sync.ps1 -GitHooks.
+# La misma regla que el hook guard (D-042):
+#   - a las ramas de TRABAJO (feat/..., fix/...) se sube sin configurar nada;
+#   - a una rama PRINCIPAL (main, master, develop, staging, production, release/*... la misma lista que lib.mjs)
+#     solo con "pushMain": true en senzu/senzu.json o SENZU_ALLOW_PUSH_MAIN=1: un push a staging o production despliega;
+#   - "push": false en senzu/senzu.json lo bloquea todo (salvo SENZU_ALLOW_PUSH=1, si el usuario lo aprueba).
+# El forzado lo bloquea el hook guard (aqui no se ve el --force).
+raiz=$(git rev-parse --show-toplevel 2>/dev/null || pwd)
+marcador=""
+for f in "$raiz/senzu/senzu.json" "$raiz/.dev-standards.json"; do
+  if [ -f "$f" ]; then marcador="$f"; break; fi
+done
+if [ -n "$marcador" ] && grep -Eq '"push"[[:space:]]*:[[:space:]]*false' "$marcador" \
+   && [ "${SENZU_ALLOW_PUSH:-$DEV_STANDARDS_ALLOW_PUSH}" != "1" ]; then
+  echo "[senzu] git push bloqueado: este proyecto tiene \"push\": false en $(basename "$marcador")." >&2
   echo "  Si el humano lo aprueba, ejecuta:  SENZU_ALLOW_PUSH=1 git push ...  (o set SENZU_ALLOW_PUSH=1 en Windows)" >&2
   exit 1
 fi
 if [ "$SENZU_ALLOW_PUSH_MAIN" = "1" ]; then
+  exit 0
+fi
+if [ -n "$marcador" ] && grep -Eq '"pushMain"[[:space:]]*:[[:space:]]*true' "$marcador"; then
   exit 0
 fi
 # git pasa por stdin una linea por ref: <ref local> <sha local> <ref remota> <sha remota>
@@ -17,7 +29,7 @@ while read -r local_ref local_sha remote_ref remote_sha; do
   case "$rama" in
     main|master|trunk|develop|development|dev|staging|stage|stg|preprod|pre-production|production|prod|live|qa|uat|release|release/*|releases/*|production/*|prod/*|staging/*|stage/*)
       echo "[senzu] push a la rama principal '$rama' bloqueado." >&2
-      echo "  Si el humano lo aprueba: SENZU_ALLOW_PUSH=1 SENZU_ALLOW_PUSH_MAIN=1 git push ..." >&2
+      echo "  Si el humano lo aprueba: SENZU_ALLOW_PUSH_MAIN=1 git push ...  (o \"pushMain\": true en senzu/senzu.json)" >&2
       exit 1 ;;
   esac
 done
