@@ -218,6 +218,53 @@ const CLI = path.join(ROOT, 'core', 'skills', 'devlog', 'scripts', 'memoria.mjs'
     ok(Array.isArray(estado.hechosGuardados) && estado.hechosGuardados.length === 0, 'una sesión que no aprendió nada no arrastra los hechos de la anterior');
 }
 
+// ---------------------------------------------------------------- F4-T3 · sesiones de punta a punta
+// El circuito entero con los hooks reales, como en una sesión: hablar → editar → cerrar (bloquea) → guardar con el
+// CLI real → cerrar (pasa) → sesión nueva que lo sabe. En Claude (CLAUDE_PROJECT_DIR) y en Codex (cwd + apply_patch).
+function circuito(nombre, modo) {
+    const P = proyecto(nombre);
+    // En Codex no hay CLAUDE_PROJECT_DIR y el hook se lanza desde OTRA carpeta: la única pista del proyecto es el
+    // «cwd» de la entrada (si el hook se apoyara en su directorio de trabajo, aquí fallaría)
+    const h = modo === 'codex'
+        ? (n, entrada) => spawnSync(process.execPath, [path.join(HOOKS, n)], { input: JSON.stringify({ ...entrada, cwd: P }), encoding: 'utf8', cwd: base, env: { ...process.env, CLAUDE_PROJECT_DIR: '', SENZU_SIN_RED: '1' } })
+        : (n, entrada) => hook(n, P, entrada);
+    const ctx = r => { try { return JSON.parse(r.stdout).hookSpecificOutput.additionalContext || ''; } catch { return ''; } };
+    const bloqueo = r => { try { const j = JSON.parse(r.stdout); return j.decision === 'block' ? j.reason : ''; } catch { return ''; } };
+    const s1 = `${nombre}-s1-${RUN}`, s2 = `${nombre}-s2-${RUN}`;
+    const pide = (sid, prompt) => { h('memoria-viva.mjs', { session_id: sid, hook_event_name: 'UserPromptSubmit', prompt }); return ctx(h('recuerdo-vivo.mjs', { session_id: sid, hook_event_name: 'UserPromptSubmit', prompt })); };
+    pide(s1, 'el cliente nuevo es Cerámicas Sol y quiere vender por internet sus piezas de cerámica');
+    pide(s1, 'el presupuesto máximo para la primera fase son 3000 euros, ni uno más');
+    const edicion = modo === 'codex'
+        ? { tool_name: 'apply_patch', tool_input: { command: '*** Begin Patch\n*** Add File: app/Services/Tienda.php\n+<?php\n*** End Patch\n' } }
+        : { tool_name: 'Write', tool_input: { file_path: path.join(P, 'app', 'Services', 'Tienda.php'), content: '<?php\n' } };
+    h('edit-tracker.mjs', { session_id: s1, hook_event_name: 'PostToolUse', ...edicion });
+    const b1 = bloqueo(h('hechos-guard.mjs', { session_id: s1, hook_event_name: 'Stop' }));
+    const res = [];
+    res.push([/revisa la memoria/.test(b1), `${modo}: al cerrar sin revisar la memoria, bloquea`]);
+    for (const args of [['--dimension', 'proyecto.cliente', '--valor', 'Cerámicas Sol', '--claves', 'cliente,client,empresa,company'],
+        ['--dimension', 'restriccion.presupuesto', '--valor', 'máximo 3000 € para la fase 1', '--claves', 'presupuesto,budget,cost']]) {
+        const out = spawnSync(process.execPath, [CLI, '--path', P, '--guardar', ...args], { encoding: 'utf8', env: process.env }).stdout;
+        h('hechos-guard.mjs', { session_id: s1, hook_event_name: 'PostToolUse', tool_name: 'Bash', tool_input: { command: `node memoria.mjs --guardar ${args.join(' ')}` }, tool_response: { stdout: out } });
+    }
+    res.push([bloqueo(h('hechos-guard.mjs', { session_id: s1, hook_event_name: 'Stop' })) === '', `${modo}: tras guardar, cierra sin bloqueo`]);
+    h('estado-sesion.mjs', { session_id: s1, hook_event_name: 'Stop' });
+    const inicio2 = ctx(h('session-start.mjs', { session_id: s2, hook_event_name: 'SessionStart' }));
+    res.push([/\[proyecto\.cliente\] «Cerámicas Sol»/.test(inicio2) && /\[restriccion\.presupuesto\]/.test(inicio2), `${modo}: la sesión siguiente arranca con los hechos`]);
+    res.push([/hechos que aprendió: .*Cerámicas Sol/.test(inicio2), `${modo}: y sabe qué aprendió la anterior`]);
+    res.push([/máximo 3000 €/.test(pide(s2, 'how much budget do we have for the first phase?')), `${modo}: una pregunta en inglés recibe el presupuesto`]);
+    return { P, res };
+}
+for (const modo of ['claude', 'codex']) {
+    const { res } = circuito(`e2e-${modo}`, modo);
+    for (const [c, n] of res) ok(c, n);
+}
+{   // aislamiento: otro proyecto no ve los hechos de este (solo los del usuario)
+    const Q = proyecto('e2e-otro');
+    const c = inicio(Q);
+    ok(!/Cerámicas Sol/.test(c) && !/3000/.test(c), 'otro proyecto no recibe los hechos de este');
+    ok(mensaje(Q, 'how much budget do we have for the first phase?', `e2e-otro-${RUN}`) === '', '…ni con una pregunta sobre ellos');
+}
+
 fs.rmSync(base, { recursive: true, force: true });
 for (const f of fs.readdirSync(os.tmpdir())) if (f.includes(RUN)) { try { fs.rmSync(path.join(os.tmpdir(), f), { force: true }); } catch { } }
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
