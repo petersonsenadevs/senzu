@@ -321,6 +321,21 @@ ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S
     ok(o.status !== 0 && /fuera de la convención/.test(o.stdout + o.stderr), 'CLI: una familia fuera de la convención no se guarda', o.stdout + o.stderr);
 }
 
+// 3j. léxico multilingüe de la convención (X-T8): los temas canónicos se encuentran en ~20 idiomas, sin red
+{
+    const X = proyecto('lexico');
+    m.guardarHecho(X, { dimension: 'proyecto.cliente', valor: 'FitLab, cadena de gimnasios', claves: ['client', 'cliente'] }, { ahora: T(X, 0) });
+    m.guardarHecho(X, { dimension: 'restriccion.presupuesto', valor: '18 000 € la fase 1' }, { ahora: T(X, 1) });
+    m.guardarHecho(X, { dimension: 'proyecto.contacto-cliente', valor: 'Jordi Puig' }, { ahora: T(X, 2) });
+    const sobre = q => m.buscarHechos(X, q).filter(x => x.puntuacion >= m.UMBRAL_RECUERDO)[0]?.hecho.dimension;
+    ok(sobre('кто клиент?') === 'proyecto.cliente' && sobre('客户是谁') === 'proyecto.cliente' && sobre('wer ist der Kunde?') === 'proyecto.cliente', 'el cliente se encuentra en ruso, chino y alemán sin claves en esos idiomas');
+    ok(sobre('какой бюджет?') === 'restriccion.presupuesto' && sobre('预算是多少') === 'restriccion.presupuesto', 'el presupuesto también');
+    ok(/léxico/.test(m.buscarHechos(X, 'кто клиент?')[0].motivo), 'y el motivo dice que vino por el léxico');
+    ok(!m.buscarHechos(X, '¿quién revisa los contratos?').some(x => x.hecho.dimension === 'proyecto.contacto-cliente' && x.puntuacion >= m.UMBRAL_RECUERDO), 'el léxico coincide exacto: «contratos» no es el portugués «contato»');
+    ok(m.buscarHechos(X, 'launch date').filter(x => x.puntuacion >= m.UMBRAL_RECUERDO).length === 0, 'sin palabras sueltas genéricas («date» de «date limite»)');
+    ok(m.LEXICO.cliente.split(' ').length >= 20 && Object.keys(m.LEXICO).length >= 20, 'el léxico cubre los temas de la convención en ~20 idiomas');
+}
+
 // 4. cupos por familia: que una familia no se coma el espacio
 const C = proyecto('cupos');
 for (let i = 0; i < 6; i++) m.guardarHecho(C, { dimension: `nota.${i}`, valor: `nota de diseño ${i}`, claves: ['diseño'] }, { ahora: T(C, i) });

@@ -149,6 +149,8 @@ function distancia(a, b, max) {
     return prev[y.length];
 }
 // Ninguna errata en palabras de 4 letras («todo»≈«tono», «cosa»≈«cost» eran falsos aciertos), 1 de 5 a 7, 2 desde 8.
+// (X-T8, medido y descartado: subir a 10 letras el umbral de 2 erratas y no aceptar cambios solo en la última letra
+// bajaba el recuerdo en los dos corpus sin mejorar la abstención)
 const maxErratas = w => { const n = [...w].length; return n <= 4 ? 0 : n <= 7 ? 1 : 2; };
 // Flexiones sin listas por idioma: prefijo común largo («hosted»/«hosting», «mudarme»/«mudado»,
 // «ceramicassol»/«ceramicassol.es»): al menos 4 letras, el 60 % de la corta y la mitad de la larga.
@@ -490,8 +492,12 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     // De la dimensión se indexa el TEMA, no la familia: «proyecto.analitica» → «analitica». Con la familia, cualquier
     // pregunta que dijera «proyecto» rozaba todos los proyecto.* (lo destapó la batería de garantías)
     const tema = d => (d.includes('.') ? d.slice(d.indexOf('.') + 1) : d).replace(/[.-]/g, ' ');
-    const toks = docs.map(h => palabras([tema(h.dimension), h.valor, h.texto, ...(h.claves || [])].filter(Boolean).join(' ')));
-    const media = toks.reduce((s, t) => s + t.length, 0) / toks.length || 1;
+    const base = docs.map(h => palabras([tema(h.dimension), h.valor, h.texto, ...(h.claves || [])].filter(Boolean).join(' ')));
+    // + el léxico multilingüe del tema (X-T8): se encuentra, pero no alarga el hecho (no lo penaliza en el orden)
+    // (solo lo que el hecho no tenga ya: repetir «cliente» inflaba su frecuencia y lo subía por encima de otros)
+    const lexicos = docs.map((h, i) => { const ya = new Set(base[i]); return [...new Set(lexicoDe(h.dimension))].filter(w => !ya.has(w)); });
+    const toks = docs.map((h, i) => base[i].concat(lexicos[i]));
+    const media = base.reduce((s, t) => s + t.length, 0) / base.length || 1;
     const df = new Map();
     for (const t of toks) for (const w of new Set(t)) df.set(w, (df.get(w) || 0) + 1);
     // IDF suavizado: con el clásico, un término presente en TODOS los hechos vale ~0 (en una memoria pequeña pasa a
@@ -508,18 +514,24 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
             if (!tf.has(w)) {   // errata o variante: la palabra del hecho más parecida
                 let mejor = null, dist = Infinity;
                 const max = maxErratas(w);
-                if (max > 0) for (const d of tf.keys()) { const x = distancia(w, d, max); if (x < dist) { dist = x; mejor = d; } }
+                // erratas y flexiones, solo contra lo que el hecho DICE; el léxico multilingüe coincide exacto o nada
+                // («contratos» no es el portugués «contato»)
+                const propias = base[i];
+                if (max > 0) for (const d of new Set(propias)) { const x = distancia(w, d, max); if (x < dist) { dist = x; mejor = d; } }
                 if (mejor && dist <= max) { termino = mejor; peso = dist === 1 ? 0.75 : 0.55; motivo.push(`${w}≈${mejor}`); }
                 else {
-                    const flex = [...tf.keys()].find(d => prefijoComun(w, d));
+                    // (medido y descartado en X-T8: excluir dominios y rutas de las flexiones bajaba el recuerdo sin
+                    // mejorar la abstención)
+                    const flex = propias.find(d => prefijoComun(w, d));
                     if (!flex) continue;
                     termino = flex; peso = 0.8; motivo.push(`${w}~${flex}`);
                 }
-            } else motivo.push(w);
+            } else if (lexicos[i].includes(w)) { peso = 0.75; motivo.push(`${w} (léxico)`); }   // el concepto, no lo que el hecho dice: pesa menos
+            else motivo.push(w);
             const f = tf.get(termino);
             const conPeso = palabraConPeso(termino);
             // las palabras sin peso («es», «el», «of») suman poco: acompañan, pero no deciden el orden
-            score += peso * (conPeso ? 1 : 0.3) * idf(termino) * (f * 2.2) / (f + 1.2 * (0.25 + 0.75 * t.length / media));
+            score += peso * (conPeso ? 1 : 0.3) * idf(termino) * (f * 2.2) / (f + 1.2 * (0.25 + 0.75 * base[i].length / media));
             if (conPeso) { conPesoCoincide = true; conPesoQueCoinciden.add(termino); }
         }
         // Relación DÉBIL: la pregunta tiene 3+ palabras con peso y solo coincide una. No se descarta (una regla de
@@ -534,6 +546,11 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
         if (nombra && puntuacion) puntuacion = +Math.min(puntuacion * 0.2, UMBRAL_RECUERDO * 0.75).toFixed(3);   // siempre bajo el umbral
         return { hecho: h, puntuacion, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined, nombra };
     }).filter(x => x.puntuacion > 0);
+    // Garantía: en la misma dimensión, lo DUDOSO nunca puntúa por encima de lo afirmado (no puede depender de que
+    // la longitud de cada hecho o el léxico cuadren)
+    const afirmado = new Map();
+    for (const x of hits) if (x.hecho.estado === 'activo') afirmado.set(x.hecho.dimension, Math.max(afirmado.get(x.hecho.dimension) || 0, x.puntuacion));
+    for (const x of hits) if (x.hecho.estado === 'dudoso' && afirmado.has(x.hecho.dimension)) x.puntuacion = Math.min(x.puntuacion, +(afirmado.get(x.hecho.dimension) * 0.95).toFixed(3));
     // Preguntando por el PASADO (lo decide el agente con --historico): la historia de cada dimensión encontrada entra
     // entera y lo sustituido va delante («¿dónde vivía antes?» encuentra «Valencia» por «mudado» y trae «Málaga»)
     if (historico) {
@@ -840,3 +857,35 @@ export function informeUso(root, { dias = 30, ahora = hoy() } = {}) {
         silenciosRecientes: l.filter(x => !x.items.length).slice(-8).reverse().map(x => ({ consulta: x.consulta, t: x.t })),
     };
 }
+
+// ---------------------------------------------------------------- léxico multilingüe de la convención (X-T8)
+// Para cada tema canónico, cómo se dice en ~20 idiomas (es, en, ca, pt, fr, de, it, nl, pl, tr, ru, uk, el, ja, zh, ko,
+// ar, he, hi, vi, sv). Va al ÍNDICE (no a lo guardado: vale también para lo que ya existe) y no cuenta para la longitud
+// del hecho (no lo penaliza en el orden). Es lo que permite que «кто клиент?» o «客户是谁» encuentren al cliente sin
+// red ni modelo: la clave es la convención (X-T3) y la convención trae su vocabulario.
+export const LEXICO = {
+    nombre: 'name nombre nom nome naam imie isim имя імя όνομα 名前 名字 이름 اسم नाम namn',
+    ubicacion: 'location city ciudad ciutat cidade ville stadt wohnort citta stad miasto sehir город місто πόλη 都市 住所 城市 도시 مدينة עיר शहर vivo vive live lives moro habite wohne abito woon mieszkam yasiyorum живу μένω 住んでいる 住在 사는 أعيش גר रहता bor',
+    idioma: 'language idioma llengua lingua langue sprache taal jezyk dil язык мова γλώσσα 言語 语言 언어 لغة שפה भाषा sprak',
+    'zona-horaria': 'timezone zeitzone tijdzone tidszon horaria horari fuseau タイムゾーン 时区 시간대',
+    horario: 'schedule horario horari horaire arbeitszeit orario werktijden график графік ωράριο 勤務時間 工作时间 arbetstid',
+    cliente: 'client customer cliente kunde klant klient musteri клиент клієнт πελάτης クライアント 顧客 客户 客戶 고객 클라이언트 عميل العميل לקוח הלקוח ग्राहक khach kund kunden',
+    'contacto-cliente': 'contact contacto contacte contato interlocuteur ansprechpartner referente contactpersoon kontaktowa irtibat kontakt контакт контактна επαφή 担当者 联系人 담당자 الاتصال संपर्क kontaktperson',
+    stack: 'stack technology tecnologia framework technologie tecnologie technologia teknoloji технологии технології τεχνολογία 技術 技术栈 기술 تقنية טכנולוגיה तकनीक cong nghe teknik',
+    hosting: 'hosting host server servidor alojamiento allotjament hospedagem hebergement serveur serwer sunucu хостинг сервер φιλοξενία διακομιστής ホスティング サーバー 托管 服务器 호스팅 서버 استضافة خادم אחסון שרת होस्टिंग सर्वर may chu',
+    dominio: 'domain dominio domini domaine domein domena домен τομέας ドメイン 域名 도메인 نطاق דומיין डोमेन doman',
+    repositorio: 'repository repo repositorio repositori depot repozytorium depo репозиторий репозиторій αποθετήριο リポジトリ 仓库 저장소 مستودع מאגר रिपॉजिटरी',
+    'pasarela-pago': 'payment payments pagos pasarela pagaments pagamentos paiement paiements zahlung zahlungen pagamenti betaling betalingen platnosci odeme оплата платежи платежі πληρωμές 決済 支付 결제 دفع תשלום भुगतान betalning',
+    presupuesto: 'budget presupuesto pressupost orcamento budzet butce бюджет προϋπολογισμός 予算 预算 예산 ميزانية תקציב बजट',
+    plazo: 'deadline plazo termini prazo echeance frist scadenza termin teslim срок дедлайн термін προθεσμία 締め切り 截止日期 마감',
+    'gestor-paquetes': 'paquetes paquets pacotes paketmanager pacchetti pakketbeheerder pakietow paket пакетный пакетів πακέτων パッケージマネージャー 包管理器 패키지 الحزم חבילות पैकेज pakethanterare',
+    editor: 'editor editeur редактор επεξεργαστής エディタ 编辑器 에디터 محرر עורך संपादक redigerare',
+    tipografia: 'font fonts typography tipografia police typographie schrift schriftart carattere lettertype czcionka шрифт γραμματοσειρά フォント 字体 글꼴 גופן फ़ॉन्ट typsnitt',
+    'color-marca': 'brand corporativo corporatiu markenfarbe merkkleur ブランドカラー 品牌色 브랜드 ब्रांड varumarkesfarg',
+    analitica: 'analytics analitica analytique statistiques analytik analisi analityka analitik аналитика аналітика αναλυτικά アナリティクス 分析 분석 تحليلات אנליטיקה एनालिटिक्स phan tich analys',
+    lanzamiento: 'launch release lanzamiento llancament lancamento lancement markteinfuhrung lancio lancering premiera lansman запуск κυκλοφορία ローンチ 发布 출시 إطلاق השקה लॉन्च lansering',
+    tests: 'tests testing pruebas proves testes essais testen testy testler тесты тести δοκιμές テスト 测试 테스트 اختبارات בדיקות परीक्षण tester',
+};
+const LEXICO_TOKENS = new Map(Object.entries(LEXICO).map(([t, s]) => [t, palabras(s)]));
+// Las palabras del léxico de un hecho (si su tema es de la convención); [] si no
+function lexicoDe(dimension) { return LEXICO_TOKENS.get(dimension.slice(dimension.indexOf('.') + 1)) || []; }

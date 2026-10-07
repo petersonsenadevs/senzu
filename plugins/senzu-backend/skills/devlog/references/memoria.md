@@ -122,6 +122,8 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   (`project.alojamiento`) se lleva solo a lo canónico (`proyecto.hosting`) y SUSTITUYE al valor viejo. Una familia
   fuera de la lista no se guarda. `--claves`: el término en inglés y el del idioma del usuario (en los temas fijos,
   el inglés lo pone el motor). Si una dimensión nueva comparte claves con otra, avisa: puede ser el mismo dato.
+  Los temas fijos traen además su léxico en ~20 idiomas (en el índice, sin red): «кто клиент?» o «客户是谁» encuentran
+  al cliente aunque nadie guardara claves en ruso o en chino.
 - **Familias que acumulan** (objetivo, pendiente, nota, hecho, aprendizaje); el resto, un valor vigente por
   dimensión. `--duda` para lo no afirmado del todo; `--alcance usuario` para lo que vale en todos sus proyectos.
 - **Procedencia**: `--fuente usuario` (por defecto: lo afirmó), `devlog` o `agente` (lo dedujiste tú). Lo deducido

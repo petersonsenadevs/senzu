@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **feature** — Léxico multilingüe de la convención: +11 puntos de recuerdo en la batería dura (X-T8) (entrada 129)
 - **test** — Batería grande y dura: 386 preguntas en dos proyectos, línea base honesta (X-T5) (entrada 128)
 - **feature** — Cortex vivo: se regenera al cerrar y el 3D elige zona (X-T7) (entrada 127)
 - **feature** — Contradicciones de la memoria al empezar la sesión (X-T6) (entrada 126)
