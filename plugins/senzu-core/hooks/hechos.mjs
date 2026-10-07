@@ -121,6 +121,13 @@ export function olvidarHecho(root, id) {
 }
 export function todosLosHechos(root) { return ['proyecto', 'usuario'].flatMap(a => leerHechos(rutaHechos(root, a))); }
 
+// Palabra con peso en CUALQUIER idioma (sin listas de palabras vacías, que son de cada idioma): 4+ letras, un número,
+// o kanji/katakana/hangul, donde las palabras son cortas por naturaleza (el hiragana suelto son partículas: は, が,
+// に; cuenta desde 3). «el», «de», «of», «في» suman a la puntuación, pero un hecho solo cuenta si coincide al
+// menos una palabra con peso.
+export const palabraConPeso = w => [...w].length >= 4 || /\p{N}/u.test(w) || /[\p{Script=Han}\p{Script=Katakana}\p{Script=Hangul}]/u.test(w)
+    || (/^\p{Script=Hiragana}+$/u.test(w) && [...w].length >= 3);
+
 // ---------------------------------------------------------------- buscar (BM25 + erratas + cupos por familia)
 // historico: también lo sustituido y caducado («¿dónde vivía antes?»: lo decide el agente, que entiende la pregunta)
 export function buscarHechos(root, consulta, { historico = false, limite = 8, ahora = hoy() } = {}) {
@@ -131,11 +138,13 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     const media = toks.reduce((s, t) => s + t.length, 0) / toks.length || 1;
     const df = new Map();
     for (const t of toks) for (const w of new Set(t)) df.set(w, (df.get(w) || 0) + 1);
-    const idf = w => Math.log(1 + (docs.length - (df.get(w) || 0) + 0.5) / ((df.get(w) || 0) + 0.5));
+    // IDF suavizado: con el clásico, un término presente en TODOS los hechos vale ~0 (en una memoria pequeña pasa a
+    // menudo y dejaba fuera justo lo relevante); así sigue contando algo (≈0,7) y los raros pesan más
+    const idf = w => Math.log(1 + (docs.length + 1) / ((df.get(w) || 0) + 0.5));
     const hits = docs.map((h, i) => {
         const t = toks[i], tf = new Map();
         for (const w of t) tf.set(w, (tf.get(w) || 0) + 1);
-        let score = 0; const motivo = [];
+        let score = 0, conPesoCoincide = false; const motivo = [];
         for (const w of q) {
             let termino = w, peso = 1;
             if (!tf.has(w)) {   // errata o variante: la palabra del hecho más parecida
@@ -146,8 +155,9 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
             } else motivo.push(w);
             const f = tf.get(termino);
             score += peso * idf(termino) * (f * 2.2) / (f + 1.2 * (0.25 + 0.75 * t.length / media));
+            if (palabraConPeso(termino)) conPesoCoincide = true;
         }
-        return { hecho: h, puntuacion: +score.toFixed(3), motivo };
+        return { hecho: h, puntuacion: conPesoCoincide ? +score.toFixed(3) : 0, motivo };
     }).filter(x => x.puntuacion > 0).sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
     return conCupos(hits, limite, x => familia(x.hecho.dimension)).map(x => ({ ...x,
         motivo: `coincide: ${x.motivo.join(', ')}` + (x.hecho.estado === 'sustituido' ? ` · ya no vigente (sustituido el ${String(x.hecho.hasta || '').slice(0, 10)})` : '')
@@ -184,6 +194,7 @@ function buscarEnDevlog(root, consulta, limite) {
 export function recuerdo(root, consulta, { limite = 6, historico = false } = {}) {
     const hechos = buscarHechos(root, consulta, { historico, limite }).map(x => ({
         fuente: 'hecho', id: x.hecho.id, texto: `[${x.hecho.dimension}] ${x.hecho.valor}`, motivo: x.motivo, ver: x.hecho.devlog || null, hecho: x.hecho,
+        puntuacion: x.puntuacion,
     }));
     const vistos = new Set();
     const dl = buscarEnDevlog(root, consulta, limite)
@@ -191,7 +202,7 @@ export function recuerdo(root, consulta, { limite = 6, historico = false } = {})
         .filter(r => { const d = (/\bD-\d+\b/.exec(r.fragmento || '') || [])[0]; if (!d) return true; if (vistos.has(d)) return false; vistos.add(d); return true; })
         .map(r => ({ fuente: r.clase === 'memoria' ? 'memoria' : 'devlog', id: r.num ? `${r.clase === 'memoria' ? 'MEMORIA' : r.num}` : r.archivo,
             texto: String(r.fragmento || r.titulo || '').trim(), motivo: `${r.titulo}${r.seccion && r.seccion !== r.titulo ? ' § ' + r.seccion : ''}${r.sustituida ? ' · sustituida' : ''}`,
-            ver: r.num || null, archivo: r.archivo }));
+            ver: r.num || null, archivo: r.archivo, puntuacion: Number(r.puntos) || 0 }));
     const grupos = [hechos, dl.filter(x => x.fuente === 'memoria'), dl.filter(x => x.fuente === 'devlog')];
     const out = [];
     while (out.length < limite && grupos.some(g => g.length)) for (const g of grupos) if (g.length && out.length < limite) out.push(g.shift());

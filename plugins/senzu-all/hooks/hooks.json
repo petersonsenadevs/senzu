@@ -23,6 +23,11 @@
                                                                  "type":  "command",
                                                                  "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/memoria-viva.mjs\"",
                                                                  "timeout":  30
+                                                             },
+                                                             {
+                                                                 "type":  "command",
+                                                                 "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/recuerdo-vivo.mjs\"",
+                                                                 "timeout":  30
                                                              }
                                                          ]
                                            }

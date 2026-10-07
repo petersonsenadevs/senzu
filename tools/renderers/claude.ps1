@@ -6,7 +6,7 @@ function Get-HookSet {
     param([bool]$HasFront)
     $set = [ordered]@{
         SessionStart     = @(@{ matcher = $null; files = @('session-start.mjs') })
-        UserPromptSubmit = @(@{ matcher = $null; files = @('prompt-router.mjs', 'memoria-viva.mjs') })
+        UserPromptSubmit = @(@{ matcher = $null; files = @('prompt-router.mjs', 'memoria-viva.mjs', 'recuerdo-vivo.mjs') })
         PreToolUse       = @(
             @{ matcher = 'Bash|PowerShell';                   files = @('guard.mjs') },
             @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }

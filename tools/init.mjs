@@ -415,7 +415,7 @@ const BASE_DENY = [
 function hookSet(hasFront) {
     return {
         SessionStart: [{ matcher: null, files: ['session-start.mjs'] }],
-        UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs', 'memoria-viva.mjs'] }],
+        UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs', 'memoria-viva.mjs', 'recuerdo-vivo.mjs'] }],
         PreToolUse: [
             { matcher: 'Bash|PowerShell', files: ['guard.mjs'] },
             { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
@@ -456,6 +456,7 @@ const HOOKS_ELEGIBLES = [
     ['format-on-save', 'Formatea cada archivo con la herramienta del stack'],
     ['stop-guard', 'No deja cerrar sin verificar ni documentar'],
     ['cierre-limpio', 'No deja cerrar con archivos propios sin commitear; avisa de los de otro agente'],
+    ['recuerdo-vivo', 'Con cada mensaje, lo que la memoria ya sabe de eso (hechos, decisiones y devlog), como datos'],
     ['arquitectura-guard', 'Hace cumplir la arquitectura declarada (capas, contextos de DDD, controlador sin ORM, DTO, carpetas)'],
     ['feature-guard', 'Backend: no deja cerrar una feature sin test, con migraciones sin probar o claves nuevas sin .env.example'],
     ['tarjeta-guard', 'Una tarjeta del plan no pasa a done sin Verificado, Cumple y su devlog'],

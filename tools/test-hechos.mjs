@@ -68,6 +68,17 @@ ok(m.buscarHechos(B, 'xyzzy').length === 0, 'sin coincidencias: vacío (no inven
 const cerca = m.buscarHechos(B, 'pnpm');
 ok(/coincide: pnpm/.test(cerca[0].motivo), 'cada resultado trae su motivo', cerca[0].motivo);
 
+// 3b. palabras vacías en cualquier idioma (sin listas por idioma): solas no bastan para que un hecho cuente
+const S = proyecto('vacias');
+m.guardarHecho(S, { dimension: 'restriccion.presupuesto', valor: 'máximo 3000 € para el cliente de la tienda' }, { ahora: T(S, 0) });
+m.guardarHecho(S, { dimension: 'identidad.ubicacion', valor: 'أعيش في القاهرة' }, { ahora: T(S, 1) });
+m.guardarHecho(S, { dimension: 'identidad.ciudad', valor: '私は東京に住んでいます' }, { ahora: T(S, 2) });
+ok(m.buscarHechos(S, 'cambia el color de la cabecera a gris').length === 0, 'español: «el», «de», «la» no hacen coincidir nada', JSON.stringify(m.buscarHechos(S, 'cambia el color de la cabecera a gris').map(x => x.motivo)));
+ok(m.buscarHechos(S, 'what is in the box of the page').length === 0, 'inglés: «is», «in», «of», «the» tampoco');
+ok(m.buscarHechos(S, 'ما في الصندوق').length === 0, 'árabe: «في» sola no basta');
+ok(m.buscarHechos(S, '猫は可愛いです').every(x => x.hecho.dimension !== 'identidad.ciudad'), 'japonés: la partícula «は» no basta');
+ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S, '東京').dimension === 'identidad.ciudad' && primero(S, '3000').dimension === 'restriccion.presupuesto', 'pero una palabra con peso (en cualquier escritura) o un número sí');
+
 // 4. cupos por familia: que una familia no se coma el espacio
 const C = proyecto('cupos');
 for (let i = 0; i < 6; i++) m.guardarHecho(C, { dimension: `nota.${i}`, valor: `nota de diseño ${i}`, claves: ['diseño'] }, { ahora: T(C, i) });
