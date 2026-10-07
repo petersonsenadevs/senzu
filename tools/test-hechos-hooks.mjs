@@ -318,6 +318,14 @@ const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abierto
     ok(/Consolida lo aprendido/.test(cierre(P, s)), 'guardar otros hechos (no aprendizaje.*) no cuenta como consolidar');
 }
 
+// ---------------------------------------------------------------- X-T2 · saber que no sabe, de punta a punta
+{
+    const P = proyecto('no-sabe');
+    m.guardarHecho(P, { dimension: 'proyecto.tests', valor: 'pruebas unitarias con Pest', claves: ['tests', 'testing', 'pruebas'] }, { ahora: T(0) });
+    ok(!/Pest/.test(mensaje(P, '¿tenemos pruebas end to end con Playwright?', `ns1-${RUN}`)), 'pregunta por Playwright (desconocido): recuerdo-vivo no inyecta «pruebas con Pest»');
+    ok(/Pest/.test(mensaje(P, '¿cómo hacemos las pruebas del proyecto?', `ns2-${RUN}`)), 'sin nombres desconocidos, sí lo inyecta');
+}
+
 // ---------------------------------------------------------------- F6-T5 · lo que llega al agente cuenta como uso
 {
     const P = proyecto('usos');

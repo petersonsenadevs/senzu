@@ -132,6 +132,8 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
 - **Llega sola**: al iniciar (lo vigente), con cada mensaje (recuerdo-vivo: hechos, decisiones y devlog de lo que
   se habla) y al editar (los hechos del tema del archivo). Consulta a mano: `--recordar "…"` (las tres memorias),
   `--buscar "…"` (`--historico` para el pasado).
+- **Sabe que no sabe**: si la pregunta nombra algo que la memoria no conoce («Playwright», «PHP») y solo roza una
+  palabra, no se inyecta; --buscar lo enseña marcado. Lo débil restante va marcado para que decidas tú.
 - **Se exige**: hechos-guard no deja cerrar una sesión con conversación sin revisar la memoria (`--guardar` o
   `--nada`). memoria-check avisa de decisiones que citan un valor ya sustituido.
 - **Consolidar**: si la sesión tocó 3 o más archivos de trabajo (sin contar devlog, plan ni memoria) y no guardó

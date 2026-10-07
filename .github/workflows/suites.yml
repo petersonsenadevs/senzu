@@ -93,7 +93,7 @@ jobs:
         run: node tools/test-hechos-robustez.mjs
 
       - name: eval-hechos (recuerdo multilingüe medido; mínimos de no regresión)
-        run: node tools/eval-hechos.mjs --min-recall3 97 --min-recall1 90 --min-abstencion 72
+        run: node tools/eval-hechos.mjs --min-recall3 97 --min-recall1 90 --min-abstencion 86
 
       - name: test-cortex (la memoria en HTML; la vista de cliente sin nada privado en el archivo)
         run: node tools/test-cortex.mjs

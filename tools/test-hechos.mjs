@@ -258,6 +258,28 @@ ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S
     ok(m.todosLosHechos(U).find(h => h.valor === 'Redsys').usos === 2, 'CLI: --recordar también');
 }
 
+// 3h. saber que no sabe (X-T2): la pregunta nombra algo que la memoria no conoce y solo roza una palabra
+{
+    const S = proyecto('no-sabe');
+    m.guardarHecho(S, { dimension: 'proyecto.tests', valor: 'pruebas unitarias con Pest', claves: ['tests', 'testing'] }, { ahora: T(S, 0) });
+    m.guardarHecho(S, { dimension: 'proyecto.hosting', valor: 'servidor de producción en Hetzner', claves: ['hosting', 'servidor'] }, { ahora: T(S, 1) });
+    m.guardarHecho(S, { dimension: 'proyecto.pagos', valor: 'Stripe con webhooks firmados', claves: ['pagos', 'payments'] }, { ahora: T(S, 2) });
+    const v = new Set(['api', 'stripe', 'pagos']);
+    ok(m.nombresDesconocidos('¿usamos PHP 8 en GitHub con la API y php8?', v).join() === 'PHP,GitHub,php8', 'nombres: siglas, mayúsculas por dentro y letras con cifras; lo que ya se conoce (API), no', m.nombresDesconocidos('¿usamos PHP 8 en GitHub con la API y php8?', v).join());
+    ok(m.nombresDesconocidos('¿tenemos pruebas end to end con Playwright?', v).join() === 'Playwright', 'nombres: mayúscula inicial que no abre la frase');
+    ok(m.nombresDesconocidos('Wie heißt der Kunde des Projekts?', new Set()).length === 0, 'en alemán (todos los sustantivos en mayúscula) no se toma la mayúscula inicial como nombre');
+    ok(m.nombresDesconocidos('東京に住んでいます', new Set()).length === 0 && m.nombresDesconocidos('', v).length === 0, 'sin mayúsculas (o sin pregunta) no se inventa nada');
+    ok(m.nombresDesconocidos('¿usamos Markdown?', new Set(['market'])).join() === 'Markdown', 'para nombres no vale la raíz común («markdown» no es «market»)');
+    const sobre = q => m.buscarHechos(S, q).filter(x => x.puntuacion >= m.UMBRAL_RECUERDO);
+    ok(sobre('¿tenemos pruebas end to end con Playwright?').length === 0, 'pregunta por Playwright, que no conoce: no inyecta «pruebas con Pest»');
+    ok(sobre('¿qué versión de PHP hay en el servidor de staging?').length === 0, 'pregunta por PHP: no inyecta el servidor de Hetzner');
+    const todos = m.buscarHechos(S, '¿tenemos pruebas end to end con Playwright?');
+    ok(todos.length && /nombra «Playwright», que la memoria no conoce/.test(todos[0].motivo), 'pero --buscar sigue enseñándolo, con el motivo', todos[0] && todos[0].motivo);
+    ok(sobre('¿cómo cobramos los pagos con Stripe?').length === 1, 'si el nombre SÍ lo conoce, responde');
+    ok(sobre('¿qué tests corren con Pest?')[0]?.hecho.dimension === 'proyecto.tests', 'si coincide más de una palabra, el nombre desconocido no importa');
+    ok(sobre('¿dónde está el servidor?')[0]?.hecho.dimension === 'proyecto.hosting', 'una pregunta corta sin nombres sigue respondiendo');
+}
+
 // 4. cupos por familia: que una familia no se coma el espacio
 const C = proyecto('cupos');
 for (let i = 0; i < 6; i++) m.guardarHecho(C, { dimension: `nota.${i}`, valor: `nota de diseño ${i}`, claves: ['diseño'] }, { ahora: T(C, i) });

@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **fix** — Saber que no sabe: abstención del 73 % al 88,5 % sin perder recuerdo (X-T2) (entrada 123)
 - **test** — Cortex: revisión y lanzamiento, veredicto LISTA (F7-T4) (entrada 122)
 - **fix** — Cortex: multiidioma, 3D anatómico con flujo de neuronas, 2D afinado y modo claro (entrada 121)
 - **feature** — Cortex: la memoria en un HTML local, 2D/3D por zonas, y vista de cliente sin nada privado (F7-T3) (entrada 120)

@@ -340,6 +340,34 @@ export const palabraConPeso = w => [...w].length >= 4 || /\p{N}/u.test(w) || /[\
     || (/^\p{Script=Hiragana}+$/u.test(w) && [...w].length >= 3)
     || /^[bcdfghjklmnpqrstvwxz]{3}$/.test(w);   // siglas latinas sin vocales: npm, css, php, sql, ssh, dns
 
+// Nombres propios de la pregunta que la memoria NO conoce (X-T2). Nombre = sigla («PHP», «CI»), mayúscula por
+// dentro («GitHub», «PostgreSQL»), letras con cifras («php8», «v18») o mayúscula inicial que no abre la frase
+// («Playwright», «Markdown»). En escrituras sin mayúsculas no hay nada que detectar (y no se inventa). En alemán todos
+// los sustantivos van en mayúscula: si la pregunta tiene dos o más con mayúscula inicial, esa pista no se usa (solo
+// siglas y mayúsculas por dentro). Desconocido = ni está en lo guardado ni se parece (errata o misma raíz).
+export function nombresDesconocidos(consulta, vocabulario) {
+    const crudas = [];
+    for (const s of SEG.segment(String(consulta || ''))) if (s.isWordLike && /\p{L}/u.test(s.segment)) crudas.push(s.segment);
+    const inicial = crudas.map((w, i) => i > 0 && /^\p{Lu}\p{Ll}/u.test(w));
+    const usarInicial = inicial.filter(Boolean).length < 2;
+    const conocida = w => {
+        if (vocabulario.has(w)) return true;
+        const max = maxErratas(w);
+        // para NOMBRES no vale la raíz común de las flexiones («markdown» no es «market»): igual, una errata o uno
+        // dentro del otro («api» / «apis»)
+        for (const v of vocabulario) if ((max && distancia(w, v, max) <= max) || (Math.min(w.length, v.length) >= 3 && (v.startsWith(w) || w.startsWith(v)))) return true;
+        return false;
+    };
+    const out = [];
+    crudas.forEach((w, i) => {
+        const sigla = /^\p{Lu}{2,}\d*$/u.test(w), interior = /\p{Ll}\p{Lu}/u.test(w), cifras = /\p{L}/u.test(w) && /\d/.test(w);
+        if (!(sigla || interior || cifras || (usarInicial && inicial[i]))) return;
+        const n = normalizar(w);
+        if (!conocida(n)) out.push(w);
+    });
+    return [...new Set(out)];
+}
+
 // Umbral a partir del cual un hecho se INYECTA solo (recuerdo-vivo) y con el que se mide la evaluación (F4).
 export const UMBRAL_RECUERDO = 0.8;
 
@@ -360,6 +388,7 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     // menudo y dejaba fuera justo lo relevante); así sigue contando algo (≈0,7) y los raros pesan más
     const idf = w => Math.log(1 + (docs.length + 1) / ((df.get(w) || 0) + 0.5));
     const qConPeso = q.filter(palabraConPeso).length;
+    const desconocidos = nombresDesconocidos(consulta, new Set(toks.flat()));
     const hits = docs.map((h, i) => {
         const t = toks[i], tf = new Map();
         for (const w of t) tf.set(w, (tf.get(w) || 0) + 1);
@@ -387,7 +416,13 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
         // cobertura que lo hacía hundía el recuerdo del 98,5 % al 78,8 %: las palabras de pregunta también tienen
         // peso), pero se marca para que el agente, que sí entiende el sentido, decida si viene al caso (F4-T4).
         const debil = qConPeso >= 3 && conPesoQueCoinciden.size === 1;
-        return { hecho: h, puntuacion: conPesoCoincide ? +(score * pesoConfianza(h) * pesoUso(h, ahora)).toFixed(3) : 0, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined };
+        // Saber que no sabe (X-T2): si además la pregunta NOMBRA algo que la memoria no ha oído nunca («Playwright»,
+        // «PHP», «CI»), ese roce de una palabra («pruebas», «servidor») no es la respuesta: baja por debajo del umbral
+        // (no se inyecta solo; --buscar lo sigue enseñando, con el motivo)
+        const nombra = debil && desconocidos.length ? desconocidos : null;
+        let puntuacion = conPesoCoincide ? +(score * pesoConfianza(h) * pesoUso(h, ahora)).toFixed(3) : 0;
+        if (nombra && puntuacion) puntuacion = +Math.min(puntuacion * 0.2, UMBRAL_RECUERDO * 0.75).toFixed(3);   // siempre bajo el umbral
+        return { hecho: h, puntuacion, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined, nombra };
     }).filter(x => x.puntuacion > 0);
     // Preguntando por el PASADO (lo decide el agente con --historico): la historia de cada dimensión encontrada entra
     // entera y lo sustituido va delante («¿dónde vivía antes?» encuentra «Valencia» por «mudado» y trae «Málaga»)
@@ -422,7 +457,8 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
             + (x.hecho.progreso === 'en-curso' && x.hecho.estado === 'activo' ? ' · en curso' : '')
             + (x.hecho.estado === 'dudoso' ? ' · dudoso (el usuario no lo afirmó del todo)' : '')
             + (x.hecho.fuente === 'agente' ? ' · lo dedujo el agente (el usuario no lo dijo)' : x.hecho.fuente === 'devlog' ? ' · sacado del devlog' : '')
-            + (x.debil ? ` · relación débil (solo coincide «${x.solo}»: úsalo solo si de verdad viene al caso)` : '') }));
+            + (x.debil ? ` · relación débil (solo coincide «${x.solo}»: úsalo solo si de verdad viene al caso)` : '')
+            + (x.nombra ? ` · la pregunta nombra «${x.nombra.join('», «')}», que la memoria no conoce: no es la respuesta` : '') }));
 }
 // Reparto por turnos entre familias: que un tipo de recuerdo no se coma todo el espacio
 function conCupos(lista, limite, fam) {
