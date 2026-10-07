@@ -92,8 +92,11 @@ jobs:
       - name: test-hechos-robustez (archivo dañado, concurrencia, 10 000 hechos, Unicode raro, rutas)
         run: node tools/test-hechos-robustez.mjs
 
-      - name: eval-hechos (recuerdo multilingüe medido; mínimos de no regresión)
-        run: node tools/eval-hechos.mjs --min-recall3 97 --min-recall1 90 --min-abstencion 86
+      - name: eval-hechos base (recuerdo multilingüe medido; mínimos de no regresión)
+        run: node tools/eval-hechos.mjs --corpus base --min-recall3 97 --min-recall1 90 --min-abstencion 86
+
+      - name: eval-hechos total (con la batería dura de FitLab; mínimos de no regresión)
+        run: node tools/eval-hechos.mjs --min-recall3 85 --min-recall1 79 --min-abstencion 62
 
       - name: test-cortex (la memoria en HTML; la vista de cliente sin nada privado en el archivo)
         run: node tools/test-cortex.mjs

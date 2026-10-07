@@ -5,7 +5,7 @@
 // recuerdo vivo (UMBRAL_RECUERDO).
 //   recall@1 / recall@3: con respuesta, el hecho esperado sale el primero / entre los 3 primeros
 //   abstención: sin respuesta (o no vigente), no sale nada por encima del umbral
-//   node tools/eval-hechos.mjs [--fallos] [--json] [--estricto] [--solo desarrollo|reservada]
+//   node tools/eval-hechos.mjs [--fallos] [--json] [--estricto] [--solo desarrollo|reservada] [--corpus base|fitlab]
 // --estricto sale con 1 si no llega a los objetivos (recall@3 ≥ 90 % y abstención ≥ 90 %).
 
 import fs from 'node:fs';
@@ -20,30 +20,51 @@ const solo = (() => { const i = args.indexOf('--solo'); return i >= 0 ? args[i +
 const base = fs.mkdtempSync(path.join(os.tmpdir(), 'senzu-eval-hechos-'));
 process.env.SENZU_MEMORIA_USUARIO = path.join(base, 'usuario', 'memoria.md');
 const m = await import(pathToFileURL(path.join(process.env.SENZU_HOOKS_DIR || path.join(ROOT, 'core', 'hooks'), 'hechos.mjs')).href);
-const corpus = JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'eval-hechos', 'corpus.json'), 'utf8'));
+// Todos los corpus de tools/eval-hechos/ (X-T5): cada uno es un proyecto distinto con SU memoria de usuario
+const DIR = path.join(ROOT, 'tools', 'eval-hechos');
+const corpora = fs.readdirSync(DIR).filter(f => /^corpus.*\.json$/.test(f)).sort().map(f => ({ nombre: f.replace(/^corpus-?|\.json$/g, '') || 'base', ...JSON.parse(fs.readFileSync(path.join(DIR, f), 'utf8')) }));
+const soloCorpus = (() => { const i = args.indexOf('--corpus'); return i >= 0 ? args[i + 1] : null; })();
 
-// el proyecto, con los hechos guardados en su orden (t), como en la vida real
-const P = path.join(base, 'proyecto');
-fs.mkdirSync(path.join(P, 'senzu'), { recursive: true });
-fs.writeFileSync(path.join(P, 'senzu', 'senzu.json'), '{}');
-const T0 = Date.UTC(2026, 9, 1, 9, 0, 0);
-const ids = new Map();
-for (const h of [...corpus.hechos].sort((a, b) => a.t - b.t)) {
-    const r = m.guardarHecho(P, { dimension: h.dimension, valor: h.valor, texto: h.texto, claves: h.claves, alcance: h.alcance, idioma: h.idioma, duda: h.duda, desde: h.desde, hasta: h.hasta, enlaces: h.enlaces },
-        { ahora: new Date(T0 + h.t * 1000).toISOString() });
-    ids.set(r.hecho.id, h.id);
+// Relleno determinista (muchos hechos parecidos entre sí: ruido de verdad). La primera mitad, suministro; la segunda,
+// mantenimiento, para que no haya dos con la misma combinación y «¿quién mantiene…?» tenga competidores.
+function relleno(r) {
+    if (!r) return [];
+    return Array.from({ length: r.n }, (_, i) => {
+        const eq = r.equipos[i % r.equipos.length], ci = r.ciudades[Math.floor(i / r.equipos.length) % r.ciudades.length], em = r.empresas[(i * 7) % r.empresas.length];
+        const mant = i >= r.n / 2;
+        return { id: `r${i}`, dimension: `${r.familia}.${r.prefijo}-${i}`, valor: `${mant ? 'mantenimiento' : 'proveedor'} de ${eq} en ${ci}: ${em}`,
+            claves: mant ? ['maintenance', 'mantenimiento'] : ['supplier', 'proveedor'], t: 100 + i };
+    });
 }
 
 const UMBRAL = m.UMBRAL_RECUERDO;
+const T0 = Date.UTC(2026, 9, 1, 9, 0, 0);
 const filas = [];
-for (const q of corpus.preguntas) {
-    if (solo === 'desarrollo' && q.reservada) continue;
-    if (solo === 'reservada' && !q.reservada) continue;
-    const hits = m.buscarHechos(P, q.q, { historico: !!q.historico, limite: 3 }).filter(x => x.puntuacion >= UMBRAL);
-    const got = hits.map(x => ids.get(x.hecho.id));
-    const conRespuesta = q.espera !== null;
-    filas.push({ ...q, got, top: hits[0] ? `${ids.get(hits[0].hecho.id)} (${hits[0].puntuacion}; ${hits[0].motivo})` : '—',
-        r1: conRespuesta ? got[0] === q.espera : null, r3: conRespuesta ? got.includes(q.espera) : null, calla: conRespuesta ? null : got.length === 0 });
+let totalHechos = 0;
+for (const corpus of corpora) {
+    if (soloCorpus && corpus.nombre !== soloCorpus) continue;
+    // el proyecto, con los hechos guardados en su orden (t), como en la vida real
+    const P = path.join(base, 'proyecto-' + corpus.nombre);
+    fs.mkdirSync(path.join(P, 'senzu'), { recursive: true });
+    fs.writeFileSync(path.join(P, 'senzu', 'senzu.json'), '{}');
+    process.env.SENZU_MEMORIA_USUARIO = path.join(base, 'usuario-' + corpus.nombre, 'memoria.md');
+    const ids = new Map();
+    const hechos = [...corpus.hechos, ...relleno(corpus.relleno)];
+    totalHechos += hechos.length;
+    for (const h of hechos.sort((a, b) => a.t - b.t)) {
+        const r = m.guardarHecho(P, { dimension: h.dimension, valor: h.valor, texto: h.texto, claves: h.claves, alcance: h.alcance, idioma: h.idioma, duda: h.duda, desde: h.desde, hasta: h.hasta, enlaces: h.enlaces },
+            { ahora: new Date(T0 + h.t * 1000).toISOString() });
+        ids.set(r.hecho.id, h.id);
+    }
+    for (const q of corpus.preguntas) {
+        if (solo === 'desarrollo' && q.reservada) continue;
+        if (solo === 'reservada' && !q.reservada) continue;
+        const hits = m.buscarHechos(P, q.q, { historico: !!q.historico, limite: 3 }).filter(x => x.puntuacion >= UMBRAL);
+        const got = hits.map(x => ids.get(x.hecho.id));
+        const conRespuesta = q.espera !== null;
+        filas.push({ ...q, corpus: corpus.nombre, got, top: hits[0] ? `${ids.get(hits[0].hecho.id)} (${hits[0].puntuacion}; ${hits[0].motivo})` : '—',
+            r1: conRespuesta ? got[0] === q.espera : null, r3: conRespuesta ? got.includes(q.espera) : null, calla: conRespuesta ? null : got.length === 0 });
+    }
 }
 fs.rmSync(base, { recursive: true, force: true });
 
@@ -56,20 +77,22 @@ function medir(l) {
 const agrupar = clave => Object.fromEntries([...new Set(filas.map(f => f[clave]))].sort().map(k => [k, medir(filas.filter(f => f[clave] === k))]));
 const total = medir(filas);
 const res = { umbral: UMBRAL, total, desarrollo: medir(filas.filter(f => !f.reservada)), reservada: medir(filas.filter(f => f.reservada)),
-    porCategoria: agrupar('cat'), porIdioma: agrupar('lang'), fallos: filas.filter(f => f.r3 === false || f.calla === false) };
+    porCorpus: agrupar('corpus'), porCategoria: agrupar('cat'), porIdioma: agrupar('lang'), fallos: filas.filter(f => f.r3 === false || f.calla === false) };
 
 if (opt('--json')) { process.stdout.write(JSON.stringify(res, null, 2) + '\n'); }
 else {
     const f = x => (x === null ? '  —  ' : `${String(x).padStart(5)}%`);
     const linea = (n, x) => `  ${n.padEnd(14)} ${String(x.preguntas).padStart(3)} preg.  recall@1 ${f(x.recall1)}  recall@3 ${f(x.recall3)}  abstención ${f(x.abstencion)}`;
-    process.stdout.write(`Evaluación de la memoria de hechos (umbral ${UMBRAL}; ${corpus.hechos.length} hechos)\n`);
-    process.stdout.write(linea('TOTAL', total) + '\n' + linea('desarrollo', res.desarrollo) + '\n' + linea('reservada', res.reservada) + '\n\nPor categoría:\n');
+    process.stdout.write(`Evaluación de la memoria de hechos (umbral ${UMBRAL}; ${totalHechos} hechos en ${Object.keys(res.porCorpus).length} proyectos)\n`);
+    process.stdout.write(linea('TOTAL', total) + '\n' + linea('desarrollo', res.desarrollo) + '\n' + linea('reservada', res.reservada) + '\n\nPor corpus:\n');
+    for (const [k, v] of Object.entries(res.porCorpus)) process.stdout.write(linea(k, v) + '\n');
+    process.stdout.write('\nPor categoría:\n');
     for (const [k, v] of Object.entries(res.porCategoria)) process.stdout.write(linea(k, v) + '\n');
     process.stdout.write('\nPor idioma:\n');
     for (const [k, v] of Object.entries(res.porIdioma)) process.stdout.write(linea(k, v) + '\n');
     if (opt('--fallos')) {
         process.stdout.write(`\nFallos (${res.fallos.length}):\n`);
-        for (const x of res.fallos) process.stdout.write(`  [${x.cat}/${x.lang}${x.reservada ? '/R' : ''}] «${x.q}» → espera ${x.espera ?? 'nada'}, sale ${x.got.join(',') || 'nada'} · ${x.top}\n`);
+        for (const x of res.fallos) process.stdout.write(`  [${x.corpus}/${x.cat}/${x.lang}${x.reservada ? '/R' : ''}] «${x.q}» → espera ${x.espera ?? 'nada'}, sale ${x.got.join(',') || 'nada'} · ${x.top}\n`);
     }
 }
 if (opt('--estricto') && (total.recall3 < 90 || total.abstencion < 90)) process.exit(1);
