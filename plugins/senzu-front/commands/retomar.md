@@ -12,6 +12,8 @@ Reconstruye dónde se quedó el trabajo SIN pedirle al usuario que lo cuente, y 
    agente, no lo des por tuyo) y `git log --oneline -5` (lo último que se cerró).
 3. **El plan y el devlog**: la tarea `doing` de `senzu/plan/PLAN.md` y los «Próximos pasos» de la última entrada
    del devlog.
+3b. **Lo que aprendió**: los hechos que guardó la sesión anterior («hechos que aprendió» en el aviso, o
+   `hechosGuardados` en el estado). Para más contexto de un tema: `node <skills-dir>/devlog/scripts/memoria.mjs --recordar "tema"`.
 4. **Resume en 3-5 líneas**: qué se estaba haciendo, qué está hecho, qué falta y qué quedó sin commitear.
    Después propón el siguiente paso concreto y pregunta si sigues por ahí. No empieces a cambiar nada hasta que
    el usuario lo confirme, salvo que haya dicho «sigue».

@@ -10,6 +10,7 @@ import {
     readHookInput, projectRoot, sessionFlag, testOnce, editadosSesion, gitCambios, gitBranch, planStatus,
     devlogEntradas, readText, rutaEstado, memoriaProyecto, rutaMemoriaUsuario, ruta, rutaRel,
 } from './lib.mjs';
+import { todosLosHechos } from './hechos.mjs';
 
 const p = readHookInput() || {};
 const root = projectRoot();
@@ -20,7 +21,13 @@ const evento = p.hook_event_name || 'Stop';
 let peticiones = [];
 try { peticiones = JSON.parse(fs.readFileSync(sessionFlag(sid, 'peticiones'), 'utf8')); } catch {}
 const editados = editadosSesion(sid);
-if (peticiones.length || editados.length) {
+// Hechos que la sesión guardó en la memoria de hechos (los apunta hechos-guard): la siguiente sesión sabe qué aprendió
+let hechosGuardados = [];
+try {
+    const ids = new Set((JSON.parse(fs.readFileSync(sessionFlag(sid, 'memoria-revisada'), 'utf8')).guardados) || []);
+    if (ids.size) hechosGuardados = todosLosHechos(root).filter(h => ids.has(h.id)).map(h => ({ id: h.id, dimension: h.dimension, valor: h.valor, estado: h.estado }));
+} catch {}
+if (peticiones.length || editados.length || hechosGuardados.length) {
     const cambios = gitCambios(root);
     const clave = r => (process.platform === 'win32' ? r.toLowerCase() : r);
     const mios = new Set(editados.map(clave));
@@ -34,6 +41,7 @@ if (peticiones.length || editados.length) {
         ajenosSinCommitear: cambios.filter(r => !mios.has(clave(r))).length,
         planEnCurso: planStatus(root).doing,
         ultimaEntrada: titulo,
+        hechosGuardados,
     };
     try { fs.writeFileSync(rutaEstado(root), JSON.stringify(estado, null, 2) + '\n'); } catch {}
 }

@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **feature** — Lo aprendido pasa a la sesión siguiente y /recordar elige el destino (F2-T4, F3-T3, F3-T4) (entrada 106)
 - **feature** — Revisar la memoria es obligatorio al cerrar, en cualquier idioma (F3-T1 y F3-T2) (entrada 105)
 - **feature** — Al editar un archivo, también los hechos de su tema (F2-T3) (entrada 104)
 - **feature** — Recuerdo vivo: con cada mensaje, lo que la memoria ya sabe de eso (F2-T2) (entrada 103)

@@ -8,6 +8,7 @@
 5. Buscar en el pasado con `buscar.mjs`
 6. Qué obliga y qué no
 7. Memoria del usuario (todos sus proyectos)
+7b. Memoria de hechos (datos estables, en cualquier idioma)
 8. Memoria viva: correcciones, archivos y retomar
 
 ## 1. Tres niveles: memoria, índice, entradas
@@ -105,6 +106,21 @@ sin preguntar») va en su memoria personal, no repetido en cada `MEMORIA.md`: po
 `.config/senzu/memoria.md` en su carpeta de usuario (`SENZU_MEMORIA_USUARIO` la cambia). Una línea por regla.
 session-start y pre-compact la inyectan en cualquier proyecto. Si choca con la memoria de un proyecto, manda
 la del proyecto. Se escribe con `/recordar` (que pregunta si va al proyecto o al usuario cuando no está claro).
+
+## 7b. Memoria de hechos (datos estables, en cualquier idioma)
+Las decisiones y reglas van a MEMORIA.md; los DATOS que pueden cambiar (dónde vive el usuario, el cliente, el stack,
+un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: `scripts/memoria.mjs`.
+- **Quién entiende y quién guarda**: el agente entiende la frase en el idioma que sea y la guarda estructurada
+  (`--dimension familia.tema --valor … --claves …`, con claves también en inglés y en el idioma del usuario para
+  encontrarla desde cualquiera); el motor (`hooks/hechos.mjs`) es determinista y sin red: sustituye por dimensión
+  (lo viejo queda en el histórico con su fecha), no duplica, fecha y busca igual en cualquier escritura.
+- **Familias que acumulan** (objetivo, pendiente, nota, hecho, aprendizaje); el resto, un valor vigente por
+  dimensión. `--duda` para lo no afirmado del todo; `--alcance usuario` para lo que vale en todos sus proyectos.
+- **Llega sola**: al iniciar (lo vigente), con cada mensaje (recuerdo-vivo: hechos, decisiones y devlog de lo que
+  se habla) y al editar (los hechos del tema del archivo). Consulta a mano: `--recordar "…"` (las tres memorias),
+  `--buscar "…"` (`--historico` para el pasado).
+- **Se exige**: hechos-guard no deja cerrar una sesión con conversación sin revisar la memoria (`--guardar` o
+  `--nada`). memoria-check avisa de decisiones que citan un valor ya sustituido.
 
 ## 8. Memoria viva: correcciones, archivos y retomar
 - **Correcciones del usuario**: cuando dice «no vuelvas a…», «te dije…», «a partir de ahora…» o «siempre

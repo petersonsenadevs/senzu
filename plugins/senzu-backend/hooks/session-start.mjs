@@ -123,6 +123,7 @@ if (ant && ant.sesion !== sidActual) {
     if (ant.sinCommitear && ant.sinCommitear.length) partes.push(`DEJÓ SIN COMMITEAR ${ant.sinCommitear.join(', ')}`);
     if (ant.planEnCurso && ant.planEnCurso.length) partes.push(`tarea en curso: ${ant.planEnCurso.join('; ')}`);
     if (ant.ultimaEntrada) partes.push(`última entrada del devlog: ${ant.ultimaEntrada}`);
+    if (Array.isArray(ant.hechosGuardados) && ant.hechosGuardados.length) partes.push(`hechos que aprendió: ${ant.hechosGuardados.slice(0, 5).map(h => `[${h.dimension}] «${String(h.valor).replace(/[\r\n]+/g, ' ').slice(0, 60)}»`).join(', ')}`);
     if (partes.length) L.push(`- Sesión anterior (${String(ant.actualizado).slice(0, 16).replace('T', ' ')}): ${partes.join(' · ')}. Si el usuario dice «sigue» o /retomar, continúa desde ahí; si no, no lo menciones.`);
 }
 const cfg = hookConfig(root);

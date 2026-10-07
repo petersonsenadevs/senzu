@@ -197,6 +197,27 @@ const cierre = (d, sid) => { const r = hook('hechos-guard.mjs', d, { session_id:
     ok(cierre(P, s) === '', 'lo que dicen los subagentes no cuenta como conversación del usuario');
 }
 
+// ---------------------------------------------------------------- F2-T4 · lo aprendido pasa a la sesión siguiente
+const CLI = path.join(ROOT, 'core', 'skills', 'devlog', 'scripts', 'memoria.mjs');
+{
+    const P = proyecto('estado');
+    const s = `est1-${RUN}`;
+    habla(P, s, 'el cliente nuevo se llama Cerámicas Sol y quiere una tienda online');
+    const cmd = ['--guardar', '--dimension', 'proyecto.cliente', '--valor', 'Cerámicas Sol', '--claves', 'cliente,client'];
+    const out = spawnSync(process.execPath, [CLI, '--path', P, ...cmd], { encoding: 'utf8', env: process.env }).stdout;
+    bash(P, s, `node memoria.mjs ${cmd.join(' ')}`, out);   // el agente lo ejecutó; hechos-guard lo registra
+    hook('estado-sesion.mjs', P, { session_id: s, hook_event_name: 'Stop' });
+    let estado = {}; try { estado = JSON.parse(fs.readFileSync(path.join(P, 'senzu', '.estado', 'ultima-sesion.json'), 'utf8')); } catch { }
+    ok((estado.hechosGuardados || []).some(h => h.dimension === 'proyecto.cliente' && h.valor === 'Cerámicas Sol'), 'al cerrar, el estado guarda los hechos que aprendió la sesión', JSON.stringify(estado.hechosGuardados));
+    const c = inicio(P);
+    ok(/Sesión anterior .*hechos que aprendió: \[proyecto\.cliente\] «Cerámicas Sol»/.test(c), 'la sesión siguiente lo cuenta en «Sesión anterior»', (c.split('\n').find(l => /Sesión anterior/.test(l)) || '').slice(0, 300));
+    const s2 = `est2-${RUN}`;
+    habla(P, s2, 'revisa el formulario de contacto que no envía nada');
+    hook('estado-sesion.mjs', P, { session_id: s2, hook_event_name: 'Stop' });
+    try { estado = JSON.parse(fs.readFileSync(path.join(P, 'senzu', '.estado', 'ultima-sesion.json'), 'utf8')); } catch { }
+    ok(Array.isArray(estado.hechosGuardados) && estado.hechosGuardados.length === 0, 'una sesión que no aprendió nada no arrastra los hechos de la anterior');
+}
+
 fs.rmSync(base, { recursive: true, force: true });
 for (const f of fs.readdirSync(os.tmpdir())) if (f.includes(RUN)) { try { fs.rmSync(path.join(os.tmpdir(), f), { force: true }); } catch { } }
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
