@@ -63,6 +63,8 @@ function Merge-Settings {
         if ($existing.permissions.ask)   { $ask   += @($existing.permissions.ask) }
         if ($existing.permissions.allow) { $allow += @($existing.permissions.allow) }
     }
+    # lo que puso Senzu y ya no debe estar (D-042: el push normal lo decide el hook, no settings.json)
+    $deny = @($deny | Where-Object { $_ -notin @('Bash(git push:*)', 'PowerShell(git push:*)') })
     $perm = [ordered]@{ deny = @($deny | Select-Object -Unique); ask = @($ask | Select-Object -Unique) }
     if ($allow.Count) { $perm.allow = @($allow | Select-Object -Unique) }
     $out.permissions = $perm

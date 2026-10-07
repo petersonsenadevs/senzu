@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **fix** — El agente sube a ramas de trabajo; las principales siguen protegidas (2.19.2, D-042) (entrada 130)
 - **feature** — Léxico multilingüe de la convención: +11 puntos de recuerdo en la batería dura (X-T8) (entrada 129)
 - **test** — Batería grande y dura: 386 preguntas en dos proyectos, línea base honesta (X-T5) (entrada 128)
 - **feature** — Cortex vivo: se regenera al cerrar y el 3D elige zona (X-T7) (entrada 127)

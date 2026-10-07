@@ -28,10 +28,23 @@ const bash = cmd => hook('guard.mjs', { tool_name: 'Bash', tool_input: { command
 const bloquea = (cmd, nombre) => { const r = bash(cmd); ok(r.status === 2, `BLOQUEA: ${nombre}`, `exit ${r.status} :: ${cmd}`); };
 const deja = (cmd, nombre) => { const r = bash(cmd); ok(r.status === 0, `DEJA: ${nombre}`, `exit ${r.status} :: ${cmd} :: ${r.stderr.slice(0, 120)}`); };
 
-// ---------------------------------------------------------------- sin permisos (por defecto)
+// ---------------------------------------------------------------- sin configurar (por defecto, D-042)
+// a las ramas de TRABAJO se sube sin configurar nada; a las principales, no; el forzado y lo envuelto, nunca
 marcador({});
-bloquea('git push origin feat/x', 'sin permisos, cualquier push');
+deja('git push origin feat/x', 'sin configurar: push a una rama de trabajo');
+deja('git push -u origin fix/cambios-cliente-pdf', 'sin configurar: push -u de una rama nueva (el caso del usuario)');
+bloquea('git push origin main', 'sin configurar: push a main');
+bloquea('git push origin staging', 'sin configurar: push a staging');
+bloquea('git push', 'sin configurar: push sin destino estando en main');
+bloquea('git push --force origin feat/x', 'sin configurar: push --force');
+bloquea('git push origin :feat/x', 'sin configurar: borrar una rama remota');
+bloquea('bash -c "git push origin feat/x"', 'un push envuelto (bash -c) no se permite: no se ve a qué rama va');
+bloquea('git commit -m "x" && bash -c "git push origin main"', 'ni encadenado y envuelto');
 bloquea('git commit -m "feat: algo"', 'sin permisos, commit en main');
+marcador({ permisos: { push: false } });
+bloquea('git push origin feat/x', '"push": false lo bloquea todo, también las ramas de trabajo');
+marcador({ hooksApagados: ['format-on-save'] });
+deja('git push origin feat/x', 'un marcador con otras cosas y sin «permisos» vale como sin configurar');
 
 // ---------------------------------------------------------------- push (ramas no protegidas)
 marcador({ permisos: { push: true } });
@@ -61,6 +74,34 @@ deja('git push', 'push sin destino desde una rama de feature');
 deja('git push --follow-tags', 'push --follow-tags desde feature');
 git('switch', '-q', 'main');
 
+// ---------------------------------------------------------------- settings.json (D-042)
+// Claude Code aplica permissions.deny ANTES que los hooks: con «git push» ahí, el push quedaba bloqueado siempre
+// (incluso con "push": true). Instalar deja solo el forzado; reinstalar limpia la entrada vieja.
+{
+    const inst = fs.mkdtempSync(path.join(os.tmpdir(), 'ds-permisos-inst-'));
+    fs.mkdirSync(path.join(inst, '.claude'), { recursive: true });
+    fs.writeFileSync(path.join(inst, '.claude', 'settings.json'), JSON.stringify({ permissions: { deny: ['Bash(git push:*)', 'PowerShell(git push:*)', 'Bash(curl:*)'] } }));
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'tools', 'init.mjs'), '--stack', 'astro', '--path', inst], { encoding: 'utf8', env: { ...process.env, CLAUDE_PROJECT_DIR: inst } });
+    const deny = (JSON.parse(fs.readFileSync(path.join(inst, '.claude', 'settings.json'), 'utf8')).permissions || {}).deny || [];
+    ok(r.status === 0 && !deny.includes('Bash(git push:*)') && !deny.includes('PowerShell(git push:*)'), 'instalar: settings.json ya no deniega todo git push (lo decide el hook)', JSON.stringify(deny) + ' ' + (r.stderr || '').slice(0, 200));
+    ok(deny.includes('Bash(git push --force:*)') && deny.includes('Bash(git push -f:*)'), 'el forzado sí sigue denegado en settings.json');
+    ok(deny.includes('Bash(curl:*)'), 'lo que el usuario tenía en deny se conserva');
+    fs.rmSync(inst, { recursive: true, force: true });
+}
+
+// ---------------------------------------------------------------- githook pre-push (la misma regla, D-042)
+{
+    const prePush = (rama, envExtra = {}) => spawnSync('sh', [path.join(ROOT, 'core', 'githooks', 'pre-push')], { input: `refs/heads/x 1 refs/heads/${rama} 0\n`, cwd: proj, encoding: 'utf8', env: { ...process.env, SENZU_ALLOW_PUSH: '', SENZU_ALLOW_PUSH_MAIN: '', DEV_STANDARDS_ALLOW_PUSH: '', ...envExtra } }).status;
+    marcador({});
+    ok(prePush('feat/login') === 0, 'pre-push: rama de trabajo, sin configurar → deja');
+    ok(prePush('main') === 1 && prePush('release/2.1') === 1 && prePush('staging') === 1, 'pre-push: ramas principales → bloquea');
+    ok(prePush('main', { SENZU_ALLOW_PUSH_MAIN: '1' }) === 0, 'pre-push: a main con SENZU_ALLOW_PUSH_MAIN=1 → deja');
+    marcador({ permisos: { push: false } });
+    ok(prePush('feat/login') === 1 && prePush('feat/login', { SENZU_ALLOW_PUSH: '1' }) === 0, 'pre-push: "push": false lo bloquea todo (salvo SENZU_ALLOW_PUSH=1)');
+    marcador({ permisos: { pushMain: true } });
+    ok(prePush('main') === 0, 'pre-push: "pushMain": true deja subir a main');
+}
+
 // ---------------------------------------------------------------- pushMain
 marcador({ permisos: { pushMain: true } });
 deja('git push origin main', 'push a main con pushMain');
@@ -74,7 +115,8 @@ marcador({ permisos: { commitEnMain: true } });
 deja('git commit -m "feat: algo en main"', 'commit en main con commitEnMain');
 bloquea('git commit -m "algo sin formato"', 'commitEnMain no quita Conventional Commits');
 bloquea('git commit -m "feat: x" -m "Co-Authored-By: bot <b@b>"', 'commitEnMain no permite co-autores');
-bloquea('git push origin feat/x', 'commitEnMain no da permiso de push');
+bloquea('git push origin main', 'commitEnMain no da permiso de push a main');
+deja('git push origin feat/x', 'commitEnMain deja el push a ramas de trabajo como está (permitido)');
 
 // ---------------------------------------------------------------- otras ramas principales y las del proyecto
 marcador({});
@@ -101,7 +143,8 @@ ok(editarConsole().status === 2, 'code-hygiene encendido bloquea console.log');
 marcador({ hooksApagados: ['code-hygiene'] });
 ok(editarConsole().status === 0, 'code-hygiene apagado deja pasar console.log');
 marcador({ hooksApagados: ['guard', 'secrets-guard', 'protect-files'] });
-bloquea('git push origin feat/x', 'guard NO se puede apagar');
+bloquea('git push origin main', 'guard NO se puede apagar (sigue bloqueando el push a main)');
+bloquea('git push --force origin feat/x', 'guard NO se puede apagar (ni el forzado)');
 {
     const CLAVE = ['sk', 'live', '51Hx9aZbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcd'].join('_');
     const r = hook('secrets-guard.mjs', { tool_name: 'Write', tool_input: { file_path: path.join(proj, 'src', 'k.js'), content: `const k = "${CLAVE}"\n` } });

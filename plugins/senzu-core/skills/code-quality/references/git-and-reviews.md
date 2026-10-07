@@ -19,7 +19,7 @@
 ## Reglas del equipo (no negociables)
 
 - **Sin co-autores en commits**: no añadas trailers `Co-authored-by:` (ni de personas ni de herramientas/IA). El autor del commit es quien lo firma con su cuenta.
-- **Nunca `git push` sin aprobación explícita** del responsable del repositorio/PR. Esto incluye push a ramas propias cuando se trabaja con un agente o en pareja: se prepara el commit, se muestra, y se empuja solo tras el visto bueno. `push --force` a ramas compartidas está prohibido; en ramas propias solo `--force-with-lease` y avisando.
+- **Push solo a la rama de trabajo** (feat/…, fix/…), con un `git push` directo; a una rama principal (main, develop, staging, production, release/…) **nunca** sin el visto bueno del responsable (`"pushMain": true` en `senzu/senzu.json`, o lo sube él). Si el proyecto prefiere que nada se suba solo, `"push": false`. `push --force` lo bloquea el hook siempre; en una rama propia, si hace falta, lo hace el humano y avisando.
 - Nada se fusiona a `main` sin PR aprobada y CI en verde. Sin commits directos a `main`/`develop` (protección de rama activada).
 - Nunca commitees secretos, `.env`, credenciales, dumps de BD ni archivos generados grandes. `gitleaks` en pre-commit.
 - Trabaja siempre en rama; no cambies de tarea con trabajo sin commit (usa `git stash` o commit WIP en tu rama).

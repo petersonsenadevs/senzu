@@ -1,6 +1,7 @@
 {
   "_que_es": "Novedades que session-start enseña a quien tiene una versión anterior de Senzu (las 3 más recientes; primero las importantes). Una línea por versión, en llano: qué gana el usuario al actualizar.",
   "novedades": [
+    { "version": "2.19.2", "importante": true, "texto": "el agente ya sube a tu rama de trabajo (feat/…, fix/…) sin configurar nada; a main, develop, staging o production, no. Antes se bloqueaba todo push: reinstala (/instalar) para limpiarlo" },
     { "version": "2.19.1", "importante": true, "texto": "faltaba memoria-check.mjs (la revisión de la memoria) en lo publicado: un .gitignore demasiado amplio dejaba fuera los archivos nuevos de la skill devlog" },
     { "version": "2.19.0", "importante": false, "texto": "verify-build entiende el tipo de proyecto: más lenguajes (Rust, Ruby, Java, .NET, Deno, Makefile) y, sin manifiesto, las suites propias, la sintaxis y los enlaces en vez de pedir la verificación en falso" },
     { "version": "2.18.0", "importante": false, "texto": "arquitectura declarada: eliges MVC con servicios, hexagonal o DDD (plantillas para Laravel, Node y Python) y un muro la hace cumplir: capas, contextos, controlador sin ORM, DTO y carpetas" },
