@@ -116,6 +116,10 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   (lo viejo queda en el histórico con su fecha), no duplica, fecha y busca igual en cualquier escritura.
 - **Familias que acumulan** (objetivo, pendiente, nota, hecho, aprendizaje); el resto, un valor vigente por
   dimensión. `--duda` para lo no afirmado del todo; `--alcance usuario` para lo que vale en todos sus proyectos.
+- **Procedencia**: `--fuente usuario` (por defecto: lo afirmó), `devlog` o `agente` (lo dedujiste tú). Lo deducido
+  y lo dudoso pesan algo menos y se marcan; si el usuario lo afirma después, sube a «usuario» y la duda se confirma.
+- **Avisos al guardar** (no bloquean): «casi duplicado» en la misma familia (trigramas, cualquier escritura) →
+  `--olvidar` uno si es lo mismo; «contradice» otro valor vigente que no se sustituye → pregunta cuál vale.
 - **Llega sola**: al iniciar (lo vigente), con cada mensaje (recuerdo-vivo: hechos, decisiones y devlog de lo que
   se habla) y al editar (los hechos del tema del archivo). Consulta a mano: `--recordar "…"` (las tres memorias),
   `--buscar "…"` (`--historico` para el pasado).

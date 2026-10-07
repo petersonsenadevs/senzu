@@ -150,17 +150,25 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
     // leer-modificar-escribir dentro del cerrojo: lo que otro proceso guardó entre medias no se pisa
     return conCerrojo(file, () => {
     const { validos: lista, ilegibles } = leerArchivo(file);
+    const fuente = FUENTES.includes(entrada.fuente) ? entrada.fuente : 'usuario';
     const igual = lista.find(h => h.dimension === dimension && normalizar(h.valor) === k && (h.estado === 'activo' || h.estado === 'dudoso'));
-    if (igual) {   // ya estaba: se suman las claves nuevas, nada más (sin duplicar)
-        const antes = igual.claves || [];
-        igual.claves = [...new Set([...antes, ...claves])];
-        if (igual.claves.length !== antes.length || ilegibles.length) escribirHechos(file, lista, ilegibles);
-        return { accion: 'ya-estaba', hecho: igual, sustituidos: [] };
+    if (igual) {   // ya estaba: se suman las claves nuevas (sin duplicar); si ahora lo AFIRMA el usuario, sube de confianza
+        const antes = JSON.stringify(igual);
+        igual.claves = [...new Set([...(igual.claves || []), ...claves])];
+        if (!igual.claves.length) delete igual.claves;
+        if (fuente === 'usuario' && igual.fuente !== 'usuario') { igual.fuente = 'usuario'; igual.confirmado = ahora; }
+        const sustituidos = [];
+        if (igual.estado === 'dudoso' && !entrada.duda) {   // «creo que…» y luego lo afirma: deja de ser dudoso
+            igual.estado = 'activo'; igual.confirmado = ahora;
+            if (!FAMILIAS_VARIOS.test(dimension)) sustituidos.push(...sustituir(lista, dimension, igual, ahora));
+        }
+        if (JSON.stringify(igual) !== antes || ilegibles.length) escribirHechos(file, lista, ilegibles);
+        return { accion: sustituidos.length ? 'sustituye' : 'ya-estaba', hecho: igual, sustituidos, avisos: [] };
     }
     const hecho = {
         id: 'h-' + crypto.createHash('sha1').update(`${dimension}|${k}|${ahora}`).digest('hex').slice(0, 8),
         dimension, valor, texto: entrada.texto ? String(entrada.texto) : undefined, claves: claves.length ? claves : undefined,
-        idioma: entrada.idioma || undefined, alcance, fuente: entrada.fuente || 'usuario',
+        idioma: entrada.idioma || undefined, alcance, fuente,
         estado: entrada.duda ? 'dudoso' : 'activo', creado: ahora,
         desde: entrada.desde || undefined, hasta: entrada.hasta || undefined,
         devlog: entrada.devlog ? String(entrada.devlog) : (entradaDelDia(root, ahora) || undefined),
@@ -169,20 +177,63 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
     };
     const sustituidos = [];
     if (!entrada.duda && !FAMILIAS_VARIOS.test(dimension)) {
-        for (const h of lista) if (h.dimension === dimension && h.estado === 'activo') {
-            h.estado = 'sustituido'; h.hasta = h.hasta && h.hasta < (hecho.desde || ahora) ? h.hasta : (hecho.desde || ahora); h.sustituido_por = hecho.id;
-            sustituidos.push(h);
-        }
-        if (sustituidos.length) hecho.sustituye = sustituidos.map(h => h.id);
+        sustituidos.push(...sustituir(lista, dimension, hecho, ahora));
         // Sin claves propias hereda las del que sustituye: describen la dimensión («idioma», «language»), y sin
         // ellas el valor nuevo dejaría de encontrarse desde otro idioma
         if (!hecho.claves && sustituidos.some(h => h.claves && h.claves.length)) hecho.claves = [...new Set(sustituidos.flatMap(h => h.claves || []))];
         if (!hecho.enlaces && sustituidos.some(h => h.enlaces && h.enlaces.length)) hecho.enlaces = [...new Set(sustituidos.flatMap(h => h.enlaces || []))];   // igual con los enlaces
     }
+    // Avisos (no bloquean: decide el agente, que entiende el sentido): lo mismo dicho de otra manera en la familia, y
+    // otro valor vigente de la MISMA dimensión que este no sustituye (una duda frente a lo afirmado, u otro alcance)
+    const otroAlcance = leerHechos(rutaHechos(root, alcance === 'usuario' ? 'proyecto' : 'usuario'));
+    const avisos = avisosAlGuardar(hecho, [...lista, ...otroAlcance].filter(h => h.id !== hecho.id && (h.estado === 'activo' || h.estado === 'dudoso') && vigente(h, ahora)));
     lista.push(JSON.parse(JSON.stringify(hecho)));
     escribirHechos(file, lista, ilegibles);
-    return { accion: entrada.duda ? 'dudoso' : sustituidos.length ? 'sustituye' : 'nuevo', hecho, sustituidos };
+    return { accion: entrada.duda ? 'dudoso' : sustituidos.length ? 'sustituye' : 'nuevo', hecho, sustituidos, avisos };
     });
+}
+// Lo vigente de la dimensión (activo y dudoso: lo afirmado gana a la duda) pasa a sustituido por «nuevo»
+function sustituir(lista, dimension, nuevo, ahora) {
+    const fin = nuevo.desde || ahora, out = [];
+    for (const h of lista) if (h !== nuevo && h.id !== nuevo.id && h.dimension === dimension && (h.estado === 'activo' || h.estado === 'dudoso')) {
+        h.estado = 'sustituido'; h.hasta = h.hasta && h.hasta < fin ? h.hasta : fin; h.sustituido_por = nuevo.id;
+        out.push(h);
+    }
+    if (out.length) nuevo.sustituye = [...new Set([...(nuevo.sustituye || []), ...out.map(h => h.id)])];
+    return out;
+}
+
+// ---------------------------------------------------------------- procedencia, confianza y casi-duplicados (F6-T4)
+// Quién lo dijo: el usuario (lo afirmó), el devlog (se decidió y quedó escrito) o el agente (lo dedujo). Pesa POCO
+// en el orden (desempata y baja lo deducido, no lo esconde) y se dice en el motivo. Lo dudoso pesa algo menos.
+export const FUENTES = ['usuario', 'devlog', 'agente'];
+const PESO_FUENTE = { usuario: 1, devlog: 0.95, agente: 0.9 };
+export const pesoConfianza = h => (PESO_FUENTE[h.fuente] || 1) * (h.estado === 'dudoso' ? 0.85 : 1);
+// Parecido por trigramas de caracteres (Jaccard) sobre el texto normalizado: vale igual en cualquier escritura
+function trigramas(t) {
+    const c = [...` ${normalizar(t).replace(/\s+/g, ' ').trim()} `], s = new Set();
+    for (let i = 0; i + 3 <= c.length; i++) s.add(c.slice(i, i + 3).join(''));
+    return s;
+}
+export function parecido(a, b) {
+    const x = trigramas(a), y = trigramas(b);
+    if (!x.size || !y.size) return 0;
+    let comun = 0; for (const t of x) if (y.has(t)) comun++;
+    return comun / (x.size + y.size - comun);
+}
+export const UMBRAL_CASI_DUPLICADO = 0.6;
+function avisosAlGuardar(hecho, vigentes) {
+    const avisos = [];
+    for (const h of vigentes) {
+        if (h.dimension === hecho.dimension && !FAMILIAS_VARIOS.test(hecho.dimension)) {
+            if (normalizar(h.valor) !== normalizar(hecho.valor)) avisos.push({ tipo: 'contradice', hecho: h,
+                motivo: h.alcance !== hecho.alcance ? `en el alcance ${h.alcance} vale otra cosa` : hecho.estado === 'dudoso' ? 'lo afirmado sigue vigente: la duda no lo sustituye' : 'sigue vigente otro valor' });
+        } else if (familia(h.dimension) === familia(hecho.dimension)) {
+            const p = parecido(hecho.valor, h.valor);
+            if (p >= UMBRAL_CASI_DUPLICADO) avisos.push({ tipo: 'casi-duplicado', hecho: h, parecido: +p.toFixed(2), motivo: `se parece un ${Math.round(p * 100)} %` });
+        }
+    }
+    return avisos.sort((a, b) => (b.parecido || 1) - (a.parecido || 1)).slice(0, 3);
 }
 // ---------------------------------------------------------------- objetivos y pendientes con ciclo de vida (F6-T2)
 // abierto → en curso → resuelto | abandonado, con fecha y nota. Cerrado deja de ser vigente (no se inyecta) y queda
@@ -301,7 +352,7 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
         // cobertura que lo hacía hundía el recuerdo del 98,5 % al 78,8 %: las palabras de pregunta también tienen
         // peso), pero se marca para que el agente, que sí entiende el sentido, decida si viene al caso (F4-T4).
         const debil = qConPeso >= 3 && conPesoQueCoinciden.size === 1;
-        return { hecho: h, puntuacion: conPesoCoincide ? +score.toFixed(3) : 0, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined };
+        return { hecho: h, puntuacion: conPesoCoincide ? +(score * pesoConfianza(h)).toFixed(3) : 0, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined };
     }).filter(x => x.puntuacion > 0);
     // Preguntando por el PASADO (lo decide el agente con --historico): la historia de cada dimensión encontrada entra
     // entera y lo sustituido va delante («¿dónde vivía antes?» encuentra «Valencia» por «mudado» y trae «Málaga»)
@@ -335,6 +386,7 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
             + (x.hecho.estado === 'cerrado' ? ` · cerrado (${x.hecho.progreso} el ${String(x.hecho.cerrado || '').slice(0, 10)}${x.hecho.nota_cierre ? ': ' + x.hecho.nota_cierre : ''})` : '')
             + (x.hecho.progreso === 'en-curso' && x.hecho.estado === 'activo' ? ' · en curso' : '')
             + (x.hecho.estado === 'dudoso' ? ' · dudoso (el usuario no lo afirmó del todo)' : '')
+            + (x.hecho.fuente === 'agente' ? ' · lo dedujo el agente (el usuario no lo dijo)' : x.hecho.fuente === 'devlog' ? ' · sacado del devlog' : '')
             + (x.debil ? ` · relación débil (solo coincide «${x.solo}»: úsalo solo si de verdad viene al caso)` : '') }));
 }
 // Reparto por turnos entre familias: que un tipo de recuerdo no se coma todo el espacio

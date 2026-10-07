@@ -137,6 +137,69 @@ ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S
     ok(/abierto desde/.test(cli('--abiertos')) && /^Resuelto: .*pendiente\.logo.* — aprobado/m.test(cli('--resolver', 'pendiente.logo', '--como', 'aprobado')), 'CLI: --abiertos y --resolver con nota');
 }
 
+// 3f. procedencia, confianza y casi-duplicados (F6-T4)
+{
+    const F = proyecto('fuente');
+    // misma forma y longitud; el del usuario es el MÁS ANTIGUO (el desempate por fecha favorecería al del agente)
+    m.guardarHecho(F, { dimension: 'proyecto.hosting-web', valor: 'Netlify' }, { ahora: T(F, 0) });
+    const ded = m.guardarHecho(F, { dimension: 'proyecto.hosting-api', valor: 'Vercel', fuente: 'agente' }, { ahora: T(F, 50) }).hecho;
+    let hits = m.buscarHechos(F, 'hosting');
+    ok(hits.length === 2 && hits[0].hecho.valor === 'Netlify', 'lo que afirmó el usuario va antes que lo que dedujo el agente', hits.map(x => x.hecho.valor + ' ' + x.puntuacion).join(' | '));
+    ok(/lo dedujo el agente/.test(hits[1].motivo) && !/agente/.test(hits[0].motivo), 'y se dice quién lo dedujo', hits[1].motivo);
+    ok(hits[1].puntuacion >= hits[0].puntuacion * 0.85, 'pesa poco: desempata, no lo esconde');
+    let r = m.guardarHecho(F, { dimension: 'proyecto.hosting-api', valor: 'vercel' }, { ahora: T(F, 60) });
+    ok(r.accion === 'ya-estaba' && r.hecho.fuente === 'usuario' && r.hecho.confirmado && m.todosLosHechos(F).length === 2, 'si luego lo afirma el usuario, sube a «usuario» sin duplicar');
+    ok(m.guardarHecho(F, { dimension: 'proyecto.cdn', valor: 'Bunny', fuente: 'inventada' }, { ahora: T(F, 61) }).hecho.fuente === 'usuario', 'una fuente desconocida cuenta como usuario');
+    ok(ded.id === r.hecho.id, '(es el mismo hecho)');
+
+    // la duda frente a lo afirmado
+    m.guardarHecho(F, { dimension: 'identidad.ciudad', valor: 'Málaga' }, { ahora: T(F, 100) });
+    r = m.guardarHecho(F, { dimension: 'identidad.ciudad', valor: 'Valencia', duda: true }, { ahora: T(F, 110) });
+    ok(r.accion === 'dudoso' && r.avisos.length === 1 && r.avisos[0].tipo === 'contradice' && r.avisos[0].hecho.valor === 'Málaga' && /la duda no lo sustituye/.test(r.avisos[0].motivo), 'guardar una duda que contradice lo afirmado: avisa', JSON.stringify(r.avisos));
+    hits = m.buscarHechos(F, 'ciudad');
+    ok(hits[0].hecho.valor === 'Málaga' && hits[1].hecho.valor === 'Valencia', 'lo afirmado va antes que la duda');
+    r = m.guardarHecho(F, { dimension: 'identidad.ciudad', valor: 'VALENCIA' }, { ahora: T(F, 120) });
+    const ciudad = m.todosLosHechos(F).filter(h => h.dimension === 'identidad.ciudad');
+    ok(r.accion === 'sustituye' && r.hecho.estado === 'activo' && ciudad.length === 2 && ciudad.find(h => h.valor === 'Málaga').estado === 'sustituido', 'afirmar lo que era duda: se confirma y sustituye a lo anterior', JSON.stringify(ciudad.map(h => [h.valor, h.estado])));
+    m.guardarHecho(F, { dimension: 'identidad.barrio', valor: 'El Palo', duda: true }, { ahora: T(F, 130) });
+    m.guardarHecho(F, { dimension: 'identidad.barrio', valor: 'Pedregalejo' }, { ahora: T(F, 140) });
+    ok(m.buscarHechos(F, 'barrio').map(x => x.hecho.valor).join() === 'Pedregalejo', 'lo afirmado sustituye también a una duda distinta (no quedan dos vigentes)');
+
+    // casi-duplicados: misma familia, dicho de otra manera, en cualquier escritura
+    m.guardarHecho(F, { dimension: 'aprendizaje.webhooks', valor: 'los webhooks de Stripe llegan duplicados: guardar event.id' }, { ahora: T(F, 200) });
+    r = m.guardarHecho(F, { dimension: 'aprendizaje.stripe', valor: 'Los webhooks de stripe llegan DUPLICADOS, guarda el event id' }, { ahora: T(F, 210) });
+    ok(r.avisos.length === 1 && r.avisos[0].tipo === 'casi-duplicado' && r.avisos[0].hecho.dimension === 'aprendizaje.webhooks' && r.avisos[0].parecido >= 0.6, 'avisa de un casi duplicado en la familia', JSON.stringify(r.avisos));
+    r = m.guardarHecho(F, { dimension: 'nota.stripe', valor: 'los webhooks de Stripe llegan duplicados: guardar event.id' }, { ahora: T(F, 220) });
+    ok(r.avisos.length === 0, 'en otra familia no es un duplicado (nota no es aprendizaje)');
+    r = m.guardarHecho(F, { dimension: 'aprendizaje.colas', valor: 'las colas de Horizon necesitan reiniciarse tras desplegar' }, { ahora: T(F, 230) });
+    ok(r.avisos.length === 0, 'lo que no se parece no avisa');
+    r = m.guardarHecho(F, { dimension: 'preferencia.gestor', valor: 'pnpm' }, { ahora: T(F, 240) });
+    r = m.guardarHecho(F, { dimension: 'preferencia.runtime', valor: 'npm' }, { ahora: T(F, 241) });
+    ok(r.avisos.length === 0, 'valores cortos parecidos pero distintos (npm / pnpm) no son duplicados', JSON.stringify(r.avisos));
+    m.guardarHecho(F, { dimension: 'aprendizaje.deploy', valor: 'ステージングはNetlifyにデプロイする' }, { ahora: T(F, 250) });
+    r = m.guardarHecho(F, { dimension: 'aprendizaje.staging', valor: 'ステージングはNetlifyへデプロイする' }, { ahora: T(F, 251) });
+    ok(r.avisos.some(a => a.tipo === 'casi-duplicado' && a.hecho.dimension === 'aprendizaje.deploy'), 'también en japonés (trigramas de caracteres)', JSON.stringify(r.avisos));
+    const olv = m.guardarHecho(F, { dimension: 'aprendizaje.cache', valor: 'limpiar la caché de config tras cambiar el .env' }, { ahora: T(F, 260) }).hecho;
+    m.olvidarHecho(F, olv.id);
+    r = m.guardarHecho(F, { dimension: 'aprendizaje.config', valor: 'limpiar la caché de config tras cambiar el .env.' }, { ahora: T(F, 270) });
+    ok(r.avisos.length === 0, 'lo olvidado no cuenta como duplicado');
+    ok(m.parecido('Málaga', 'MALAGA') === 1 && m.parecido('', 'x') === 0, 'parecido: normalizado y sin dividir por cero');
+
+    // otro alcance con otro valor de la misma dimensión
+    const u = m.guardarHecho(F, { dimension: 'preferencia.tabulacion-f6t4', valor: 'tabuladores', alcance: 'usuario' }, { ahora: T(F, 300) }).hecho;
+    r = m.guardarHecho(F, { dimension: 'preferencia.tabulacion-f6t4', valor: '2 espacios' }, { ahora: T(F, 310) });
+    ok(r.accion === 'nuevo' && r.avisos.some(a => a.tipo === 'contradice' && /alcance usuario/.test(a.motivo)), 'el proyecto contradice lo del usuario en todos sus proyectos: avisa (y no lo sustituye)', JSON.stringify(r.avisos));
+    m.olvidarHecho(F, u.id);
+
+    // CLI
+    const cliF = (...a) => spawnSync(process.execPath, [CLI, '--path', F, ...a], { encoding: 'utf8', env: process.env }).stdout;
+    let o = cliF('--guardar', '--dimension', 'aprendizaje.colas-2', '--valor', 'las colas de Horizon necesitan reiniciarse tras desplegar!', '--fuente', 'agente');
+    ok(/ojo, casi duplicado \(se parece un \d+ %\).*aprendizaje\.colas\b.*--olvidar/.test(o), 'CLI: avisa del casi duplicado y de qué hacer', o);
+    ok(m.todosLosHechos(F).find(h => h.dimension === 'aprendizaje.colas-2').fuente === 'agente', 'CLI: --fuente agente se guarda');
+    o = cliF('--guardar', '--dimension', 'identidad.ciudad', '--valor', 'Sevilla', '--duda');
+    ok(/ojo, contradice .*Valencia.*pregunta al usuario/.test(o), 'CLI: avisa de la contradicción y pide preguntar', o);
+}
+
 // 4. cupos por familia: que una familia no se coma el espacio
 const C = proyecto('cupos');
 for (let i = 0; i < 6; i++) m.guardarHecho(C, { dimension: `nota.${i}`, valor: `nota de diseño ${i}`, claves: ['diseño'] }, { ahora: T(C, i) });

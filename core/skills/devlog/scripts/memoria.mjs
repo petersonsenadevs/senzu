@@ -3,7 +3,7 @@
 // El agente entiende la frase (en el idioma que sea) y la guarda estructurada; el motor la sustituye, la fecha y la
 // recupera siempre igual. Para buscar entre idiomas, añade --claves en otros idiomas (p. ej. en inglés y en el del usuario).
 //   node memoria.mjs --guardar --dimension identidad.ubicacion --valor "Málaga" [--texto "vivo en Málaga"]
-//        [--claves "ciudad,city,vive,lives"] [--idioma es] [--alcance proyecto|usuario] [--duda] [--desde AAAA-MM-DD] [--hasta AAAA-MM-DD]
+//        [--claves "ciudad,city,vive,lives"] [--idioma es] [--alcance proyecto|usuario] [--duda] [--fuente usuario|agente|devlog] [--desde AAAA-MM-DD] [--hasta AAAA-MM-DD]
 //   node memoria.mjs --buscar "dónde vive" [--historico] [--limite 8] [--json]
 //   node memoria.mjs --contexto [--presupuesto 12]      lo vigente, repartido por familias (lo usa el inicio de sesión)
 //   node memoria.mjs --lista [--todo] | --olvidar <id>
@@ -43,6 +43,7 @@ if (opt('--guardar')) {
         devlog: opt('--devlog') && opt('--devlog') !== true ? String(opt('--devlog')) : undefined,   // por defecto, la entrada de hoy
         enlaces: opt('--enlaces') && opt('--enlaces') !== true ? String(opt('--enlaces')).split(',') : [],   // dimensiones relacionadas
         alcance: opt('--alcance') || 'proyecto', duda: !!opt('--duda'),
+        fuente: opt('--fuente') && opt('--fuente') !== true ? String(opt('--fuente')) : 'usuario',   // usuario | agente | devlog
         desde: opt('--desde') && opt('--desde') !== true ? new Date(opt('--desde')).toISOString() : undefined,
         hasta: opt('--hasta') && opt('--hasta') !== true ? new Date(opt('--hasta')).toISOString() : undefined,
     });
@@ -50,6 +51,9 @@ if (opt('--guardar')) {
     const que = { nuevo: 'Guardado', 'ya-estaba': 'Ya estaba (no se duplica)', sustituye: 'Guardado y sustituye a lo anterior', dudoso: 'Guardado como dudoso (no sustituye nada)' }[r.accion];
     out(`${que}: ${linea(r.hecho)}`);
     for (const s of r.sustituidos) out(`  sustituido: ${linea(s)}`);
+    for (const a of r.avisos || []) out(a.tipo === 'casi-duplicado'
+        ? `  ojo, casi duplicado (${a.motivo}): ${linea(a.hecho)} → si es lo mismo, --olvidar uno de los dos`
+        : `  ojo, contradice (${a.motivo}): ${linea(a.hecho)} → pregunta al usuario cuál vale`);
     process.exit(0);
 }
 if (opt('--buscar')) {
