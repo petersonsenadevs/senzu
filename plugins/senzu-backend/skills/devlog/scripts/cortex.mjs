@@ -288,7 +288,9 @@ const APP = String.raw`
     $('#cambios-v').hidden = l.length > 0;
     l.forEach(function (c) {
       var li = el('li'); li.style.setProperty('--c', 'var(--r-' + c.zona + ')');
-      var s = el('span', '', c.tema + ': ' + (c.antes ? c.antes + ' → ' : '') + (c.ahora || ''));
+      // sin repetir el tema si el texto ya lo dice («Horizon: Horizon necesita…»)
+      var ya = !c.antes && c.ahora && String(c.ahora).toLowerCase().indexOf(String(c.tema).toLowerCase()) >= 0;
+      var s = el('span', '', (ya ? '' : c.tema + ': ') + (c.antes ? c.antes + ' → ' : '') + (c.ahora || ''));
       s.appendChild(el('small', '', fecha(c.fecha) + ' · ' + t('tipos.' + c.tipo) + (c.nota ? ' · ' + c.nota : '')));
       li.appendChild(s); ul.appendChild(li);
     });
@@ -537,6 +539,7 @@ export function htmlCortex(datos, { cli = null, idioma = null } = {}) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect width=%2732%27 height=%2732%27 rx=%278%27 fill=%27%230C0F13%27/%3E%3Cpath d=%27M7 18c-2-6 3-11 9-11s11 4 9 10c-1 4-5 6-9 6s-8-1-9-5z%27 fill=%27none%27 stroke=%27%233DD6C4%27 stroke-width=%272%27/%3E%3Cpath d=%27M12 19c2-3 6-3 8-1%27 fill=%27none%27 stroke=%27%239BE15D%27 stroke-width=%272%27 stroke-linecap=%27round%27/%3E%3C/svg%3E">
 <title>Cortex · ${esc(datos.proyecto)}${cliente ? ' (cliente)' : ''}</title>
 <style>${CSS}</style>
 </head>

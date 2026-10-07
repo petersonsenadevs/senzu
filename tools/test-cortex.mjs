@@ -102,6 +102,10 @@ ok(dc.cambios.some(x => x.antes === 'Netlify') && !dc.cambios.some(x => x.tipo =
 const htmlD = htmlCortex(d, { cli: CLI });
 ok(htmlD.includes('Lucía Ferrer') && datosDe(htmlD).cli === CLI && htmlD.includes('id="cliente"'), 'dueño: lo lleva todo, el comando y la vista previa de cliente');
 
+const N = proyecto('con-nombre');
+g(N, { dimension: 'proyecto.nombre', valor: 'Cerámicas Sol' }, 5);
+ok(m.datosCortex(N, { ahora: AHORA }).proyecto === 'Cerámicas Sol' && d.proyecto === 'ceramicas', 'el título usa proyecto.nombre si la memoria lo sabe (si no, la carpeta)');
+
 // ---------------------------------------------------------------- 5. ningún valor rompe la página
 const X = proyecto('xss');
 const malo = '</script><img src=x onerror=alert(1)><!--';
@@ -147,6 +151,8 @@ if (process.env.PLAYWRIGHT) {
         await p.goto(pathToFileURL(path.join(dir, 'index.html')).href);
         const n = () => p.locator('#lista .hecho').count();
         ok(/Memoria de ceramicas/.test(await p.locator('h1').innerText()), `${ancho}: título con el proyecto`);
+        const semana = await p.locator('#cambios-l').innerText();
+        ok(/Netlify → Laravel Forge/.test(semana) && !/Webhooks: Webhooks/i.test(semana), `${ancho}: esta semana, sin repetir el tema que ya dice el texto`, semana);
         await p.locator('.chips [data-region="parietal"]').click();
         ok(await n() === 4, `${ancho}: la zona «El proyecto» filtra (4 vigentes: Forge, Stripe, lo deducido y lo dudoso)`, String(await n()));
         await p.locator('#lista .hecho').filter({ hasText: 'Laravel Forge' }).click();

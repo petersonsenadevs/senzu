@@ -584,5 +584,7 @@ export function datosCortex(root, { cliente = false, ahora = hoy(), dias = 7, en
     cambios.sort((a, b) => String(b.fecha).localeCompare(String(a.fecha)));
     const abiertosV = abiertos(root, { ahora }).filter(h => !cliente || !privado(h))
         .map(h => ({ id: h.id, privado: privado(h) || undefined, tema: temaDe(h.dimension), valor: h.valor, zona: zonaDe(h), progreso: h.progreso || 'abierto', dias: Math.max(0, Math.floor((Date.parse(ahora) - Date.parse(h.creado)) / 864e5)) }));
-    return { proyecto: path.basename(path.resolve(root)), generado: ahora, cliente, zonas, cambios: cambios.slice(0, 20), abiertos: abiertosV };
+    // el nombre del proyecto: el que sabe la memoria (proyecto.nombre) o, si no, el de la carpeta
+    const nombre = actuales.find(h => h.dimension === 'proyecto.nombre');
+    return { proyecto: nombre ? nombre.valor : path.basename(path.resolve(root)), generado: ahora, cliente, zonas, cambios: cambios.slice(0, 20), abiertos: abiertosV };
 }
