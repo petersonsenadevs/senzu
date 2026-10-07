@@ -115,6 +115,22 @@ delete process.env.SENZU_BUSCADOR;
 const rc = spawnSync(process.execPath, [CLI, '--path', R, '--recordar', 'pagos stripe webhooks'], { encoding: 'utf8', env: process.env }).stdout;
 ok(/\[hecho\] \[proyecto\.pasarela-pago\] Stripe/.test(rc) && /\[memoria\] D-001/.test(rc) && !/ver 001 · ver 001/.test(rc), 'CLI: --recordar con fuentes y sin «ver» repetido', rc);
 
+// 7c. enlace con la entrada del devlog del día (F1-T2)
+const E = proyecto('enlace');
+const diaLocal = iso => { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+fs.mkdirSync(path.join(E, 'senzu', 'devlog', diaLocal(T(E, 0))), { recursive: true });
+for (const n of ['005-uno.md', '012-dos.md', 'DECISIONES.md', 'notas.txt']) fs.writeFileSync(path.join(E, 'senzu', 'devlog', diaLocal(T(E, 0)), n), '# x\n');
+fs.mkdirSync(path.join(E, 'senzu', 'devlog', '2020-01-01'), { recursive: true });
+fs.writeFileSync(path.join(E, 'senzu', 'devlog', '2020-01-01', '099-viejo.md'), '# viejo\n');
+let en = m.guardarHecho(E, { dimension: 'proyecto.cliente', valor: 'Cerámicas Sol' }, { ahora: T(E, 0) });
+ok(en.hecho.devlog === '012', 'el hecho apunta a la entrada de ese día con el número más alto (no a otro día ni a DECISIONES.md)', en.hecho.devlog);
+en = m.guardarHecho(E, { dimension: 'proyecto.dominio', valor: 'ceramicassol.es', devlog: '005' }, { ahora: T(E, 1) });
+ok(en.hecho.devlog === '005', 'se puede indicar la entrada a mano');
+const sinDia = m.guardarHecho(E, { dimension: 'proyecto.hosting', valor: 'Netlify' }, { ahora: '2019-05-05T10:00:00.000Z' });
+ok(sinDia.hecho.devlog === undefined, 'sin entrada ese día, sin enlace (no inventa uno)');
+ok((m.recuerdo(E, 'cliente Cerámicas').find(x => x.fuente === 'hecho') || {}).ver === '012', 'el recuerdo enseña «ver NNN» del hecho');
+ok(/ver 012/.test(spawnSync(process.execPath, [CLI, '--path', E, '--lista'], { encoding: 'utf8', env: process.env }).stdout), 'CLI: --lista enseña el enlace');
+
 // 8. la línea de comandos
 const cli = (d, ...a) => spawnSync(process.execPath, [CLI, '--path', d, ...a], { encoding: 'utf8', env: process.env });
 const L = proyecto('cli');

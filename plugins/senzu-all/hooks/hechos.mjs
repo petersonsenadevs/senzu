@@ -60,6 +60,16 @@ export function vigente(h, ahora = hoy()) {
     return h.estado === 'activo' && (!h.desde || h.desde <= ahora) && (!h.hasta || h.hasta > ahora);
 }
 
+// La entrada del devlog del día (la de número más alto): el hecho apunta a la historia de por qué se guardó.
+// Carpetas del devlog en fecha LOCAL (AAAA-MM-DD), como las crea la skill devlog.
+function fechaLocal(iso) { const d = new Date(iso); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+export function entradaDelDia(root, ahora = hoy()) {
+    let nombres = [];
+    try { nombres = fs.readdirSync(path.join(ruta(root, 'devlog'), fechaLocal(ahora))); } catch { return null; }
+    const nums = nombres.map(n => (/^(\d{3,})-.+\.md$/.exec(n) || [])[1]).filter(Boolean).sort();
+    return nums.length ? nums[nums.length - 1] : null;
+}
+
 // ---------------------------------------------------------------- guardar, olvidar
 // Devuelve { accion: 'nuevo' | 'ya-estaba' | 'sustituye' | 'dudoso', hecho, sustituidos }
 export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
@@ -84,6 +94,7 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
         idioma: entrada.idioma || undefined, alcance, fuente: entrada.fuente || 'usuario',
         estado: entrada.duda ? 'dudoso' : 'activo', creado: ahora,
         desde: entrada.desde || undefined, hasta: entrada.hasta || undefined,
+        devlog: entrada.devlog ? String(entrada.devlog) : (entradaDelDia(root, ahora) || undefined),
     };
     const sustituidos = [];
     if (!entrada.duda && !FAMILIAS_VARIOS.test(dimension)) {

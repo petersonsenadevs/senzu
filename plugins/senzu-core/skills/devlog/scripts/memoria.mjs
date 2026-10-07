@@ -30,12 +30,13 @@ async function motor() {   // hechos.mjs de los hooks: junto a la skill (plugin 
 }
 const m = await motor();
 const fecha = s => String(s || '').slice(0, 10);
-const linea = h => `- [${h.dimension}] ${h.valor}${h.estado !== 'activo' ? ` (${h.estado}${h.hasta ? ' ' + fecha(h.hasta) : ''})` : ''}${h.desde ? ` · desde ${fecha(h.desde)}` : ''} · ${h.alcance} · ${h.id}`;
+const linea = h => `- [${h.dimension}] ${h.valor}${h.estado !== 'activo' ? ` (${h.estado}${h.hasta ? ' ' + fecha(h.hasta) : ''})` : ''}${h.desde ? ` · desde ${fecha(h.desde)}` : ''}${h.devlog ? ` · ver ${h.devlog}` : ''} · ${h.alcance} · ${h.id}`;
 
 if (opt('--guardar')) {
     const r = m.guardarHecho(root, {
         dimension: opt('--dimension'), valor: opt('--valor'), texto: opt('--texto') === true ? undefined : opt('--texto'),
         claves: opt('--claves') && opt('--claves') !== true ? String(opt('--claves')).split(',') : [], idioma: opt('--idioma') || undefined,
+        devlog: opt('--devlog') && opt('--devlog') !== true ? String(opt('--devlog')) : undefined,   // por defecto, la entrada de hoy
         alcance: opt('--alcance') || 'proyecto', duda: !!opt('--duda'),
         desde: opt('--desde') && opt('--desde') !== true ? new Date(opt('--desde')).toISOString() : undefined,
         hasta: opt('--hasta') && opt('--hasta') !== true ? new Date(opt('--hasta')).toISOString() : undefined,
