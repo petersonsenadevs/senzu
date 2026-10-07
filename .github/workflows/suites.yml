@@ -86,6 +86,9 @@ jobs:
       - name: test-hechos (memoria de hechos determinista en cualquier idioma, sin red)
         run: node tools/test-hechos.mjs
 
+      - name: test-hechos-hooks (lo que la memoria de hechos inyecta y exige en los hooks)
+        run: node tools/test-hechos-hooks.mjs
+
       - name: test-arquitectura (capas, contextos de DDD, controlador sin ORM, DTO y carpetas declaradas)
         run: node tools/test-arquitectura.mjs
 
