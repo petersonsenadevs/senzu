@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { readHookInput, projectRoot, sessionFlag, outHookJson, esMensajeDelUsuario } from './lib.mjs';
-import { recuerdo, palabras, palabraConPeso, UMBRAL_RECUERDO } from './hechos.mjs';
+import { recuerdo, palabras, palabraConPeso, UMBRAL_RECUERDO, anotarUso } from './hechos.mjs';
 
 // Umbrales (se afinan con la evaluación de F4). Hechos: BM25 del motor (IDF suavizado, escala estable). Memoria y
 // devlog: los puntos de buscar.mjs dependen del tamaño del devlog (0,7 en uno pequeño, 38 en uno grande), así que el
@@ -37,6 +37,7 @@ const elegidos = todos
     .slice(0, MAXIMO);
 if (!elegidos.length) process.exit(0);
 try { fs.appendFileSync(flag, elegidos.map(clave).join('\n') + '\n'); } catch { }
+anotarUso(root, elegidos.filter(x => x.fuente === 'hecho').map(x => x.id));   // F6-T5: lo que llega al agente, sube
 
 const citar = v => '«' + String(v).replace(/[\r\n\t]+/g, ' ').replace(/[«»]/g, '"').trim().slice(0, 200) + (String(v).length > 200 ? '…' : '') + '»';
 outHookJson('UserPromptSubmit', {

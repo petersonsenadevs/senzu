@@ -200,6 +200,64 @@ ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S
     ok(/ojo, contradice .*Valencia.*pregunta al usuario/.test(o), 'CLI: avisa de la contradicción y pide preguntar', o);
 }
 
+// 3g. relevancia por uso y enfriamiento (F6-T5), con la fecha inyectada: determinista
+{
+    const U = proyecto('uso');
+    const D = n => new Date(Date.UTC(2026, 9, 7) + n * 864e5).toISOString();   // día n desde el 7-10-2026
+    const pu = (h, dia) => +m.pesoUso(h, D(dia)).toFixed(3);
+    ok(pu({ creado: D(0) }, 0) === 1 && pu({ creado: D(0) }, 90) === 1, 'sin usos y templado (≤90 días): ×1');
+    ok(pu({ creado: D(0) }, 455) === 0.9 && pu({ creado: D(0) }, 3000) === 0.9, 'un año más sin usarse: ×0,9 y no baja de ahí');
+    ok(pu({ creado: D(0), usos: 7 }, 0) === 1.12 && pu({ creado: D(0), usos: 1000 }, 0) === 1.12 && pu({ creado: D(0), usos: 1 }, 0) === 1.04, 'el uso sube poco y con techo (×1,04 … ×1,12)');
+    ok(pu({ creado: D(0), ultimo_uso: D(400) }, 420) === 1, 'usado hace poco: no se enfría aunque sea viejo');
+    ok(pu({ creado: D(0), usos: 'x' }, 0) === 1, 'un contador estropeado no rompe nada');
+
+    // desempate por uso: misma forma; el usado es el MÁS ANTIGUO (el desempate por fecha favorecería al otro)
+    const a = m.guardarHecho(U, { dimension: 'proyecto.pasarela-web', valor: 'Stripe' }, { ahora: D(0) }).hecho;
+    m.guardarHecho(U, { dimension: 'proyecto.pasarela-tpv', valor: 'Redsys' }, { ahora: D(1) });
+    ok(m.buscarHechos(U, 'pasarela', { ahora: D(2) })[0].hecho.valor === 'Redsys', '(sin usos: el más reciente delante)');
+    ok(m.anotarUso(U, [a.id, a.id, 'h-noexiste'], { ahora: D(2) }) === 1, 'anotarUso: una vez por llamada aunque se repita; lo que no existe se ignora');
+    m.anotarUso(U, [a.id], { ahora: D(3) });
+    const ga = m.todosLosHechos(U).find(h => h.id === a.id);
+    ok(ga.usos === 2 && ga.ultimo_uso === D(3), 'apunta cuántas veces y cuándo', JSON.stringify(ga));
+    ok(m.buscarHechos(U, 'pasarela', { ahora: D(4) })[0].hecho.valor === 'Stripe', 'lo usado sube en un empate');
+
+    // enfriamiento: lo que nadie usa en meses cede ante lo igual de relevante y reciente; sin esconderse
+    const V = proyecto('enfria');
+    m.guardarHecho(V, { dimension: 'proyecto.hosting-viejo', valor: 'Hetzner' }, { ahora: D(0) });
+    m.guardarHecho(V, { dimension: 'proyecto.hosting-nuevo', valor: 'Fly' }, { ahora: D(500) });
+    let hits = m.buscarHechos(V, 'hosting', { ahora: D(501) });
+    ok(hits.length === 2 && hits[0].hecho.valor === 'Fly' && hits[1].puntuacion >= hits[0].puntuacion * 0.89, 'lo frío cede, pero sigue ahí (×0,9 como mucho)', hits.map(x => x.hecho.valor + ' ' + x.puntuacion).join(' | '));
+    const solo = proyecto('enfria-solo');
+    m.guardarHecho(solo, { dimension: 'identidad.nombre', valor: 'Lucía Ferrer', claves: ['nombre', 'name', 'llama'] }, { ahora: D(0) });
+    const h1 = m.buscarHechos(solo, '¿cómo se llama el usuario? nombre', { ahora: D(2000) })[0];
+    ok(h1 && h1.puntuacion >= m.UMBRAL_RECUERDO, 'un hecho viejo y sin usar que viene al caso sigue pasando el umbral de inyección', String(h1 && h1.puntuacion));
+    const sinFecha = m.buscarHechos(V, 'hosting', { ahora: D(501) }).map(x => x.puntuacion).join();
+    ok(sinFecha === hits.map(x => x.puntuacion).join(), 'misma entrada y misma fecha: misma salida');
+
+    // contexto al iniciar: por actividad (creado o usado)
+    const W = proyecto('actividad');
+    const viejo = m.guardarHecho(W, { dimension: 'preferencia.tests', valor: 'Pest' }, { ahora: D(0) }).hecho;
+    m.guardarHecho(W, { dimension: 'preferencia.css', valor: 'Tailwind' }, { ahora: D(10) });
+    ok(m.contextoHechos(W, { ahora: D(11) })[0].valor === 'Tailwind', '(contexto: lo más reciente primero)');
+    m.anotarUso(W, [viejo.id], { ahora: D(20) });
+    ok(m.contextoHechos(W, { ahora: D(21) })[0].valor === 'Pest', 'lo que se sigue usando no se cae del contexto al iniciar');
+
+    // cerrojo ocupado: anotar un uso no espera ni rompe (los hooks no pueden quedarse colgados)
+    const lock = m.rutaHechos(W) + '.lock';
+    fs.writeFileSync(lock, '999');
+    const t0 = Date.now(); let n = -1, err = null;
+    try { n = m.anotarUso(W, [viejo.id], { ahora: D(30) }); } catch (e) { err = e; }
+    ok(!err && n === 0 && Date.now() - t0 < 3000, 'con el almacén ocupado, el uso se pierde sin esperar ni fallar', `${n} ${Date.now() - t0}ms ${err}`);
+    fs.rmSync(lock, { force: true });
+
+    // la CLI apunta lo que entrega
+    const cliU = (...x) => spawnSync(process.execPath, [CLI, '--path', U, ...x], { encoding: 'utf8', env: process.env }).stdout;
+    cliU('--buscar', 'Redsys');
+    ok(m.todosLosHechos(U).find(h => h.valor === 'Redsys').usos === 1, 'CLI: --buscar apunta un uso de lo que enseña');
+    cliU('--recordar', 'Redsys');
+    ok(m.todosLosHechos(U).find(h => h.valor === 'Redsys').usos === 2, 'CLI: --recordar también');
+}
+
 // 4. cupos por familia: que una familia no se coma el espacio
 const C = proyecto('cupos');
 for (let i = 0; i < 6; i++) m.guardarHecho(C, { dimension: `nota.${i}`, valor: `nota de diseño ${i}`, claves: ['diseño'] }, { ahora: T(C, i) });

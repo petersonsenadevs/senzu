@@ -120,6 +120,8 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   y lo dudoso pesan algo menos y se marcan; si el usuario lo afirma después, sube a «usuario» y la duda se confirma.
 - **Avisos al guardar** (no bloquean): «casi duplicado» en la misma familia (trigramas, cualquier escritura) →
   `--olvidar` uno si es lo mismo; «contradice» otro valor vigente que no se sustituye → pregunta cuál vale.
+- **Uso y enfriamiento**: lo que llega al agente (al hablar, al editar, `--buscar`, `--recordar`) suma un uso; lo
+  usado sube un poco y lo que pasa de 90 días sin usarse se enfría despacio (×0,9 como mucho). Nada se borra.
 - **Llega sola**: al iniciar (lo vigente), con cada mensaje (recuerdo-vivo: hechos, decisiones y devlog de lo que
   se habla) y al editar (los hechos del tema del archivo). Consulta a mano: `--recordar "…"` (las tres memorias),
   `--buscar "…"` (`--historico` para el pasado).

@@ -58,6 +58,7 @@ if (opt('--guardar')) {
 }
 if (opt('--buscar')) {
     const hits = m.buscarHechos(root, String(opt('--buscar')), { historico: !!opt('--historico'), limite: Number(opt('--limite')) || 8 });
+    if (m.anotarUso) m.anotarUso(root, hits.map(x => x.hecho.id));
     if (opt('--json')) { out(JSON.stringify(hits, null, 2)); process.exit(0); }
     if (!hits.length) { out('Nada en la memoria de hechos para eso. Dilo así: no lo supongas.'); process.exit(0); }
     for (const x of hits) out(`${linea(x.hecho)}\n    ${x.motivo}`);
@@ -65,6 +66,7 @@ if (opt('--buscar')) {
 }
 if (opt('--recordar')) {   // las tres memorias a la vez: hechos, MEMORIA.md y devlog
     const l = m.recuerdo(root, String(opt('--recordar')), { historico: !!opt('--historico'), limite: Number(opt('--limite')) || 6 });
+    if (m.anotarUso) m.anotarUso(root, l.filter(x => x.fuente === 'hecho').map(x => x.id));
     if (opt('--json')) { out(JSON.stringify(l, null, 2)); process.exit(0); }
     if (!l.length) { out('Nada en hechos, memoria ni devlog para eso. Dilo así: no lo supongas.'); process.exit(0); }
     for (const x of l) out(`[${x.fuente}] ${x.texto}${x.ver && !new RegExp(`\\bver ${x.ver}\\b`).test(x.texto) ? ` · ver ${x.ver}` : ''}\n    ${x.motivo}`);

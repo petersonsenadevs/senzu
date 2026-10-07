@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **feature** — Relevancia por uso y enfriamiento en la memoria de hechos (F6-T5) (entrada 117)
 - **feature** — Procedencia, confianza y casi-duplicados en la memoria de hechos (F6-T4) (entrada 116)
 - **feature** — Consolidación de lo aprendido al cerrar una sesión de trabajo (F6-T3) (entrada 115)
 - **feature** — Objetivos y pendientes con ciclo de vida (F6-T2) (entrada 114)

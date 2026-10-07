@@ -6,7 +6,7 @@
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { readHookInput, projectRoot, testOnce, decisionesDeArchivo, outHookJson, rutaRel } from './lib.mjs';
-import { buscarHechos } from './hechos.mjs';
+import { buscarHechos, anotarUso } from './hechos.mjs';
 
 const p = readHookInput();
 if (!p || !['Edit', 'Write', 'MultiEdit'].includes(p.tool_name)) process.exit(0);
@@ -33,6 +33,7 @@ const consulta = rel.replace(/\.[^./]+$/, '').split(/[\\/._-]+/).flatMap(s => s.
 let hechos = [];
 try { hechos = consulta ? buscarHechos(root, consulta, { limite: 3 }).filter(x => x.puntuacion >= 1.2) : []; } catch { }
 if (!dice.length && !hechos.length) process.exit(0);
+anotarUso(root, hechos.map(x => x.hecho.id));
 const citar = v => '«' + String(v).replace(/[\r\n\t]+/g, ' ').replace(/[«»]/g, '"').trim().slice(0, 160) + (String(v).length > 160 ? '…' : '') + '»';
 outHookJson('PreToolUse', {
     additionalContext: `[senzu] Antes de tocar ${rel}, esto dice la memoria del proyecto de ese archivo:\n`

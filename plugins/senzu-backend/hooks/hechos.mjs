@@ -90,12 +90,14 @@ function leerArchivo(file) {
 }
 export function leerHechos(file) { return leerArchivo(file).validos; }
 const dormir = ms => { try { Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms); } catch { } };
-function conCerrojo(file, fn) {
+function conCerrojo(file, fn, espera = 8000) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    const lock = file + '.lock', hasta = Date.now() + 8000;
+    const lock = file + '.lock', hasta = Date.now() + espera;
     for (;;) {
         try { fs.writeFileSync(lock, String(process.pid), { flag: 'wx' }); break; } catch (e) {
-            if (e.code !== 'EEXIST') throw e;
+            // EPERM/EACCES/EBUSY: en Windows, crear el cerrojo mientras otro lo está borrando; es «ocupado», no un error
+            if (!['EEXIST', 'EPERM', 'EACCES', 'EBUSY'].includes(e.code)) throw e;
+            if (e.code !== 'EEXIST') { if (Date.now() > hasta) throw e; dormir(5); continue; }
             try { if (Date.now() - fs.statSync(lock).mtimeMs > 10000) { fs.rmSync(lock, { force: true }); continue; } } catch { continue; }   // abandonado
             if (Date.now() > hasta) throw new Error('La memoria de hechos está ocupada por otro proceso; vuelve a intentarlo.');
             dormir(10 + Math.floor(Math.random() * 20));
@@ -209,6 +211,39 @@ function sustituir(lista, dimension, nuevo, ahora) {
 export const FUENTES = ['usuario', 'devlog', 'agente'];
 const PESO_FUENTE = { usuario: 1, devlog: 0.95, agente: 0.9 };
 export const pesoConfianza = h => (PESO_FUENTE[h.fuente] || 1) * (h.estado === 'dudoso' ? 0.85 : 1);
+
+// ---------------------------------------------------------------- relevancia por uso y enfriamiento (F6-T5)
+// Un USO es que el hecho llegue de verdad al agente (recuerdo-vivo, memoria-archivo, --buscar, --recordar); lo que
+// se inyecta al iniciar cada sesión no cuenta (lo inflaría todo por igual). Lo usado sube un poco (hasta ×1,12,
+// logarítmico: los primeros usos cuentan más) y lo que lleva más de 90 días sin usarse se enfría despacio hasta
+// ×0,9 al año. Suave a propósito: reordena casi empates; no esconde un hecho viejo que de verdad viene al caso.
+export const DIAS_TEMPLADO = 90;
+export function pesoUso(h, ahora = hoy()) {
+    const ref = Date.parse(h.ultimo_uso || h.creado || ahora), dias = Math.max(0, (Date.parse(ahora) - ref) / 864e5);
+    const enfria = dias <= DIAS_TEMPLADO ? 1 : Math.max(0.9, 1 - 0.1 * (dias - DIAS_TEMPLADO) / 365);
+    return enfria * (1 + Math.min(0.12, 0.04 * Math.log2(1 + (Number(h.usos) || 0))));
+}
+// Apunta un uso de cada id (una vez por llamada aunque se repita). Nunca rompe a quien lo llama: si el almacén está
+// ocupado o es de solo lectura, el uso se pierde y ya está.
+export function anotarUso(root, ids, { ahora = hoy() } = {}) {
+    const quedan = new Set([].concat(ids || []).filter(Boolean));
+    let n = 0;
+    for (const alcance of ['proyecto', 'usuario']) {
+        if (!quedan.size) break;
+        const file = rutaHechos(root, alcance);
+        if (!fs.existsSync(file)) continue;
+        try {
+            n += conCerrojo(file, () => {
+                const { validos: lista, ilegibles } = leerArchivo(file);
+                let k = 0;
+                for (const h of lista) if (quedan.has(h.id)) { h.usos = (Number(h.usos) || 0) + 1; h.ultimo_uso = ahora; quedan.delete(h.id); k++; }
+                if (k) escribirHechos(file, lista, ilegibles);
+                return k;
+            }, 400);   // un hook no espera: si está ocupado, ese uso se pierde
+        } catch { }
+    }
+    return n;
+}
 // Parecido por trigramas de caracteres (Jaccard) sobre el texto normalizado: vale igual en cualquier escritura
 function trigramas(t) {
     const c = [...` ${normalizar(t).replace(/\s+/g, ' ').trim()} `], s = new Set();
@@ -352,7 +387,7 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
         // cobertura que lo hacía hundía el recuerdo del 98,5 % al 78,8 %: las palabras de pregunta también tienen
         // peso), pero se marca para que el agente, que sí entiende el sentido, decida si viene al caso (F4-T4).
         const debil = qConPeso >= 3 && conPesoQueCoinciden.size === 1;
-        return { hecho: h, puntuacion: conPesoCoincide ? +(score * pesoConfianza(h)).toFixed(3) : 0, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined };
+        return { hecho: h, puntuacion: conPesoCoincide ? +(score * pesoConfianza(h) * pesoUso(h, ahora)).toFixed(3) : 0, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined };
     }).filter(x => x.puntuacion > 0);
     // Preguntando por el PASADO (lo decide el agente con --historico): la historia de cada dimensión encontrada entra
     // entera y lo sustituido va delante («¿dónde vivía antes?» encuentra «Valencia» por «mudado» y trae «Málaga»)
@@ -469,6 +504,8 @@ export function decisionesObsoletas(root) {
 
 // ---------------------------------------------------------------- contexto para el inicio de sesión
 export function contextoHechos(root, { presupuesto = 12, ahora = hoy() } = {}) {
-    const vigentes = todosLosHechos(root).filter(h => vigente(h, ahora)).sort((a, b) => (b.creado || '').localeCompare(a.creado || ''));
+    // por ACTIVIDAD (lo creado o usado más recientemente primero): lo que se sigue usando no se cae del contexto
+    const activo = h => [h.creado || '', h.ultimo_uso || ''].sort().pop();
+    const vigentes = todosLosHechos(root).filter(h => vigente(h, ahora)).sort((a, b) => activo(b).localeCompare(activo(a)));
     return conCupos(vigentes, presupuesto, h => familia(h.dimension));
 }

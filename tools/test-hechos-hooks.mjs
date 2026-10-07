@@ -318,6 +318,19 @@ const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abierto
     ok(/Consolida lo aprendido/.test(cierre(P, s)), 'guardar otros hechos (no aprendizaje.*) no cuenta como consolidar');
 }
 
+// ---------------------------------------------------------------- F6-T5 · lo que llega al agente cuenta como uso
+{
+    const P = proyecto('usos');
+    const pago = m.guardarHecho(P, { dimension: 'proyecto.pasarela', valor: 'Stripe con webhooks firmados', claves: ['pagos', 'payments', 'pasarela'] }, { ahora: T(0) }).hecho;
+    const otro = m.guardarHecho(P, { dimension: 'preferencia.css', valor: 'Tailwind 4' }, { ahora: T(1) }).hecho;
+    const usos = id => (m.todosLosHechos(P).find(h => h.id === id) || {}).usos || 0;
+    ok(/Stripe/.test(mensaje(P, 'vamos a montar la pasarela de pagos', `uso1-${RUN}`)) && usos(pago.id) === 1 && usos(otro.id) === 0, 'recuerdo-vivo: lo que inyecta suma un uso (y solo eso)');
+    mensaje(P, 'vamos a montar la pasarela de pagos', `uso1-${RUN}`);
+    ok(usos(pago.id) === 1, 'lo que ya no se repite en la sesión tampoco vuelve a contar');
+    ok(/Stripe/.test(edita(P, 'app/Services/PasarelaPagos.php', `uso2-${RUN}`)) && usos(pago.id) === 2, 'memoria-archivo: también cuenta');
+    ok(usos(otro.id) === 0 && /Tailwind/.test(inicio(P)) && usos(otro.id) === 0, 'lo que se inyecta al iniciar NO cuenta (lo inflaría todo por igual)');
+}
+
 // ---------------------------------------------------------------- GARANTÍAS: sin contexto no inventa; nunca da por vigente lo que no lo es
 const VACIA = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-vacio', 'memoria.md') };
 {   // proyecto SIN NADA (sin devlog, sin hechos, sin memoria del usuario): ningún hook inventa ni se cae
