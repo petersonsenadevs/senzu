@@ -130,6 +130,17 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   y lo dudoso pesan algo menos y se marcan; si el usuario lo afirma después, sube a «usuario» y la duda se confirma.
 - **Avisos al guardar** (no bloquean): «casi duplicado» en la misma familia (trigramas, cualquier escritura) →
   `--olvidar` uno si es lo mismo; «contradice» otro valor vigente que no se sustituye → pregunta cuál vale.
+- **Que se entienda solo** (proposiciones autocontenidas): el hecho se lee semanas después y fuera de la
+  conversación. Escribe quién o qué con su nombre y la fecha absoluta: «Marco Bianchi, el fotógrafo, cobra 600 € por
+  sesión», no «cobra 600 €»; «la demo es el 15-10-2026», no «la demo es mañana». Al guardar avisa («ojo, ¿se entiende
+  solo?») de:
+  - tiempo relativo en ~20 idiomas («mañana», «la semana que viene», «tomorrow», «morgen», «明天»), pero no «por la
+    mañana» ni «hoy por hoy»;
+  - un pronombre al empezar («él», «she», «elle»), salvo siglas y nombres («IT», «Ella Fitzgerald»);
+  - lo que solo se entiende aquí («lo de antes», «same as before»);
+  - una nota de una a tres palabras sin de quién ni de qué («600 €»).
+
+  Medido: con las notas de las preguntas de saltos escritas así, 5 de 16 aciertan a la primera en vez de segundas.
 - **Verla (Cortex)**: `memoria.mjs --cortex` genera `senzu/cortex/index.html`, un HTML local sin red con un cerebro
   2D/3D por zonas (lo que se quiere conseguir, el proyecto, normas y decisiones, quién eres y lo vivido), qué cambió
   esta semana, lo abierto, el buscador y el detalle con su historia, procedencia y enlaces; en el 3D, impulsos

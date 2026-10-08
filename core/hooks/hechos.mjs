@@ -278,7 +278,7 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
     // otro valor vigente de la MISMA dimensión que este no sustituye (una duda frente a lo afirmado, u otro alcance)
     const otroAlcance = leerHechos(rutaHechos(root, alcance === 'usuario' ? 'proyecto' : 'usuario'));
     const vigentesAhora = [...lista, ...otroAlcance].filter(h => h.id !== hecho.id && (h.estado === 'activo' || h.estado === 'dudoso') && vigente(h, ahora));
-    const avisos = [...avisosAlGuardar(hecho, vigentesAhora), ...avisosConvencion(hecho, conv, propias, vigentesAhora)];
+    const avisos = [...avisosAlGuardar(hecho, vigentesAhora), ...avisosConvencion(hecho, conv, propias, vigentesAhora), ...avisosAutocontenido(hecho)];
     lista.push(JSON.parse(JSON.stringify(hecho)));
     escribirHechos(file, lista, ilegibles);
     return { accion: entrada.duda ? 'dudoso' : sustituidos.length ? 'sustituye' : 'nuevo', hecho, sustituidos, avisos };
@@ -305,6 +305,36 @@ function avisosConvencion(hecho, conv, propias, vigentes) {
         }
     }
     return avisos;
+}
+// ¿Se entiende SOLO? (X-T15, EMem: proposiciones autocontenidas). Un hecho se lee semanas después y fuera de la
+// conversación: «mañana» ya no dice qué día, «él» no dice quién y «600 €» en una nota no dice de qué. Aviso, no
+// bloqueo (el agente entiende la frase; esto solo ve palabras). Medido en devlog 137: con las notas de los saltos
+// escritas para entenderse solas, 5 de 16 preguntas aciertan a la primera.
+const TIEMPO_RELATIVO = new Set(('ayer hoy anteayer tomorrow yesterday today tonight demain hier aujourd hui morgen gestern heute ubermorgen '
+    + 'domani ieri oggi dopodomani amanha ontem hoje dema ahir avui morgen gisteren vandaag jutro wczoraj dzisiaj завтра вчера сегодня '
+    + 'αυριο χθες σημερα yarin yarın dun bugun غدا امس اليوم מחר אתמול היום कल आज 明日 昨日 今日 明天 昨天 今天 后天 내일 어제 오늘').split(' '));
+const MANANA_FRANJA = new Set(['la', 'las', 'una', 'cada', 'toda', 'media', 'buena', 'buenas']);   // «por la mañana» es la franja, no «tomorrow»
+const TIEMPO_FRASE = /\b(pasado manana|(la )?(semana|mes|ano) (que viene|pasad[oa]|proxim[oa])|(la |el )?proxim[oa] (semana|mes|ano|lunes|martes|miercoles|jueves|viernes)|este (lunes|martes|miercoles|jueves|viernes|sabado|domingo|mes|ano)|esta semana|next (week|month|year|monday|tuesday|wednesday|thursday|friday)|last (week|month|year)|this (week|month|monday|tuesday|wednesday|thursday|friday)|semaine (prochaine|derniere)|mois prochain|nachste woche|letzte woche|naechste woche|settimana prossima|prossima settimana|semana que vem|proxima semana)\b/;
+const PRONOMBRE_INICIAL = /^(el|ella|ellos|ellas|eso|esto|he|she|they|it|elle|ils|elles|er|ele|ela|eles|elas|isso|isto|lui|lei|ell)\b/;
+const SIN_REFERENTE = /\b(lo de antes|lo mismo que antes|como (dijimos|hablamos|antes)|el de siempre|la de siempre|same as before|as (discussed|before|mentioned)|the other one|comme avant|wie vorher|come prima|como antes)\b/;
+export function avisosAutocontenido(hecho) {
+    const crudo = String(hecho.valor || '').trim(), v = normalizar(crudo).replace(/\bhoy (por hoy|en dia)\b/g, 'actualmente'), out = [];
+    const crudas = [];   // las palabras tal cual (para el mensaje y las mayúsculas), alineadas con las normalizadas
+    for (const s of SEG.segment(crudo)) if (s.isWordLike && /[\p{L}\p{N}]/u.test(s.segment)) crudas.push(s.segment);
+    const ws = crudas.map(normalizar);
+    const i = ws.findIndex((w, k) => (TIEMPO_RELATIVO.has(w) && !(w === 'morgen' && crudas[k] === 'Morgen') && !(w === 'hoy' && /\bactualmente\b/.test(v)))
+        || (w === 'manana' && !MANANA_FRANJA.has(ws[k - 1])));
+    const rel = i >= 0 ? crudas[i] : (TIEMPO_FRASE.exec(v) || [])[0];
+    if (rel) out.push({ tipo: 'autocontenido', motivo: `«${rel}» no dirá nada dentro de un mes: pon la fecha (y --hasta si caduca)` });
+    // un pronombre al empezar, salvo sigla («IT», «ER») o nombre («Ella Fitzgerald»); «él» normalizado es «el», el artículo
+    const pron = (PRONOMBRE_INICIAL.exec(v) || [])[0], primera = crudas[0] || '';
+    if (pron && primera !== primera.toUpperCase() && !/^\p{Lu}/u.test(crudas[1] || '') && (pron !== 'el' || /^él$/i.test(primera)))
+        out.push({ tipo: 'autocontenido', motivo: `empieza por «${primera}»: di quién o qué es, con su nombre` });
+    const sin = (SIN_REFERENTE.exec(v) || [])[0];
+    if (sin) out.push({ tipo: 'autocontenido', motivo: `«${sin}» no se entiende fuera de esta conversación: escribe lo que era` });
+    if (FAMILIAS_VARIOS.test(hecho.dimension) && ws.length <= 3 && ws.filter(palabraConPeso).length < 2 && !hecho.texto)
+        out.push({ tipo: 'autocontenido', motivo: `«${crudo}» sin decir de quién o de qué: escríbelo entero (p. ej. «Marco Bianchi cobra 600 € por sesión»)` });
+    return out;
 }
 // Lo vigente de la dimensión (activo y dudoso: lo afirmado gana a la duda) pasa a sustituido por «nuevo»
 function sustituir(lista, dimension, nuevo, ahora) {

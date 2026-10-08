@@ -440,6 +440,45 @@ ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S
     ok(JSON.stringify(m.buscarHechos(A, 'how much does the photographer charge?')) === JSON.stringify(m.buscarHechos(A, 'how much does the photographer charge?')), 'determinista también con la propagación');
 }
 
+// 3l. ¿se entiende solo? (X-T15): avisos al guardar lo que dentro de un mes no dirá nada, en cualquier idioma
+{
+    const av = (valor, dimension = 'nota.x', extra = {}) => m.avisosAutocontenido({ dimension, valor, ...extra }).map(a => a.motivo).join(' ; ');
+    const avisan = ['mañana a las 10 con Jordi', 'Mañana llega el técnico', 'pasado mañana sale la beta', 'enviar el presupuesto la semana que viene',
+        'el mes que viene cambiamos de hosting', 'esta semana no hay despliegues', 'deploy tomorrow at 9', 'next week we migrate the DB', 'hoy se cae el VPS',
+        'morgen kommt der Techniker', 'nächste Woche ist Messe', 'demain la démo', 'la semaine prochaine on livre', 'domani consegna', 'amanhã chega o contrato',
+        'завтра релиз', '明天开会', '今日のミーティングは中止', '내일 회의', 'yarın toplantı var'];
+    const noAvisa = ['reunión por la mañana con Jordi', 'el cliente prefiere las mañanas', 'cada mañana se hace el backup', 'Rui Costa só responde de manhã',
+        'Am Morgen ist das Büro zu', 'la entrega es el 15 de noviembre de 2030', 'hoy por hoy usamos Stripe', 'hoy en día todo va por Bizum',
+        'il fotografo è Marco Bianchi', 'el fotógrafo es Marco Bianchi', 'IT department owns the VPN', 'ER diagram in Figma', 'Ella Fitzgerald suena en la tienda',
+        'Elle Macpherson es la imagen de la campaña', 'las fotos de producto de la colección de otoño', 'Stripe en modo test hasta el lanzamiento'];
+    const malos = avisan.filter(v => !/no dirá nada dentro de un mes/.test(av(v)));
+    ok(!malos.length, `tiempo relativo en 11 idiomas: avisa (${avisan.length})`, malos.join(' | '));
+    const falsos = noAvisa.filter(v => av(v));
+    ok(!falsos.length, `sin falsos avisos: «por la mañana», «am Morgen», «hoy por hoy», siglas, nombres (${noAvisa.length})`, falsos.map(v => `${v} → ${av(v)}`).join(' | '));
+    ok(/«mañana» no dirá nada/.test(av('mañana a las 10 con Jordi')) && /«明天»/.test(av('明天开会')), 'el aviso cita la palabra tal cual la escribió (con su tilde, en su escritura)', av('mañana a las 10 con Jordi'));
+    ok(/empieza por «él»/.test(av('él se encarga del SEO')) && /empieza por «She»/.test(av('She handles the invoices')) && /empieza por «Elle»/.test(av('Elle est absente en août')),
+        'empieza por un pronombre sin nombre: avisa (es, en, fr)', [av('él se encarga del SEO'), av('She handles the invoices')].join(' | '));
+    ok(!/sin decir de quién/.test(av('él se encarga del SEO')) && /sin decir de quién/.test(av('sí, eso', 'nota.x')), 'la regla de la nota corta es para 1-3 palabras: una frase con un pronombre da UN aviso, no dos', av('él se encarga del SEO'));
+    ok(/«lo de antes» no se entiende/.test(av('volvemos a lo de antes')) && /«same as before»/.test(av('pricing same as before')), 'lo que solo se entiende en esta conversación: avisa');
+    ok(/«600 €» sin decir de quién/.test(av('600 €', 'nota.tarifa')) && !av('Nuvol', 'proyecto.cliente') && !av('600 €', 'nota.tarifa', { texto: 'Marco Bianchi cobra 600 € por sesión' }),
+        'una nota de 1-2 palabras sin de quién ni de qué avisa; un cliente de una palabra, o una nota con su texto, no');
+    // en el corpus de evaluación (90 hechos guardados como los guardaría el agente) no salta ningún aviso
+    const corpus = ['corpus.json', 'corpus-fitlab.json'].flatMap(f => JSON.parse(fs.readFileSync(path.join(ROOT, 'tools', 'eval-hechos', f), 'utf8')).hechos);
+    const enCorpus = corpus.filter(h => m.avisosAutocontenido(h).length);
+    ok(!enCorpus.length, `ningún aviso en los ${corpus.length} hechos reales del corpus`, enCorpus.map(h => h.valor).join(' | '));
+    // llega al guardar (sin bloquear) y la CLI lo enseña
+    const Q = proyecto('autocontenido');
+    const g = m.guardarHecho(Q, { dimension: 'pendiente.demo', valor: 'la demo es mañana' }, { ahora: T(Q, 0) });
+    ok(g.accion === 'nuevo' && g.avisos.some(a => a.tipo === 'autocontenido'), 'al guardar: se guarda igual y vuelve el aviso', JSON.stringify(g.avisos));
+    const c = spawnSync(process.execPath, [CLI, "--path", Q, "--guardar", "--dimension", "nota.contacto", "--valor", "ella lleva las facturas", "--claves", "facturas,invoices"], { encoding: "utf8", env: process.env });
+    ok(c.status === 0 && /ojo, ¿se entiende solo\? empieza por «ella»/.test(c.stdout), 'CLI: «ojo, ¿se entiende solo?»', c.stdout);
+    // y se nota al buscar: la misma tarifa, escrita para entenderse sola, sale la primera sin depender de la propagación
+    const R = proyecto('autocontenido-busca');
+    m.guardarHecho(R, { dimension: 'nota.fotografo', valor: 'il fotografo è Marco Bianchi, disponibile solo il lunedì', claves: ['fotografo', 'photographer'] }, { ahora: T(R, 0) });
+    m.guardarHecho(R, { dimension: 'nota.tarifa-bianchi', valor: 'Marco Bianchi, el fotógrafo, cobra 600 € por sesión de fotos', claves: ['tarifa', 'precio'] }, { ahora: T(R, 1) });
+    ok(primero(R, '¿cuánto cobra el fotógrafo?').dimension === 'nota.tarifa-bianchi', 'escrita para entenderse sola, la tarifa sale la primera');
+}
+
 // 4. cupos por familia: que una familia no se coma el espacio
 const C = proyecto('cupos');
 for (let i = 0; i < 6; i++) m.guardarHecho(C, { dimension: `nota.${i}`, valor: `nota de diseño ${i}`, claves: ['diseño'] }, { ahora: T(C, i) });

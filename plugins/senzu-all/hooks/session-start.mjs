@@ -129,7 +129,7 @@ try {
     L.push('- TU MEMORIA (Senzu / Hemispheric): persiste entre sesiones y la comparten Claude y Codex. Lo que hay ahora:');
     L.push(mapa.hechos || mapa.decisiones || mapa.entradas ? textoMapa(mapa) : '  · vacía: se llena con lo que guardes de lo que te cuenten');
     L.push(`  CONSÚLTALA antes de preguntar al usuario o de decidir algo del proyecto, aunque no te llegue sola: node ${cli} --recordar "palabras" (hechos + MEMORIA.md + devlog a la vez; --historico para el pasado); --lista para verlo todo.`);
-    L.push(`  GUARDA lo estable que diga el usuario (en el idioma que sea): node ${cli} --guardar --dimension familia.tema --valor "…" --claves "término en inglés,en su idioma" (familia: identidad, preferencia, proyecto, objetivo, pendiente, restriccion, nota, aprendizaje; tema en castellano: ubicacion, cliente, stack, hosting, presupuesto, plazo…). Con «creo que…», --duda; lo que deduces tú, --fuente agente.`);
+    L.push(`  GUARDA lo estable que diga el usuario (en el idioma que sea): node ${cli} --guardar --dimension familia.tema --valor "…" --claves "término en inglés,en su idioma" (familia: identidad, preferencia, proyecto, objetivo, pendiente, restriccion, nota, aprendizaje; tema en castellano: ubicacion, cliente, stack, hosting, presupuesto, plazo…). Que se entienda solo: quién o qué con su nombre y fecha absoluta («Marco Bianchi, el fotógrafo, cobra 600 €», no «cobra 600 €»; «el 15-10», no «mañana»). Con «creo que…», --duda; lo que deduces tú, --fuente agente.`);
 } catch { }
 for (const a of revisarMemoria(root)) L.push(`- Memoria: ${a}`);
 // En qué se quedó la sesión anterior (estado-sesion): para seguir sin que el usuario tenga que contarlo

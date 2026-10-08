@@ -60,7 +60,7 @@ const conversacion = Array.isArray(peticiones) && peticiones.filter(x => palabra
 if (conversacion && !rev.revisada && testOnce(sid, 'hechos-guard')) {
     motivos.push('Revisa la memoria (en el idioma en que haya hablado el usuario): ¿ha dicho en esta sesión algo ESTABLE de sí o '
         + 'del proyecto (dónde vive, su stack, una preferencia, un límite, un cliente, un objetivo o un pendiente)? '
-        + `Si sí: node ${cli} --guardar --dimension familia.tema --valor "…" --claves "…" (familia: identidad, preferencia, proyecto, objetivo, pendiente, restriccion, nota o aprendizaje; tema en castellano, sea cual sea el idioma de la conversación; claves también en inglés y en su idioma; con «creo que…», --duda; lo que deduces tú y no dijo, --fuente agente). `
+        + `Si sí: node ${cli} --guardar --dimension familia.tema --valor "…" --claves "…" (familia: identidad, preferencia, proyecto, objetivo, pendiente, restriccion, nota o aprendizaje; tema en castellano, sea cual sea el idioma de la conversación; claves también en inglés y en su idioma; que se entienda solo: nombres y fechas absolutas, no «mañana» ni «él»; con «creo que…», --duda; lo que deduces tú y no dijo, --fuente agente). `
         + `Si no: node ${cli} --nada. Las decisiones y reglas del proyecto van a MEMORIA.md (/recordar). No inventes hechos que el usuario no dijo.`);
 }
 // 2. Consolidar (F6-T3): si la sesión TRABAJÓ (3+ archivos tocados, sin contar la memoria ni el plan) y no guardó ningún

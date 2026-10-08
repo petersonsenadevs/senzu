@@ -57,6 +57,7 @@ if (opt('--guardar')) {
     for (const a of r.avisos || []) out(a.tipo === 'casi-duplicado'
         ? `  ojo, casi duplicado (${a.motivo}): ${linea(a.hecho)} → si es lo mismo, --olvidar uno de los dos`
         : a.tipo === 'contradice' ? `  ojo, contradice (${a.motivo}): ${linea(a.hecho)} → pregunta al usuario cuál vale`
+        : a.tipo === 'autocontenido' ? `  ojo, ¿se entiende solo? ${a.motivo}`
         : a.tipo === 'misma-dimension' ? `  ojo, ¿misma dimensión? ${a.motivo}: ${linea(a.hecho)}`
         : `  convención: ${a.motivo}`);
     process.exit(0);

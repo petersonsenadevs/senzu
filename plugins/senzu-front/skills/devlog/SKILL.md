@@ -40,7 +40,7 @@ anota la decisión en la primera entrada (o en su diario) y respétala el resto 
 | Memoria de más de 60 líneas | Pasa lo sustituido o cerrado a `senzu/devlog/MEMORIA-historico.md` |
 | El usuario da una regla o corrige («no vuelvas a…», «a partir de ahora…») | `/recordar`: al proyecto (MEMORIA.md) o a su memoria personal si vale para todos sus proyectos (references/memoria.md §7) |
 | Retomar la sesión anterior | `/retomar` (references/memoria.md §8) |
-| El usuario afirma algo estable de sí o del proyecto (dónde vive, su stack, una preferencia, un límite), en el idioma que sea | `node <skills-dir>/devlog/scripts/memoria.mjs --guardar --dimension familia.tema --valor "…" --claves "…"` (claves también en inglés y en su idioma: así se encuentra desde cualquiera). Lo nuevo sustituye a lo anterior de esa dimensión; con «creo que…», `--duda`. Para consultar: `--buscar "…"` (`--historico` si pregunta por el pasado) |
+| El usuario afirma algo estable de sí o del proyecto (dónde vive, su stack, una preferencia, un límite), en el idioma que sea | `node <skills-dir>/devlog/scripts/memoria.mjs --guardar --dimension familia.tema --valor "…" --claves "…"` (claves también en inglés y en su idioma: así se encuentra desde cualquiera). Que se entienda solo dentro de un mes: quién o qué con su nombre y fecha absoluta, no «mañana» ni «él». Lo nuevo sustituye a lo anterior de esa dimensión; con «creo que…», `--duda`. Para consultar: `--buscar "…"` (`--historico` si pregunta por el pasado) |
 | Revisar la memoria (caducados, «ver NNN» rotos, D repetidos) | `node <skills-dir>/devlog/scripts/memoria-check.mjs` |
 
 Al responder sobre el pasado, cita la entrada (`según la 034…`). Si el buscador no encuentra nada tras
