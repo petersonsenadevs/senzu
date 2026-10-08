@@ -439,6 +439,89 @@ const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abierto
         && m.seUso({ texto: '[proyecto.pasarela-pago] Stripe con webhooks firmados' }, 'montamos stripe', 'Stripe, claro') === false, 'usado = aparece lo PROPIO del recuerdo, no lo que ya traía la pregunta');
 }
 
+// ---------------------------------------------------------------- X-T11 · reconsolidación: aprende las palabras del usuario
+{
+    // de punta a punta, con los hooks y la CLI de verdad: el usuario pregunta con SUS palabras, la memoria no lo
+    // encuentra, el agente lo busca él con otras, lo usa; al cerrar, el hecho aprende las palabras del usuario
+    const P = proyecto('reconsolida');
+    const host = m.guardarHecho(P, { dimension: 'proyecto.hosting', valor: 'Laravel Forge', claves: ['servidor', 'server'] }, { ahora: T(0) }).hecho;
+    m.guardarHecho(P, { dimension: 'proyecto.pasarela-pago', valor: 'Stripe con webhooks firmados', claves: ['pagos', 'cobros'] }, { ahora: T(1) });
+    const s = `rc-${RUN}`, PREG = '¿en qué chiringuito vive la web?';
+    const antes = m.buscarHechos(P, PREG).filter(x => x.puntuacion >= m.UMBRAL_RECUERDO);
+    ok(!antes.length, '(antes: con las palabras del usuario no sale)', JSON.stringify(antes.map(x => x.hecho.valor)));
+    mensaje(P, PREG, s);
+    const c = spawnSync(process.execPath, [CLI, '--path', P, '--recordar', 'hosting servidor'], { encoding: 'utf8', env: process.env });
+    ok(/Laravel Forge/.test(c.stdout), '(el agente lo busca él con otras palabras)');
+    const reg = () => fs.readFileSync(m.rutaUso(P), 'utf8').split('\n').filter(Boolean).map(l => JSON.parse(l));
+    ok(reg().some(x => x.sid === 'cli' && x.origen === 'consulta' && x.items.some(i => i.id === host.id)), 'la búsqueda del agente queda apuntada (sin sesión)');
+    const tr = path.join(P, 'transcript.jsonl'), tA = new Date(Date.now() + 1000).toISOString();
+    fs.writeFileSync(tr, JSON.stringify({ type: 'assistant', timestamp: tA, message: { role: 'assistant', content: [{ type: 'text', text: 'La web está en Laravel Forge.' }] } }) + '\n');
+    hook('estado-sesion.mjs', P, { session_id: s, hook_event_name: 'Stop', transcript_path: tr });
+    const ap = () => (m.todosLosHechos(P).find(h => h.id === host.id).aprendidas || {});
+    ok(ap().chiringuito === 1 && !ap().web, 'al cerrar, el hecho aprende las palabras del usuario (no las que ya tenía ni las cortas)', JSON.stringify(ap()));
+    ok(reg().filter(x => x.sid === s).length >= 2 && !reg().some(x => x.sid === 'cli'), 'la búsqueda se asigna al turno de esta sesión');
+    const despues = m.buscarHechos(P, PREG);
+    ok(despues[0] && despues[0].hecho.id === host.id && despues[0].puntuacion >= m.UMBRAL_RECUERDO && /aprendida del uso/.test(despues[0].motivo), 'la próxima vez, la misma pregunta lo encuentra sola', JSON.stringify(despues.map(x => [x.hecho.valor, x.puntuacion, x.motivo])));
+    hook('estado-sesion.mjs', P, { session_id: s, hook_event_name: 'Stop', transcript_path: tr });
+    ok(ap().chiringuito === 1, 'cerrar otra vez no vuelve a aprender lo mismo (cada turno, una vez)');
+}
+{
+    // las reglas, una a una (registro escrito a mano, como lo dejarían los hooks)
+    const P = proyecto('reconsolida-reglas');
+    const a = m.guardarHecho(P, { dimension: 'proyecto.hosting', valor: 'Laravel Forge' }, { ahora: T(0) }).hecho;
+    const b = m.guardarHecho(P, { dimension: 'proyecto.pasarela-pago', valor: 'Stripe' }, { ahora: T(1) }).hecho;
+    const t0 = Date.parse(T(5)), I = s => new Date(t0 + s * 1000).toISOString();
+    const escribir = l => { fs.mkdirSync(path.dirname(m.rutaUso(P)), { recursive: true }); fs.writeFileSync(m.rutaUso(P), l.map(x => JSON.stringify(x)).join('\n') + '\n'); };
+    const it = (h, extra = {}) => ({ fuente: 'hecho', id: h.id, texto: `[${h.dimension}] ${h.valor}`, puntuacion: 2, ...extra });
+    const apr = h => m.todosLosHechos(P).find(x => x.id === h.id).aprendidas || {};
+    // 1. si le llegó solo (por las palabras del mensaje) y lo usó, no hay nada que aprender: ya lo encontraba
+    escribir([{ t: I(0), sid: 's1', origen: 'mensaje', consulta: 'servidor laravel forge chiringuito', items: [it(a)] }]);
+    m.marcarUsoSesion(P, 's1', [{ t: I(5), texto: 'Está en Laravel Forge.' }]);
+    ok(!Object.keys(apr(a)).length, 'lo que llegó solo y se usó no aprende (ya lo encontraba)', JSON.stringify(apr(a)));
+    // 2. le llegó como relación DÉBIL y lo usó: se confirma, aprende
+    escribir([{ t: I(10), sid: 's2', origen: 'mensaje', consulta: 'cuál es el garito del forge', items: [it(a, { debil: true })] }]);
+    m.marcarUsoSesion(P, 's2', [{ t: I(15), texto: 'Laravel Forge.' }]);
+    ok(apr(a).garito === 1, 'una relación débil que el agente usa se confirma: aprende', JSON.stringify(apr(a)));
+    // 3. de un mensaje largo no se aprende (no se sabe qué parte era)
+    escribir([{ t: I(20), sid: 's3', origen: 'mensaje', consulta: 'mañana tengo reunión larga cliente sobre muchas cosas distintas presupuesto fotos plazos contratos', items: [] },
+        { t: I(22), sid: 'cli', origen: 'consulta', consulta: 'pasarela', items: [it(b)] }]);
+    m.marcarUsoSesion(P, 's3', [{ t: I(25), texto: 'Usáis Stripe.' }]);
+    ok(!Object.keys(apr(b)).length, 'un mensaje largo no enseña nada', JSON.stringify(apr(b)));
+    // 4. sin la conversación (Codex), nada
+    escribir([{ t: I(30), sid: 's4', origen: 'mensaje', consulta: 'cómo cobramos', items: [] }, { t: I(32), sid: 'cli', origen: 'consulta', consulta: 'pasarela', items: [it(b)] }]);
+    m.marcarUsoSesion(P, 's4', []);
+    ok(!Object.keys(apr(b)).length, 'sin la conversación no se aprende (no se supone)');
+    // 5. lo que le llegó y IGNORÓ desaprende las palabras aprendidas que lo trajeron
+    escribir([{ t: I(40), sid: 's5', origen: 'mensaje', consulta: 'el garito del forge', items: [it(a)] }]);
+    m.marcarUsoSesion(P, 's5', [{ t: I(45), texto: 'Eso no tiene que ver; hablemos de otra cosa.' }]);
+    ok(!apr(a).garito, 'lo ignorado desaprende lo que lo trajo', JSON.stringify(apr(a)));
+    // 6. lo frecuente en los mensajes (palabras de pregunta, en cualquier idioma) ni se aprende ni se queda
+    m.reconsolidar(P, [{ id: b.id, mas: 'kuittaus maksut' }]);
+    ok(apr(b).kuittaus === 1, '(aprende «kuittaus»)');
+    const muchos = Array.from({ length: 10 }, (_, i) => ({ t: I(50 + i), sid: 's6', origen: 'mensaje', consulta: `kuittaus tema${i}`, items: [] }));
+    escribir([...muchos, { t: I(70), sid: 'cli', origen: 'consulta', consulta: 'pasarela', items: [it(b)] }]);
+    m.marcarUsoSesion(P, 's6', [{ t: I(75), texto: 'Stripe.' }]);
+    ok(!apr(b).kuittaus, 'una palabra que sale en muchos mensajes deja de contar (es de pregunta, no de tema)', JSON.stringify(apr(b)));
+    // 7. aprendida en dos temas distintos: no distingue, no cuenta para ninguno
+    const c = m.guardarHecho(P, { dimension: 'proyecto.dominio', valor: 'fitlab.es' }, { ahora: T(2) }).hecho;
+    m.reconsolidar(P, [{ id: a.id, mas: 'cacharro' }, { id: c.id, mas: 'cacharro' }]);
+    ok(!m.buscarHechos(P, 'cacharro').length, 'una palabra aprendida en dos temas no trae ninguno');
+    // 8. lo aprendido una vez rescata, pero no adelanta a lo que coincide por lo que dice
+    const d = m.guardarHecho(P, { dimension: 'proyecto.cliente', valor: 'FitLab, cadena de gimnasios', claves: ['cliente'] }, { ahora: T(3) }).hecho;
+    m.reconsolidar(P, [{ id: b.id, mas: 'quien cliente' }]);
+    const q = m.buscarHechos(P, '¿quién es el cliente?');
+    ok(q[0] && q[0].hecho.id === d.id, 'lo aprendido una vez no le gana al hecho que lo dice', JSON.stringify(q.map(x => [x.hecho.valor, x.puntuacion])));
+    // 9. con dos confirmaciones pesa más; y sobrevive a que el valor cambie (el vocabulario es del tema)
+    m.reconsolidar(P, [{ id: a.id, mas: 'chiringuito' }]); m.reconsolidar(P, [{ id: a.id, mas: 'chiringuito' }]);
+    ok(apr(a).chiringuito === 2, 'dos confirmaciones: 2');
+    m.guardarHecho(P, { dimension: 'proyecto.hosting', valor: 'Hetzner con Coolify' }, { ahora: T(9) });
+    const h2 = m.buscarHechos(P, 'el chiringuito');
+    ok(h2[0] && h2[0].hecho.valor === 'Hetzner con Coolify', 'cambia el hosting: lo aprendido sigue trayendo el tema (el valor vigente)', JSON.stringify(h2.map(x => x.hecho.valor)));
+    // 10. tope por hecho
+    m.reconsolidar(P, Array.from({ length: 40 }, (_, i) => ({ id: b.id, mas: `palabrota${i}x` })));
+    ok(Object.keys(apr(b)).length <= m.MAX_APRENDIDAS, 'tope de palabras aprendidas por hecho', String(Object.keys(apr(b)).length));
+}
+
 // ---------------------------------------------------------------- F6-T5 · lo que llega al agente cuenta como uso
 {
     const P = proyecto('usos');

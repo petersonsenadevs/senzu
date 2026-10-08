@@ -64,6 +64,9 @@ if (opt('--guardar')) {
 if (opt('--buscar')) {
     const hits = m.buscarHechos(root, String(opt('--buscar')), { historico: !!opt('--historico'), limite: Number(opt('--limite')) || 8 });
     if (m.anotarUso) m.anotarUso(root, hits.map(x => x.hecho.id));
+    // X-T11: lo que busca el propio agente se apunta (sin sesión: al cerrar, se asigna al turno por la hora) y, si lo
+    // usa, el hecho aprende las palabras con que preguntó el usuario
+    if (m.apuntarInyeccion) m.apuntarInyeccion(root, { sid: 'cli', origen: 'consulta', consulta: String(opt('--buscar')), items: hits.map(x => ({ fuente: 'hecho', id: x.hecho.id, texto: `[${x.hecho.dimension}] ${x.hecho.valor}`, puntuacion: x.puntuacion })) });
     if (opt('--json')) { out(JSON.stringify(hits, null, 2)); process.exit(0); }
     if (!hits.length) { out('Nada en la memoria de hechos para eso. Dilo así: no lo supongas.'); process.exit(0); }
     for (const x of hits) out(`${linea(x.hecho)}\n    ${x.motivo}`);
@@ -72,6 +75,7 @@ if (opt('--buscar')) {
 if (opt('--recordar')) {   // las tres memorias a la vez: hechos, MEMORIA.md y devlog
     const l = m.recuerdo(root, String(opt('--recordar')), { historico: !!opt('--historico'), limite: Number(opt('--limite')) || 6 });
     if (m.anotarUso) m.anotarUso(root, l.filter(x => x.fuente === 'hecho').map(x => x.id));
+    if (m.apuntarInyeccion) m.apuntarInyeccion(root, { sid: 'cli', origen: 'consulta', consulta: String(opt('--recordar')), items: l });
     if (opt('--json')) { out(JSON.stringify(l, null, 2)); process.exit(0); }
     if (!l.length) { out('Nada en hechos, memoria ni devlog para eso. Dilo así: no lo supongas.'); process.exit(0); }
     for (const x of l) out(`[${x.fuente}] ${x.texto}${x.ver && !new RegExp(`\\bver ${x.ver}\\b`).test(x.texto) ? ` · ver ${x.ver}` : ''}\n    ${x.motivo}`);
@@ -131,6 +135,11 @@ if (opt('--informe')) {   // X-T4: el uso REAL (lo que se inyectó en las sesion
     if (r.ruido.length) { out('  Lo que más se ignora (posible ruido):'); for (const x of r.ruido) out(`    - [${x.fuente}] ${x.texto} (ignorado ${x.ignorado}, usado ${x.usado})`); }
     if (r.ignoradosRecientes.length) { out('  Ignorados recientes:'); for (const x of r.ignoradosRecientes) out(`    - «${x.consulta}» → ${x.texto}`); }
     if (r.silenciosRecientes.length) { out('  Silencios recientes (¿había algo que recordar?):'); for (const x of r.silenciosRecientes) out(`    - «${x.consulta}»`); }
+    if (r.busquedas) out(`  Búsquedas del propio agente (--recordar/--buscar): ${r.busquedas}`);
+    if (r.aprendido && r.aprendido.length) {
+        out('  Aprendido del uso (palabras del usuario que ya traen el hecho; ×2 o más, confirmadas):');
+        for (const x of r.aprendido) out(`    - [${x.dimension}] ${x.valor}: ${Object.entries(x.palabras).map(([w, n]) => n > 1 ? `${w} ×${n}` : w).join(', ')}`);
+    }
     process.exit(0);
 }
 if (opt('--cortex')) {   // Cortex: la memoria en un HTML local, sin red; --cliente: sin nada privado, para enseñarlo

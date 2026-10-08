@@ -144,6 +144,16 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
 - **Uso real** (`--informe`): cada inyección (y cada silencio) se apunta en `senzu/.estado/recuerdo-uso.jsonl`
   (privado, fuera de git); al cerrar se mira en la conversación si el agente la usó. Da la precisión real, lo que
   más se ignora (ruido) y los silencios para revisar. Sin la conversación (Codex) queda «sin datos».
+- **Aprende del uso (reconsolidación)**: si el usuario pregunta con palabras que el hecho no tiene y el agente lo
+  encuentra él (`--recordar`/`--buscar`, que también se apuntan) y lo usa, al cerrar el hecho aprende esas palabras;
+  la próxima vez llega solo. Lo que llega y se ignora desaprende lo que lo trajo. Prudente a propósito:
+  - de un mensaje largo no se aprende;
+  - lo aprendido UNA vez rescata (trae lo que si no, no saldría), pero no adelanta a lo que coincide por lo que dice;
+  - las palabras que salen en muchos mensajes (las de pregunta, en cualquier idioma) o en dos temas no cuentan.
+
+  Medido con `tools/eval-reconsolidacion.mjs`: la misma pregunta otra vez pasa del 91,4 % al 100 % (recall@3) sin
+  estropear nada; con un agente que se equivoca un 20 % de las veces, recall@3 tampoco baja en nada. Lo aprendido
+  sale en `--informe`.
 - **Uso y enfriamiento**: lo que llega al agente (al hablar, al editar, `--buscar`, `--recordar`) suma un uso; lo
   usado sube un poco y lo que pasa de 90 días sin usarse se enfría despacio (×0,9 como mucho). Nada se borra.
 - **Llega sola**: al iniciar (lo vigente), con cada mensaje (recuerdo-vivo: hechos, decisiones y devlog de lo que

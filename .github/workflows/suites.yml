@@ -98,6 +98,11 @@ jobs:
       - name: eval-hechos total (con la batería dura de FitLab; mínimos de no regresión)
         run: node tools/eval-hechos.mjs --min-recall3 92 --min-recall1 85 --min-abstencion 62
 
+      - name: eval-reconsolidacion (aprender del uso no estropea nada, también con un agente que se equivoca)
+        run: |
+          node tools/eval-reconsolidacion.mjs --rondas 2 --estricto
+          node tools/eval-reconsolidacion.mjs --rondas 2 --ruido 0.2 --estricto
+
       - name: test-cortex (la memoria en HTML; la vista de cliente sin nada privado en el archivo)
         run: node tools/test-cortex.mjs
 

@@ -356,6 +356,68 @@ export function anotarUso(root, ids, { ahora = hoy() } = {}) {
     }
     return n;
 }
+// ---------------------------------------------------------------- reconsolidación (X-T11)
+// Lo que se recupera y sirve reorganiza la memoria para la próxima vez (REALM, 2026). Aquí, sin modelo: el hecho guarda
+// las palabras con que el usuario preguntó por él cuando no lo encontraba solo (`aprendidas`: palabra → confirmaciones,
+// 1 a 3). Se indexan como el léxico: coincidencia exacta, peso menor que lo que el hecho dice y que crece con cada
+// confirmación, y sin alargar el hecho. Con tope por hecho; de un mensaje largo no se aprende (no se sabe qué parte era).
+export const MAX_APRENDIDAS = 24, MAX_PALABRAS_APRENDER = 8, PESO_APRENDIDA = [0, 0.45, 0.7, 0.85];
+export function palabrasParaAprender(consulta, h, frecuentes = new Set()) {
+    const ws = [...new Set(palabras(consulta))].filter(w => palabraConPeso(w) && !frecuentes.has(w));
+    if (!ws.length || ws.length > MAX_PALABRAS_APRENDER) return [];
+    const tema = h.dimension.includes('.') ? h.dimension.slice(h.dimension.indexOf('.') + 1) : h.dimension;
+    const propias = new Set(palabras([tema.replace(/[.-]/g, ' '), h.valor, h.texto, ...(h.claves || [])].filter(Boolean).join(' ')).concat(lexicoDe(h.dimension)));
+    return ws.filter(w => !propias.has(w)).slice(0, 6);
+}
+// Las palabras que salen en muchos mensajes del usuario son de PREGUNTA («quién», «dónde», «what», «どこ»), en el
+// idioma que sea: no distinguen nada, así que ni se aprenden ni se quedan (se sacan del registro, sin listas por idioma)
+export function palabrasFrecuentes(mensajes) {
+    const n = new Map();
+    for (const x of mensajes) for (const w of new Set(palabras(x))) n.set(w, (n.get(w) || 0) + 1);
+    const tope = Math.max(3, 0.12 * mensajes.length);
+    return new Set([...n].filter(([, k]) => k >= tope).map(([w]) => w));
+}
+export function reconsolidar(root, cambios, { frecuentes = new Set() } = {}) {
+    const quedan = new Map();
+    for (const c of cambios) { if (!quedan.has(c.id)) quedan.set(c.id, []); quedan.get(c.id).push(c); }
+    let n = 0;
+    for (const alcance of ['proyecto', 'usuario']) {
+        const file = rutaHechos(root, alcance);
+        if (!fs.existsSync(file)) continue;
+        n += conCerrojo(file, () => {
+            const { validos: lista, ilegibles } = leerArchivo(file);
+            let k = 0;
+            for (const h of lista) {
+                if (!quedan.has(h.id) && !(h.aprendidas && Object.keys(h.aprendidas).some(w => frecuentes.has(w)))) continue;
+                const a = Object.fromEntries(Object.entries(h.aprendidas || {}).filter(([w]) => !frecuentes.has(w)));
+                for (const c of quedan.get(h.id) || []) {
+                    if (c.mas) for (const w of palabrasParaAprender(c.mas, h, frecuentes)) a[w] = Math.min(3, (a[w] || 0) + 1);
+                    if (c.menos) for (const w of new Set(palabras(c.menos))) if (a[w]) { a[w]--; if (!a[w]) delete a[w]; }
+                }
+                // tope: se quedan las más confirmadas (y, a igualdad, las que ya estaban)
+                const orden = Object.keys(a).sort((x, y) => a[y] - a[x]).slice(0, MAX_APRENDIDAS);
+                const nuevo = Object.fromEntries(orden.map(w => [w, a[w]]));
+                if (JSON.stringify(nuevo) !== JSON.stringify(h.aprendidas || {})) { if (orden.length) h.aprendidas = nuevo; else delete h.aprendidas; k++; }
+                quedan.delete(h.id);
+            }
+            if (k) escribirHechos(file, lista, ilegibles);
+            return k;
+        }, 2000);
+    }
+    return n;
+}
+// Lo aprendido de toda la DIMENSIÓN (también de sus valores anteriores: el vocabulario es del tema, no del valor).
+// Una palabra aprendida en dos o más dimensiones no distingue («quién», «hoy»): no cuenta para ninguna.
+function aprendidasPorDimension(hechos) {
+    const porDim = new Map(), dims = new Map();
+    for (const h of hechos) for (const [w, n] of Object.entries(h.aprendidas || {})) {
+        if (!porDim.has(h.dimension)) porDim.set(h.dimension, new Map());
+        const m = porDim.get(h.dimension); m.set(w, Math.max(m.get(w) || 0, n));
+        if (!dims.has(w)) dims.set(w, new Set()); dims.get(w).add(h.dimension);
+    }
+    for (const m of porDim.values()) for (const w of [...m.keys()]) if (dims.get(w).size >= 2) m.delete(w);
+    return d => porDim.get(d) || new Map();
+}
 // Parecido por trigramas de caracteres (Jaccard) sobre el texto normalizado: vale igual en cualquier escritura
 function trigramas(t) {
     const c = [...` ${normalizar(t).replace(/\s+/g, ' ').trim()} `], s = new Set();
@@ -486,7 +548,9 @@ export const UMBRAL_RECUERDO = 0.8;
 // ---------------------------------------------------------------- buscar (BM25 + erratas + cupos por familia)
 // historico: también lo sustituido y caducado («¿dónde vivía antes?»: lo decide el agente, que entiende la pregunta)
 export function buscarHechos(root, consulta, { historico = false, limite = 8, ahora = hoy() } = {}) {
-    const docs = todosLosHechos(root).filter(h => h.estado !== 'invalidado' && (historico || vigente(h, ahora) || h.estado === 'dudoso'));
+    const todosH = todosLosHechos(root);
+    const docs = todosH.filter(h => h.estado !== 'invalidado' && (historico || vigente(h, ahora) || h.estado === 'dudoso'));
+    const aprendidasDe = aprendidasPorDimension(todosH.filter(h => h.estado !== 'invalidado'));
     const q = [...new Set(palabras(consulta))];
     if (!docs.length || !q.length) return [];
     // De la dimensión se indexa el TEMA, no la familia: «proyecto.analitica» → «analitica». Con la familia, cualquier
@@ -496,7 +560,9 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     // + el léxico multilingüe del tema (X-T8): se encuentra, pero no alarga el hecho (no lo penaliza en el orden)
     // (solo lo que el hecho no tenga ya: repetir «cliente» inflaba su frecuencia y lo subía por encima de otros)
     const lexicos = docs.map((h, i) => { const ya = new Set(base[i]); return [...new Set(lexicoDe(h.dimension))].filter(w => !ya.has(w)); });
-    const toks = docs.map((h, i) => base[i].concat(lexicos[i]));
+    // + lo aprendido del uso (X-T11): como el léxico, exacto, sin alargar el hecho y con su peso según confirmaciones
+    const aprend = docs.map((h, i) => { const ya = new Set(base[i].concat(lexicos[i])); return new Map([...aprendidasDe(h.dimension)].filter(([w]) => !ya.has(w))); });
+    const toks = docs.map((h, i) => base[i].concat(lexicos[i], [...aprend[i].keys()]));
     const media = base.reduce((s, t) => s + t.length, 0) / base.length || 1;
     const df = new Map();
     for (const t of toks) for (const w of new Set(t)) df.set(w, (df.get(w) || 0) + 1);
@@ -508,7 +574,8 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     const hits = docs.map((h, i) => {
         const t = toks[i], tf = new Map();
         for (const w of t) tf.set(w, (tf.get(w) || 0) + 1);
-        let score = 0, conPesoCoincide = false; const motivo = [], conPesoQueCoinciden = new Set();
+        let score = 0, conPesoCoincide = false; const motivo = [], conPesoQueCoinciden = new Set(), porAprender = new Set();
+        let rescate = 0;   // X-T11: lo que suman las palabras aprendidas UNA vez
         for (const w of q) {
             let termino = w, peso = 1;
             if (!tf.has(w)) {   // errata o variante: la palabra del hecho más parecida
@@ -527,11 +594,13 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
                     termino = flex; peso = 0.8; motivo.push(`${w}~${flex}`);
                 }
             } else if (lexicos[i].includes(w)) { peso = 0.75; motivo.push(`${w} (léxico)`); }   // el concepto, no lo que el hecho dice: pesa menos
+            else if (aprend[i].has(w)) { peso = PESO_APRENDIDA[aprend[i].get(w)]; motivo.push(`${w} (aprendida del uso)`); if (aprend[i].get(w) < 2) porAprender.add(w); }
             else motivo.push(w);
             const f = tf.get(termino);
             const conPeso = palabraConPeso(termino);
             // las palabras sin peso («es», «el», «of») suman poco: acompañan, pero no deciden el orden
-            score += peso * (conPeso ? 1 : 0.3) * idf(termino) * (f * 2.2) / (f + 1.2 * (0.25 + 0.75 * base[i].length / media));
+            const suma = peso * (conPeso ? 1 : 0.3) * idf(termino) * (f * 2.2) / (f + 1.2 * (0.25 + 0.75 * base[i].length / media));
+            if (porAprender.has(termino)) rescate += suma; else score += suma;
             if (conPeso) { conPesoCoincide = true; conPesoQueCoinciden.add(termino); }
         }
         // Relación DÉBIL: la pregunta tiene 3+ palabras con peso y solo coincide una. No se descarta (una regla de
@@ -542,10 +611,20 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
         // «PHP», «CI»), ese roce de una palabra («pruebas», «servidor») no es la respuesta: baja por debajo del umbral
         // (no se inyecta solo; --buscar lo sigue enseñando, con el motivo)
         const nombra = debil && desconocidos.length ? desconocidos : null;
+        // lo aprendido una sola vez RESCATA (trae un hecho que, si no, no saldría) pero NO ADELANTA: si el hecho ya
+        // coincide por lo que dice, no suma (un «quién» aprendido no puede ganarle a otro hecho que nombra al cliente)
+        const rescatado = rescate > 0 && ![...conPesoQueCoinciden].some(w => !porAprender.has(w));
+        if (rescatado) score += rescate;
         let puntuacion = conPesoCoincide ? +(score * pesoConfianza(h) * pesoUso(h, ahora)).toFixed(3) : 0;
         if (nombra && puntuacion) puntuacion = +Math.min(puntuacion * 0.2, UMBRAL_RECUERDO * 0.75).toFixed(3);   // siempre bajo el umbral
-        return { hecho: h, puntuacion, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined, nombra };
+        // X-T11: lo aprendido UNA vez es una pista, no una prueba: si solo coincide eso y la pregunta trae otras palabras
+        // con peso que el hecho no tiene («¿qué coche tengo?» con un «tengo» aprendido), no se inyecta solo
+        if (puntuacion && porAprender.size && [...conPesoQueCoinciden].every(w => porAprender.has(w)) && qConPeso > conPesoQueCoinciden.size) puntuacion = +Math.min(puntuacion * 0.5, UMBRAL_RECUERDO * 0.75).toFixed(3);
+        return { hecho: h, puntuacion, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined, nombra, rescatado };
     }).filter(x => x.puntuacion > 0);
+    // y en el orden, lo rescatado va DETRÁS de lo que coincide por lo que dice (sin bajar del umbral si ya lo pasaba)
+    const firmes = hits.filter(x => !x.rescatado && x.puntuacion >= UMBRAL_RECUERDO).map(x => x.puntuacion);
+    if (firmes.length) for (const x of hits) if (x.rescatado && x.puntuacion >= UMBRAL_RECUERDO) x.puntuacion = +Math.max(UMBRAL_RECUERDO, Math.min(x.puntuacion, Math.min(...firmes) * 0.99)).toFixed(3);
     // Garantía: en la misma dimensión, lo DUDOSO nunca puntúa por encima de lo afirmado (no puede depender de que
     // la longitud de cada hecho o el léxico cuadren)
     const afirmado = new Map();
@@ -578,7 +657,10 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
         }
     }
     hits.sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
-    return conCupos(hits, limite, x => familia(x.hecho.dimension)).map(x => ({ ...x,
+    // lo rescatado que no llega al umbral no ocupa sitio en el reparto: va al final, si cabe
+    const flojo = x => x.rescatado && x.puntuacion < UMBRAL_RECUERDO;
+    const elegidos = conCupos(hits.filter(x => !flojo(x)), limite, x => familia(x.hecho.dimension));
+    return elegidos.concat(hits.filter(flojo).slice(0, Math.max(0, limite - elegidos.length))).map(x => ({ ...x,
         motivo: (x.via ? `vía enlace con ${x.via}` : `coincide: ${x.motivo.join(', ')}`) + (x.hecho.estado === 'sustituido' ? ` · ya no vigente (sustituido el ${String(x.hecho.hasta || '').slice(0, 10)})` : '')
             + (x.hecho.estado === 'cerrado' ? ` · cerrado (${x.hecho.progreso} el ${String(x.hecho.cerrado || '').slice(0, 10)}${x.hecho.nota_cierre ? ': ' + x.hecho.nota_cierre : ''})` : '')
             + (x.hecho.progreso === 'en-curso' && x.hecho.estado === 'activo' ? ' · en curso' : '')
@@ -848,17 +930,37 @@ export function seUso(item, consulta, respuesta) {
 export function marcarUsoSesion(root, sid, textos) {
     const todas = leerUso(root);
     if (!todas.length) return 0;
-    const mias = todas.filter(x => x.sid === String(sid) && x.items.length && x.evaluado == null);
-    if (!mias.length) return 0;
+    sid = String(sid);
+    const turnos = todas.filter(x => x.sid === sid && x.origen === 'mensaje').sort((a, b) => a.t.localeCompare(b.t));
+    const finDe = x => { const sig = turnos.find(y => y.t > x.t); return sig ? sig.t : new Date(Date.parse(x.t) + 30 * 60e3).toISOString(); };
+    // X-T11: las búsquedas del propio agente (--recordar/--buscar llegan sin sesión) que caen en un turno de esta
+    // sesión son suyas: se evalúan con lo que respondió en ese turno
+    for (const c of todas) if (c.sid === 'cli' && c.evaluado == null && turnos.some(x => c.t >= x.t && c.t < finDe(x))) c.sid = sid;
+    const mias = todas.filter(x => x.sid === sid && x.items.length && x.evaluado == null);
+    if (!mias.length && !turnos.some(x => x.rc == null)) return 0;
     let marcadas = 0;
     mias.forEach(x => {
-        const siguiente = todas.find(y => y.sid === x.sid && y.t > x.t);
+        const siguiente = turnos.find(y => y.t > x.t);
         const tras = textos.filter(m => m.t && m.t >= x.t && (!siguiente || m.t < siguiente.t)).map(m => m.texto).join('\n');
         const conHora = textos.some(m => m.t);
         x.evaluado = textos.length ? true : false;
         x.items.forEach(it => { it.usado = !textos.length || (!conHora && !tras) ? null : seUso(it, x.consulta, tras || textos.map(m => m.texto).join('\n')); });
         marcadas++;
     });
+    // X-T11 · reconsolidación: por cada turno, los hechos que el agente USÓ sin que el mensaje se los trajera solo
+    // (los buscó él, o le llegaron como relación débil) aprenden las palabras con que preguntó el usuario; los que le
+    // llegaron y IGNORÓ desaprenden las palabras aprendidas que los trajeron. Sin la conversación (Codex), nada.
+    const cambios = [];
+    if (textos.length) for (const msg of turnos.filter(x => x.rc == null)) {
+        const fin = finDe(msg), solos = new Map((msg.items || []).filter(it => it.fuente === 'hecho').map(it => [it.id, it]));
+        const usados = new Set();
+        for (const y of todas) if (y.sid === sid && y.t >= msg.t && y.t < fin) for (const it of y.items || [])
+            if (it.fuente === 'hecho' && it.usado === true && (!solos.has(it.id) || solos.get(it.id).debil)) usados.add(it.id);
+        for (const id of usados) cambios.push({ id, mas: msg.consulta });
+        for (const it of solos.values()) if (it.usado === false) cambios.push({ id: it.id, menos: msg.consulta });
+        msg.rc = true;
+    }
+    if (cambios.length) try { reconsolidar(root, cambios, { frecuentes: palabrasFrecuentes(todas.filter(x => x.origen === 'mensaje').map(x => x.consulta)) }); } catch { }
     try {
         const tmp = rutaUso(root) + '.tmp';
         fs.writeFileSync(tmp, todas.slice(-MAX_REGISTRO).map(x => JSON.stringify(x)).join('\n') + '\n');
@@ -868,14 +970,18 @@ export function marcarUsoSesion(root, sid, textos) {
 }
 export function informeUso(root, { dias = 30, ahora = hoy() } = {}) {
     const desde = new Date(Date.parse(ahora) - dias * 864e5).toISOString();
-    const l = leerUso(root).filter(x => x.t >= desde);
+    const todasL = leerUso(root).filter(x => x.t >= desde);
+    const l = todasL.filter(x => x.origen !== 'consulta');   // las búsquedas del agente (X-T11) no son mensajes: aparte
     const items = l.flatMap(x => x.items.map(it => ({ ...it, consulta: x.consulta, t: x.t, origen: x.origen })));
     const cuenta = f => items.filter(f).length;
     const usados = cuenta(i => i.usado === true), ignorados = cuenta(i => i.usado === false), sinDatos = cuenta(i => i.usado == null);
     const porRecuerdo = new Map();
     for (const i of items.filter(x => x.usado != null)) { const k = i.fuente + '|' + i.id; const v = porRecuerdo.get(k) || { fuente: i.fuente, id: i.id, texto: i.texto, usado: 0, ignorado: 0 }; v[i.usado ? 'usado' : 'ignorado']++; porRecuerdo.set(k, v); }
     return {
-        dias, mensajes: l.length, conRecuerdo: l.filter(x => x.items.length).length, silencios: l.filter(x => !x.items.length).length,
+        dias, mensajes: l.length, busquedas: todasL.length - l.length,
+        // X-T11: lo que la memoria ha aprendido del uso, para revisarlo (palabra: confirmaciones)
+        aprendido: todosLosHechos(root).filter(h => h.aprendidas && Object.keys(h.aprendidas).length && h.estado !== 'invalidado')
+            .map(h => ({ id: h.id, dimension: h.dimension, valor: h.valor, palabras: h.aprendidas })).slice(0, 20), conRecuerdo: l.filter(x => x.items.length).length, silencios: l.filter(x => !x.items.length).length,
         inyectados: items.length, usados, ignorados, sinDatos,
         precision: usados + ignorados ? Math.round(1000 * usados / (usados + ignorados)) / 10 : null,
         debiles: { usados: cuenta(i => i.debil && i.usado === true), ignorados: cuenta(i => i.debil && i.usado === false) },
