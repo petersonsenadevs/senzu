@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-08
 
+- **feature** — Cortex enseña cómo piensa: lo que más usa brilla más y «Ver cómo piensa» (X-T10) (entrada 132)
 - **feature** — El agente sabe qué tiene la memoria y la consulta: mapa al empezar y aviso con cada mensaje (X-T9) (entrada 131)
 
 ## 2026-10-07

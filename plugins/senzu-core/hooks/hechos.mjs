@@ -774,7 +774,34 @@ export function datosCortex(root, { cliente = false, ahora = hoy(), dias = 7, en
         .map(h => ({ id: h.id, privado: privado(h) || undefined, tema: temaDe(h.dimension), valor: h.valor, zona: zonaDe(h), progreso: h.progreso || 'abierto', dias: Math.max(0, Math.floor((Date.parse(ahora) - Date.parse(h.creado)) / 864e5)) }));
     // el nombre del proyecto: el que sabe la memoria (proyecto.nombre) o, si no, el de la carpeta
     const nombre = actuales.find(h => h.dimension === 'proyecto.nombre');
-    return { proyecto: nombre ? nombre.valor : path.basename(path.resolve(root)), generado: ahora, cliente, zonas, cambios: cambios.slice(0, 20), abiertos: abiertosV };
+    return { proyecto: nombre ? nombre.valor : path.basename(path.resolve(root)), generado: ahora, cliente, zonas, cambios: cambios.slice(0, 20), abiertos: abiertosV,
+        actividad: actividadCortex(root, { cliente, ahora }) };
+}
+// Cómo PIENSA (X-T10): del registro de uso real, qué zonas ha consultado el agente y cuánto. Cada recuerdo que llegó
+// pesa más cuanto más reciente (se reduce a la mitad cada 3 días), más si lo usó y menos si lo ignoró. Y la secuencia
+// de sus últimas consultas, para reproducirla zona a zona. Con cliente, solo cifras por zona: ni el texto de lo que se
+// preguntó ni la zona del usuario.
+export function actividadCortex(root, { cliente = false, ahora = hoy(), dias = 14, pasos = 24 } = {}) {
+    const desde = new Date(Date.parse(ahora) - dias * 864e5).toISOString();
+    const lineas = leerUso(root).filter(x => x.t >= desde && x.t <= ahora);
+    const zonaHecho = new Map(todosLosHechos(root).map(h => [h.id, zonaDe(h)]));
+    const zonaItem = it => it.fuente === 'hecho' ? zonaHecho.get(it.id) || null : it.fuente === 'memoria' ? 'occipital' : it.fuente === 'devlog' ? 'hipocampo' : null;
+    const zonas = { frontal: 0, parietal: 0, occipital: 0, temporal: 0, hipocampo: 0 };
+    const pensamientos = [];
+    for (const x of lineas) {
+        const edad = Math.max(0, (Date.parse(ahora) - Date.parse(x.t)) / 864e5);
+        const enX = [];
+        for (const it of x.items || []) {
+            const z = zonaItem(it);
+            if (!z || (cliente && z === 'temporal')) continue;
+            zonas[z] += Math.pow(0.5, edad / 3) * (it.usado === true ? 1.5 : it.usado === false ? 0.6 : 1);
+            if (!enX.includes(z)) enX.push(z);
+        }
+        const usado = (x.items || []).some(it => it.usado === true) ? true : (x.items || []).some(it => it.usado === false) ? false : null;
+        pensamientos.push({ t: x.t, zonas: enX, usado: x.items && x.items.length ? usado : undefined, origen: x.origen, consulta: cliente ? undefined : x.consulta || undefined });
+    }
+    for (const z of Object.keys(zonas)) zonas[z] = Math.round(zonas[z] * 100) / 100;
+    return { dias, consultas: lineas.length, zonas, pensamientos: pensamientos.slice(-pasos) };
 }
 
 // ---------------------------------------------------------------- registro del uso REAL (X-T4)

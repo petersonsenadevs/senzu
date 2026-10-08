@@ -137,7 +137,10 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   selector y --idioma); los datos se enseñan como se guardaron. Una vez generado, se regenera solo al cerrar una
   sesión en la que cambió la memoria (con su idioma, y también cliente.html si existe); tocar una zona en el 3D la elige. Es privado: la carpeta
   se ignora en git. `--cortex --cliente` genera `cliente.html` para enseñarlo: sin lo personal, lo deducido, lo
-  dudoso, lo aprendido, el devlog ni los comandos (no van ni dentro del archivo).
+  dudoso, lo aprendido, el devlog ni los comandos (no van ni dentro del archivo). **Cómo piensa**: con el registro
+  de uso real, cada zona brilla según lo que el agente la ha consultado en 14 días (más lo reciente y lo que usó,
+  menos lo que ignoró), y «Ver cómo piensa» reproduce sus últimas consultas encendiendo, paso a paso, las zonas que
+  tocó (con lo que se preguntó y si lo usó). Al cliente le llegan solo las cifras por zona, sin lo preguntado.
 - **Uso real** (`--informe`): cada inyección (y cada silencio) se apunta en `senzu/.estado/recuerdo-uso.jsonl`
   (privado, fuera de git); al cerrar se mira en la conversación si el agente la usó. Da la precisión real, lo que
   más se ignora (ruido) y los silencios para revisar. Sin la conversación (Codex) queda «sin datos».

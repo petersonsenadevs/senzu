@@ -367,6 +367,13 @@ const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abierto
     const antes = fs.statSync(path.join(dir, 'index.html')).mtimeMs;
     hook('estado-sesion.mjs', P, { session_id: `cv2-${RUN}`, hook_event_name: 'Stop' });
     ok(fs.statSync(path.join(dir, 'index.html')).mtimeMs === antes, 'sin cambios en la memoria, no se regenera');
+    // X-T10: lo que consulta el agente también cambia Cortex (cómo piensa): al cerrar, se ve la consulta nueva
+    fs.utimesSync(path.join(dir, 'index.html'), viejo / 1000, viejo / 1000);
+    const forge = m.todosLosHechos(P).find(h => h.valor === 'Laravel Forge');
+    m.apuntarInyeccion(P, { sid: `cv3-${RUN}`, origen: 'mensaje', consulta: 'donde-desplegamos-xt10', items: [{ fuente: 'hecho', id: forge.id, texto: '[proyecto.hosting] Laravel Forge', puntuacion: 2 }] });
+    hook('estado-sesion.mjs', P, { session_id: `cv3-${RUN}`, hook_event_name: 'Stop' });
+    const idx2 = fs.readFileSync(path.join(dir, 'index.html'), 'utf8');
+    ok(idx2.includes('donde-desplegamos-xt10') && idx2.includes('id="piensa"') && !fs.readFileSync(path.join(dir, 'cliente.html'), 'utf8').includes('donde-desplegamos-xt10'), 'una consulta nueva regenera Cortex con cómo piensa (y el del cliente, sin lo que se preguntó)');
 }
 
 // ---------------------------------------------------------------- X-T6 · contradicciones al empezar la sesión

@@ -58,7 +58,7 @@ button, select { font: inherit; color: inherit; cursor: pointer; }
 button:focus-visible, select:focus-visible, input:focus-visible, .hecho:focus-visible, canvas:focus-visible, [data-region]:focus-visible { outline: 3px solid var(--foco); outline-offset: 2px; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .escena { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(340px, 1fr); min-height: 100vh; }
-.lienzo { position: relative; padding: 28px 32px; display: grid; grid-template-rows: auto 1fr auto; gap: 12px;
+.lienzo { position: relative; padding: 28px 32px; display: grid; grid-template-rows: auto 1fr auto auto; gap: 12px;
   background: radial-gradient(60% 55% at 45% 52%, color-mix(in srgb, var(--r-parietal) var(--tinte), transparent), transparent 70%), var(--fondo); }
 .arriba { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
 .marca { font: 700 12px/1 var(--fuente-titulos); letter-spacing: .2em; text-transform: uppercase; color: var(--suave); }
@@ -97,6 +97,19 @@ ${ZONAS.map(([r]) => `.cerebro [data-region="${r}"] { fill: var(--r-${r}); strok
 .surco-neon { fill: none; stroke-width: 1.7; stroke-linecap: round; opacity: .8; pointer-events: none; filter: drop-shadow(0 0 4px currentColor); }
 .surco-neon.fluye, .surco-neon.activa { stroke-dasharray: 6 8; animation: fluye 1.6s linear infinite; opacity: 1; }
 .surco-neon.fluye { stroke-width: 2.2; }
+.surco-neon.activa { animation-duration: var(--vel, 1.6s); }
+/* X-T10: lo que más usa brilla más (--calor) y, al reproducir cómo piensa, la zona consultada se enciende */
+.cerebro [data-region] { filter: drop-shadow(0 0 calc(3px + var(--calor, .5) * 15px) currentColor); }
+.cerebro [data-region].chispa { opacity: 1 !important; fill-opacity: .62; stroke-width: 3.4; filter: drop-shadow(0 0 22px currentColor) drop-shadow(0 0 6px currentColor); transition: fill-opacity .15s, opacity .15s; }
+.cerebro .respira.chispa { animation: none; }
+.cerebro.pensando [data-region]:not(.chispa) { opacity: .28 !important; }
+.cerebro.pensando .surco-neon:not(.activa) { opacity: .22; }
+[data-theme="light"] .cerebro [data-region].chispa { fill-opacity: .5; filter: drop-shadow(0 0 6px currentColor); }
+.chips button.chispa { border-color: currentColor; box-shadow: 0 0 18px currentColor, 0 0 0 1px currentColor inset; }
+.chips button u { display: block; height: 3px; width: 28px; border-radius: 3px; background: color-mix(in srgb, currentColor 22%, transparent); position: relative; overflow: hidden; }
+.chips button u::after { content: ""; position: absolute; inset: 0 auto 0 0; width: calc(var(--n, 0) * 100%); background: currentColor; border-radius: 3px; }
+.mente { min-height: 24px; margin: 0; text-align: center; color: var(--suave); font-size: 14px; }
+.mente q, .mente b { color: var(--texto); } .mente .zz { font-weight: 700; } .mente small { display: block; font-size: 12px; }
 .cerebro .respira { animation: respira 4s ease-in-out infinite; }
 @keyframes respira { 50% { opacity: calc(var(--brillo, 1) * .8); } }
 @keyframes fluye { to { stroke-dashoffset: -28; } }
@@ -146,7 +159,7 @@ h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .16em; color: v
 .pie { font-size: 12px; color: var(--suave); margin: 0; }
 @media (max-width: 860px) {
   .escena { grid-template-columns: 1fr; min-height: 0; }
-  .lienzo { padding: 18px 16px; grid-template-rows: auto auto auto; }
+  .lienzo { padding: 18px 16px; grid-template-rows: auto auto auto auto; }
   .escenario { min-height: 220px; } .v3d canvas { height: 340px; }
   .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; scroll-snap-type: x mandatory; }
   .chips button { flex: none; scroll-snap-align: start; }
@@ -198,6 +211,16 @@ const APP = String.raw`
   var zonaVisible = function (z) { return !(previa && z === 'temporal'); };
   var items = function (z) { return (D.zonas[z] || []).filter(visible); };
   var peso = function (z) { return items(z).reduce(function (s, it) { return s + (it.usos || 0) + 1; }, 0); };
+  // X-T10: cuánto USA el agente cada zona (0..1), del registro real; sin registro aún, lo que guarda cada zona
+  var A = D.actividad || { zonas: {}, pensamientos: [], consultas: 0 };
+  var usoDe = function (z) { return zonaVisible(z) ? A.zonas[z] || 0 : 0; };
+  var conUso = function () { return ZONAS.some(function (z) { return usoDe(z) > 0; }); };
+  var nivel = function (z) {
+    var f = conUso() ? usoDe : function (k) { return zonaVisible(k) ? peso(k) : 0; };
+    var max = Math.max.apply(null, ZONAS.map(f).concat([1e-9]));
+    return f(z) / max;
+  };
+  var chispa = {};   // zonas encendidas en este momento al reproducir cómo piensa
   var temaDe = function (it) { return it.tipo === 'entrada' ? t('entrada', { n: it.devlog }) : it.tipo === 'regla' ? t('regla') : it.tema; };
 
   function cabecera() {
@@ -207,17 +230,62 @@ const APP = String.raw`
     c.append(t('recuerda') + ' ', el('b', '', total + ' ' + (total === 1 ? t('cosa') : t('cosas'))), ' · ', el('b', '', D.cambios.filter(visible).length + ' ' + t('cambiosN')), ' ' + t('en7') + ' · ', el('b', '', D.abiertos.filter(visible).length + ' ' + t('abiertosN')));
   }
   function regiones() {
-    var max = Math.max.apply(null, ZONAS.map(peso).concat([1]));
     $$('[data-region]').forEach(function (e) {
-      var z = e.getAttribute('data-region');
-      e.style.setProperty('--brillo', (0.5 + 0.5 * peso(z) / max).toFixed(2));
+      var z = e.getAttribute('data-region'), n = nivel(z);
+      e.style.setProperty('--brillo', (0.4 + 0.6 * n).toFixed(2));
+      e.style.setProperty('--calor', n.toFixed(2));
+      e.classList.toggle('chispa', !!chispa[z]);
       e.classList.toggle('apagada', !zonaVisible(z) || (region !== null && region !== z));
       e.classList.toggle('vacia', items(z).length === 0);
       e.setAttribute('aria-pressed', region === z ? 'true' : 'false');
     });
     // los surcos de la zona elegida «fluyen»: la actividad de esa parte de la memoria
-    $$('.surco-neon').forEach(function (s) { s.classList.toggle('activa', region !== null && s.classList.contains('surco-' + region)); });
+    // y, sin zona elegida, también fluyen las que más se usan (más deprisa cuanto más), y las que se encienden al pensar
+    $$('.surco-neon').forEach(function (s) {
+      var z = (/surco-(\w+)/.exec(s.getAttribute('class')) || [])[1], n = nivel(z);
+      s.classList.toggle('activa', !!chispa[z] || (region !== null ? region === z : n >= 0.55));
+      s.style.setProperty('--vel', (chispa[z] ? 0.7 : 2.6 - 1.4 * n).toFixed(2) + 's');
+    });
     $$('[data-cuenta]').forEach(function (e) { e.textContent = items(e.getAttribute('data-cuenta')).length; });
+    $('.cerebro').classList.toggle('pensando', !!pensando);   // al pensar, lo que no se consulta se apaga (y si no encontró nada, todo)
+    $$('[data-calor]').forEach(function (e) { var z = e.getAttribute('data-calor'); e.style.setProperty('--n', nivel(z).toFixed(2)); e.parentNode.classList.toggle('chispa', !!chispa[z]); });
+    var m = $('#mente');
+    if (m && !pensando) {
+      var orden = ZONAS.filter(function (z) { return usoDe(z) > 0; }).sort(function (a, b) { return usoDe(b) - usoDe(a); }).slice(0, 2);
+      m.textContent = orden.length ? '' : t('sinUso');
+      if (orden.length) m.append(t('masUsa', { d: A.dias || 14 }) + ' ', el('b', '', orden.map(nombreZona).join(' · ')));
+    }
+  }
+  // ---------------- cómo piensa: sus últimas consultas a la memoria, una a una, encendiendo las zonas que tocó
+  var pensando = null, quietoP = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function encender(zs) {
+    chispa = {}; zs.forEach(function (z) { chispa[z] = 1; });
+    regiones(); if (tresD) { tresD.rafaga(zs); tresD.dibujar(); }
+  }
+  function pararPensar() {
+    clearTimeout(pensando); pensando = null; encender([]);
+    var b = $('#piensa'); if (b) { b.setAttribute('aria-pressed', 'false'); b.textContent = t('piensa'); }
+    regiones();
+  }
+  function pensar() {
+    if (pensando) return pararPensar();
+    var l = A.pensamientos || [], i = 0, b = $('#piensa');
+    if (!l.length) return;
+    b.setAttribute('aria-pressed', 'true'); b.textContent = t('pararP');
+    var uno = function () {
+      if (i >= l.length) return pararPensar();
+      var p = l[i++], zs = (p.zonas || []).filter(zonaVisible), m = $('#mente');
+      m.textContent = '';
+      if (!previa && p.consulta) m.append(el('q', '', p.consulta), ' → ');
+      if (zs.length) zs.forEach(function (z, k) { var s = el('span', 'zz', nombreZona(z)); s.style.color = 'var(--r-' + z + ')'; if (k) m.append(' · '); m.append(s); });
+      else m.append(t('nadaEncontro'));
+      if (p.usado === true) m.append(' · ' + t('loUso')); else if (p.usado === false) m.append(' · ' + t('noLoUso'));
+      var d = new Date(p.t);
+      m.appendChild(el('small', '', t('paso', { i: i, n: l.length }) + (isNaN(d) ? '' : ' · ' + d.toLocaleString(L, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }))));
+      encender(zs);
+      pensando = setTimeout(uno, quietoP ? 2600 : 1700);
+    };
+    pensando = -1; uno();
   }
   function meta(it) {
     var m = [];
@@ -325,6 +393,7 @@ const APP = String.raw`
     if (previa) raiz.setAttribute('data-cliente', ''); else raiz.removeAttribute('data-cliente');
     cli.setAttribute('aria-pressed', String(previa)); $('#detalle').hidden = true; todo();
   });
+  var pb = $('#piensa'); if (pb) pb.addEventListener('click', pensar);
 
   // ---------------- 3D: un cerebro de verdad hecho de puntos, con neuronas que se encienden
   // Cada hemisferio es la UNIÓN de elipsoides (cuerpo, polo frontal, polo occipital, lóbulo temporal y cerebelo); de
@@ -408,7 +477,7 @@ const APP = String.raw`
         return l.length ? { x: c[0] / l.length, y: c[1] / l.length + (z === 'temporal' ? 0.06 : 0), z: c[2] / l.length * (z === 'hipocampo' ? 1 : 1.25) } : null;
       });
     });
-    var actividad = function (z) { var max = Math.max.apply(null, ZONAS.map(peso).concat([1])); return 0.25 + 0.75 * peso(z) / max; };
+    var actividad = function (z) { return 0.15 + 0.85 * nivel(z) + (chispa[z] ? 2.5 : 0); };
     function proyectar(p, w, h, esc, c, sn, cp, sp) {
       var y0 = p.y - 0.12, x1 = p.x * c - p.z * sn, z1 = p.x * sn + p.z * c, y2 = y0 * cp - z1 * sp, z2 = y0 * sp + z1 * cp, f = 3 / (3 + z2);
       return { x: w / 2 + x1 * esc * f, y: h * 0.48 + y2 * esc * f, z: z2, f: f };
@@ -433,7 +502,9 @@ const APP = String.raw`
         (nz2 < 0 ? delante : atras).push(q);
       }
       var punto = function (q, a, r) { ctx.globalAlpha = Math.min(1, a); ctx.fillStyle = col[q.p.r]; ctx.fillRect(q.x - r / 2, q.y - r / 2, r, r); };
-      var zonaA = function (p) { return fuera(p.r) ? 0.07 : p.r === 'neutro' ? (claro ? 0.3 : 0.42) : region !== null && p.r === region ? 1.2 : 1; };
+      // lo que más usa, más vivo; lo que casi no usa, apagado; lo que se consulta ahora (cómo piensa), encendido
+      var calor = {}, algunaChispa = !!pensando; ZONAS.forEach(function (z) { calor[z] = chispa[z] ? 1.45 : algunaChispa ? 0.3 : 0.3 + 0.7 * nivel(z); });
+      var zonaA = function (p) { return fuera(p.r) ? 0.07 : p.r === 'neutro' ? (claro ? 0.3 : 0.42) : (region !== null && p.r === region ? 1.2 : 1) * calor[p.r]; };
       for (var k = 0; k < atras.length; k += 4) punto(atras[k], (claro ? 0.1 : 0.07) * zonaA(atras[k].p), 1.2 * atras[k].f);   // detrás, solo una muestra
       delante.forEach(function (q) {
         var a = (0.4 + 0.6 * q.luz) * (q.p.s ? 0.3 : 1) * zonaA(q.p);
@@ -524,7 +595,15 @@ const APP = String.raw`
       var k = { ArrowLeft: [-0.2, 0], ArrowRight: [0.2, 0], ArrowUp: [0, -0.2], ArrowDown: [0, 0.2] }[e.key];
       if (!k) return; e.preventDefault(); ang += k[0]; cab += k[1]; dibujar();
     });
-    return { dibujar: dibujar, empezar: function () { vivo = true; paso(); }, parar: function () { vivo = false; } };
+    // al pensar, una ráfaga de impulsos en las zonas que se consultan
+    function rafaga(zs) {
+      if (quieto) return;
+      zs.forEach(function (z) {
+        var cand = enl.map(function (e, i) { return nodos[e[0]].r === z ? i : -1; }).filter(function (i) { return i >= 0; });
+        for (var k = 0; k < 10 && cand.length; k++) pulsos.push({ e: cand[Math.floor(rnd() * cand.length)], t: rnd() * 0.3, v: 0.03 + rnd() * 0.03 });
+      });
+    }
+    return { dibujar: dibujar, rafaga: rafaga, empezar: function () { vivo = true; paso(); }, parar: function () { vivo = false; } };
   }
   var cv = $('#lienzo3d'), caja = $('[data-vista]');
   $$('[data-ir]').forEach(function (bt) {
@@ -569,6 +648,7 @@ export function htmlCortex(datos, { cli = null, idioma = null } = {}) {
       <div class="mandos">
         <span role="group" data-t-aria="vista"><button type="button" data-ir="2d" aria-pressed="true">2D</button> <button type="button" data-ir="3d" aria-pressed="false">3D</button></span>
         ${cliente ? '' : `<button type="button" id="cliente" aria-pressed="false" data-t="vistaCliente" data-t-title="vistaClienteT">${es.vistaCliente}</button>`}
+        ${datos.actividad && datos.actividad.pensamientos && datos.actividad.pensamientos.length ? `<button type="button" id="piensa" aria-pressed="false" data-t="piensa" data-t-title="piensaT">${es.piensa}</button>` : ''}
         <button type="button" id="tema">${es.claro}</button>
         <label><span class="sr" data-t="idioma">${es.idioma}</span><select id="idioma"></select></label>
       </div>
@@ -580,8 +660,9 @@ export function htmlCortex(datos, { cli = null, idioma = null } = {}) {
       </div>
       <div class="v3d"><canvas id="lienzo3d" data-t-aria="aria3d"></canvas><p class="pista" data-t="pista3d">${es.pista3d}</p></div>
     </div>
+    <p class="mente" id="mente" aria-live="polite"></p>
     <div class="chips" role="group" data-t-aria="ariaZonas">
-      ${ZONAS.filter(([r]) => !(cliente && r === 'temporal')).map(([r]) => `<button type="button" data-region="${r}" style="color:var(--r-${r})"><i></i><span data-t="zonas.${r}">${es.zonas[r]}</span> <b data-cuenta="${r}"></b></button>`).join('\n      ')}
+      ${ZONAS.filter(([r]) => !(cliente && r === 'temporal')).map(([r]) => `<button type="button" data-region="${r}" style="color:var(--r-${r})"><i></i><span data-t="zonas.${r}">${es.zonas[r]}</span> <b data-cuenta="${r}"></b><u data-calor="${r}" aria-hidden="true"></u></button>`).join('\n      ')}
     </div>
   </section>
   <aside class="panel">

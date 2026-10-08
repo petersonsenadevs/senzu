@@ -49,6 +49,17 @@ g(P, { dimension: 'preferencia.editor', valor: 'vim-del-usuario', alcance: 'usua
 const olvidado = g(P, { dimension: 'proyecto.antiguo', valor: 'Olvidado-no-debe-salir' }, 30);
 m.olvidarHecho(P, olvidado.id);
 m.anotarUso(P, [forge.id, forge.id], { ahora: T(1) });
+// X-T10: el registro de uso real (lo que la memoria llevó al agente y si lo usó). «El proyecto» es lo que más consulta
+const HF = { fuente: 'hecho', id: forge.id, texto: '[proyecto.hosting] Laravel Forge', puntuacion: 3 };
+const usoL = [
+    { t: T(30), sid: 's0', origen: 'mensaje', consulta: 'viejo-fuera-de-plazo', items: [{ fuente: 'memoria', id: 'MEMORIA', texto: 'D-004' }] },
+    { t: T(2), sid: 's1', origen: 'mensaje', consulta: 'consulta-secreta-hosting', items: [{ ...HF, usado: true }], evaluado: true },
+    { t: T(1.5), sid: 's1', origen: 'mensaje', consulta: 'como pagamos', items: [{ fuente: 'memoria', id: 'MEMORIA', texto: 'D-004 · Los pagos, solo por Stripe', usado: false }], evaluado: true },
+    { t: T(1), sid: 's2', origen: 'mensaje', consulta: 'donde desplegamos y quien es el cliente', items: [HF, { fuente: 'hecho', id: m.todosLosHechos(P).find(h => h.dimension === 'identidad.nombre').id, texto: '[identidad.nombre] Lucía' }] },
+    { t: T(0.5), sid: 's2', origen: 'mensaje', consulta: 'algo-sin-respuesta', items: [] },
+];
+fs.mkdirSync(path.dirname(m.rutaUso(P)), { recursive: true });
+fs.writeFileSync(m.rutaUso(P), usoL.map(x => JSON.stringify(x)).join('\n') + '\n');
 
 // ---------------------------------------------------------------- 1. zonas
 const d = m.datosCortex(P, { ahora: AHORA });
@@ -101,6 +112,23 @@ ok(!dc.zonas.temporal.length && !dc.zonas.hipocampo.length, 'cliente: Quién ere
 ok(dc.cambios.some(x => x.antes === 'Netlify') && !dc.cambios.some(x => x.tipo === 'aprendido'), 'cliente: los cambios del proyecto sí; lo aprendido, no');
 const htmlD = htmlCortex(d, { cli: CLI });
 ok(htmlD.includes('Lucía Ferrer') && datosDe(htmlD).cli === CLI && htmlD.includes('id="cliente"'), 'dueño: lo lleva todo, el comando y la vista previa de cliente');
+
+// ---------------------------------------------------------------- 4b. cómo piensa (X-T10): la actividad del registro real
+const A = d.actividad;
+ok(A && A.consultas === 4 && !JSON.stringify(A).includes('viejo-fuera-de-plazo'), 'actividad: solo las consultas de los últimos 14 días', JSON.stringify(A && A.consultas));
+ok(A.zonas.parietal > A.zonas.temporal && A.zonas.temporal > A.zonas.occipital && A.zonas.occipital > 0 && A.zonas.frontal === 0, 'actividad: lo más consultado pesa más (y lo ignorado, menos)', JSON.stringify(A.zonas));
+ok(A.pensamientos.map(p => p.consulta).join('|') === 'consulta-secreta-hosting|como pagamos|donde desplegamos y quien es el cliente|algo-sin-respuesta', 'pensamientos: en orden, con lo que se preguntó');
+ok(JSON.stringify(A.pensamientos[2].zonas) === '["parietal","temporal"]' && A.pensamientos[0].usado === true && A.pensamientos[1].usado === false && A.pensamientos[2].usado === null && A.pensamientos[3].usado === undefined && !A.pensamientos[3].zonas.length,
+    'pensamientos: las zonas que tocó cada consulta y si usó lo que le llegó (sin datos, null; sin nada, vacío)', JSON.stringify(A.pensamientos));
+ok(!htmlC.includes('consulta-secreta-hosting') && !htmlC.includes('como pagamos') && dc.actividad.zonas.temporal === 0 && !dc.actividad.pensamientos.some(p => p.zonas.includes('temporal')),
+    'cliente: la actividad va sin lo que se preguntó ni la zona del usuario');
+ok(dc.actividad.zonas.parietal === A.zonas.parietal, 'cliente: la actividad del proyecto sí se ve');
+ok(htmlD.includes('id="piensa"') && !htmlCortex(m.datosCortex(proyecto('sin-uso'), { ahora: AHORA })).includes('id="piensa"'), 'el botón «Ver cómo piensa» solo aparece si hay consultas');
+const R = proyecto('registro-roto');
+fs.mkdirSync(path.dirname(m.rutaUso(R)), { recursive: true });
+fs.writeFileSync(m.rutaUso(R), '{roto\n' + JSON.stringify({ t: T(1), sid: 'x', origen: 'mensaje', consulta: 'q', items: [{ fuente: 'hecho', id: 'no-existe' }, { fuente: 'devlog', id: '012' }] }) + '\n');
+const AR = m.datosCortex(R, { ahora: AHORA }).actividad;
+ok(AR.consultas === 1 && AR.zonas.hipocampo > 0 && JSON.stringify(AR.pensamientos[0].zonas) === '["hipocampo"]', 'un registro con líneas rotas o hechos ya borrados no rompe nada', JSON.stringify(AR));
 
 const N = proyecto('con-nombre');
 g(N, { dimension: 'proyecto.nombre', valor: 'Cerámicas Sol' }, 5);
@@ -164,6 +192,16 @@ if (process.env.PLAYWRIGHT) {
         await p.locator('#buscar').fill('qwertyzz');
         ok(await p.locator('#lista-vacia').isVisible() && /no lo sabe/.test(await p.locator('#lista-vacia').innerText()), `${ancho}: sin resultados lo dice, sin inventar`);
         await p.locator('#buscar').fill('');
+        // X-T10: lo que más consulta brilla más; «Ver cómo piensa» enciende, paso a paso, las zonas de cada consulta
+        const brillo = z => p.evaluate(z => +getComputedStyle(document.querySelector('.cerebro [data-region="' + z + '"]')).getPropertyValue('--calor'), z);
+        ok(/El proyecto/.test(await p.locator('#mente').innerText()) && await brillo('parietal') === 1 && await brillo('frontal') === 0, `${ancho}: la zona que más consulta, la que más brilla, y lo dice`, await p.locator('#mente').innerText());
+        await p.locator('#piensa').click();
+        const encendidas = () => p.evaluate(() => [...document.querySelectorAll('.cerebro .chispa')].map(e => e.getAttribute('data-region')).join(','));
+        ok(await encendidas() === 'parietal' && /consulta-secreta-hosting/.test(await p.locator('#mente').innerText()) && /1 de 4/.test(await p.locator('#mente').innerText()), `${ancho}: al pensar, se enciende la zona de la primera consulta`, await encendidas());
+        await p.waitForTimeout(3600);
+        ok(await encendidas() === 'parietal,temporal', `${ancho}: y luego las de la siguiente que tocó varias`, await encendidas());
+        await p.locator('#piensa').click();
+        ok(await encendidas() === '' && (await p.locator('#piensa').getAttribute('aria-pressed')) === 'false', `${ancho}: se puede parar`);
         await p.locator('#cliente').click();
         ok(!/Lucía Ferrer|Pest-deducido|Webhooks-duplicados/.test(await p.locator('body').innerText()), `${ancho}: la vista previa de cliente oculta lo privado`);
         await p.locator('#cliente').click();
