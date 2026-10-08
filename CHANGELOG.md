@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-08
 
+- **test** — Segunda pasada asociativa: medida y descartada (X-T14) (entrada 136)
 - **feature** — Une lo que va junto: activación propagada por nombres compartidos, hasta dos saltos (X-T13) (entrada 135)
 - **feature** — El pasado, solo: las pistas temporales traen la historia (X-T12) (entrada 134)
 - **feature** — Reconsolidación: la memoria aprende las palabras del usuario (X-T11, REALM) (entrada 133)
