@@ -42,7 +42,11 @@
     { "id": "p30a", "dimension": "preferencia.tipografia", "valor": "Inter", "claves": ["tipografía", "fuente", "font", "typography"], "t": 39 },
     { "id": "p30b", "dimension": "preferencia.tipografia", "valor": "Fraunces para títulos e Inter para el texto", "claves": ["tipografía", "fuente", "font", "typography"], "t": 80 },
     { "id": "p31", "dimension": "proyecto.repositorio", "valor": "GitLab privado del cliente, rama develop para pruebas", "t": 40 },
-    { "id": "p32", "dimension": "restriccion.pci", "valor": "no guardamos números de tarjeta: todo se cobra en la página alojada", "claves": ["pci", "tarjeta", "card"], "enlaces": ["proyecto.pasarela-pago"], "t": 41 }
+    { "id": "p32", "dimension": "restriccion.pci", "valor": "no guardamos números de tarjeta: todo se cobra en la página alojada", "claves": ["pci", "tarjeta", "card"], "enlaces": ["proyecto.pasarela-pago"], "t": 41 },
+    { "id": "p33", "dimension": "nota.tarifa-bianchi", "valor": "Marco Bianchi cobra 600 € por sesión de fotos", "claves": ["tarifa", "precio", "price"], "t": 42 },
+    { "id": "p34", "dimension": "nota.canal-lucia", "valor": "Lucía Martín prefiere que le escribamos por Telegram; el correo lo lee tarde", "claves": ["telegram", "canal", "channel"], "t": 43 },
+    { "id": "p35", "dimension": "nota.caixa-verde", "valor": "en Caixa Verde nos atiende Rui Costa", "claves": ["comercial", "atiende"], "t": 44 },
+    { "id": "p36", "dimension": "nota.horario-rui", "valor": "Rui Costa só responde de manhã", "claves": ["horario", "responde"], "idioma": "pt", "t": 45 }
   ],
   "preguntas": [
     { "q": "¿cómo se llama el usuario?", "lang": "es", "espera": "u1", "cat": "directa" },
@@ -213,6 +217,14 @@
     { "q": "necesito saber en qué ciudad vivo antes del viernes", "lang": "es", "espera": "u2b", "cat": "antes-presente" },
     { "q": "avant la mise en ligne, quel framework utilise le projet ?", "lang": "fr", "espera": "p2b", "cat": "antes-presente" },
     { "q": "¿qué coche tenía antes?", "lang": "es", "espera": null, "cat": "sin-respuesta" },
-    { "q": "what did I use to eat for breakfast?", "lang": "en", "espera": null, "cat": "sin-respuesta" }
+    { "q": "what did I use to eat for breakfast?", "lang": "en", "espera": null, "cat": "sin-respuesta" },
+    { "q": "¿cuánto cobra el fotógrafo?", "lang": "es", "espera": "p33", "cat": "saltos" },
+    { "q": "how much does the photographer charge?", "lang": "en", "espera": "p33", "cat": "saltos" },
+    { "q": "quanto chiede il fotografo per una sessione?", "lang": "it", "espera": "p33", "cat": "saltos" },
+    { "q": "¿por dónde le escribo a la responsable de marketing?", "lang": "es", "espera": "p34", "cat": "saltos" },
+    { "q": "how does the marketing contact prefer to be reached?", "lang": "en", "espera": "p34", "cat": "saltos" },
+    { "q": "who looks after us at the packaging supplier?", "lang": "en", "espera": "p35", "cat": "saltos" },
+    { "q": "¿a qué hora contesta el proveedor de embalajes?", "lang": "es", "espera": "p36", "cat": "saltos" },
+    { "q": "quando responde o fornecedor das embalagens?", "lang": "pt", "espera": "p36", "cat": "saltos", "reservada": true }
   ]
 }

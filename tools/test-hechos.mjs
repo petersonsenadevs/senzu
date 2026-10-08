@@ -336,6 +336,110 @@ ok(primero(S, 'القاهرة').dimension === 'identidad.ubicacion' && primero(S
     ok(m.LEXICO.cliente.split(' ').length >= 20 && Object.keys(m.LEXICO).length >= 20, 'el léxico cubre los temas de la convención en ~20 idiomas');
 }
 
+// 3k. activación propagada por el grafo (X-T13): de lo encontrado a lo que comparte un NOMBRE, hasta dos saltos
+{
+    const A = proyecto('saltos');
+    const g = (dimension, valor, claves, extra = {}, s = 0) => m.guardarHecho(A, { dimension, valor, claves, ...extra }, { ahora: T(A, s) }).hecho;
+    g('nota.fotografo', 'il fotografo è Marco Bianchi, disponibile solo il lunedì', ['fotografo', 'photographer'], { idioma: 'it' }, 0);
+    g('nota.tarifa-bianchi', 'Marco Bianchi cobra 600 € por sesión de fotos', ['tarifa', 'precio', 'price'], {}, 1);
+    g('proyecto.embalajes', 'embalagens da empresa Caixa Verde em Lisboa', ['embalagens', 'packaging', 'supplier'], { idioma: 'pt' }, 2);
+    g('nota.caixa-verde', 'en Caixa Verde nos atiende Rui Costa', ['comercial'], {}, 3);
+    g('proyecto.horario-rui', 'Rui Costa só responde de manhã', ['horario'], { idioma: 'pt' }, 4);
+    g('nota.osaka', '大阪に新しいオフィスがあります', ['oficina', 'office'], { idioma: 'ja' }, 6);
+    g('nota.osaka-equipo', '大阪の担当は佐藤さん', ['equipo', 'team'], { idioma: 'ja' }, 7);
+    g('preferencia.cliente-tono', 'tutoiement avec le client', ['tono', 'tone'], { idioma: 'fr' }, 8);
+    g('restriccion.accesibilidad', 'WCAG 2.2 AA required by the client', ['wcag', 'accesibilidad'], {}, 9);
+    const motivos = r => r.map(x => `${x.hecho.dimension} ${x.puntuacion}: ${x.motivo}`).join(' | ');
+    let r = m.buscarHechos(A, 'how much does the photographer charge?', { limite: 3 });
+    ok(r.some(x => x.hecho.dimension === 'nota.tarifa-bianchi' && /vía «(marco|bianchi)» con nota\.fotografo/.test(x.motivo)), 'un salto por un nombre compartido: del fotógrafo a su tarifa, que no dice «fotógrafo»', motivos(r));
+    r = m.buscarHechos(A, '¿cuánto cobra el fotógrafo?', { limite: 3 });
+    ok(r[0].hecho.dimension === 'nota.fotografo' && r[1].hecho.dimension === 'nota.tarifa-bianchi', 'lo que completa la respuesta va PEGADO a su semilla (el reparto por familias no los separa)', motivos(r));
+    r = m.buscarHechos(A, '¿a qué hora contesta el proveedor de embalajes?', { limite: 3 });
+    ok(r.some(x => x.hecho.dimension === 'proyecto.horario-rui'), 'dos saltos: proveedor → «Caixa Verde» → «Rui Costa» → su horario', motivos(r));
+    r = m.buscarHechos(A, 'packaging supplier', { limite: 10 });
+    ok(r.filter(x => x.via).length <= m.MAX_PROPAGADOS, 'lo que llega solo por propagación tiene presupuesto', motivos(r));
+    ok(m.SALTOS === 2 && r.every(x => !x.via || x.puntuacion < r[0].puntuacion), 'lo propagado nunca adelanta a lo que coincide de verdad', motivos(r));
+    // el abanico de ACT-R: un nombre en 5 hechos o más no distingue a nadie
+    const B = proyecto('abanico');
+    for (let i = 0; i < 5; i++) m.guardarHecho(B, { dimension: `nota.sede-${i}`, valor: `sede ${i} de Nordia en la calle ${i}` }, { ahora: T(B, i) });
+    m.guardarHecho(B, { dimension: 'proyecto.cliente', valor: 'Nordia, cadena de librerías', claves: ['cliente', 'client'] }, { ahora: T(B, 9) });
+    ok(!m.buscarHechos(B, '¿quién es el cliente?').some(x => x.via || x.reforzado), 'un nombre en 6 hechos no enlaza (efecto abanico: S − ln abanico ≤ 0)', motivos(m.buscarHechos(B, '¿quién es el cliente?')));
+    // una palabra corriente en minúscula no es un nombre: «client» en dos hechos no los enlaza
+    r = m.buscarHechos(A, '¿qué tono usamos con el cliente?', { limite: 5 });
+    ok(!r.some(x => x.hecho.dimension === 'restriccion.accesibilidad' && (x.via || x.reforzado)), 'una palabra corriente compartida («client») no enlaza', motivos(r));
+    // escrituras sin mayúsculas: el nombre es la palabra (大阪)
+    r = m.buscarHechos(A, 'office', { limite: 4 });
+    ok(r.some(x => x.hecho.dimension === 'nota.osaka-equipo' && /vía «大阪»/.test(x.motivo)), 'en japonés, 大阪 enlaza la oficina con su equipo', motivos(r));
+    // sin respuesta, sigue callando: nada pasa del umbral si no lo pasaba ya algo encontrado
+    const C = proyecto('callar');
+    m.guardarHecho(C, { dimension: 'nota.proveedor', valor: 'Telas Ruiz en Alcoy', claves: ['proveedor'] }, { ahora: T(C, 0) });
+    m.guardarHecho(C, { dimension: 'nota.ruiz-pago', valor: 'Telas Ruiz cobra a 60 días', claves: ['pago'] }, { ahora: T(C, 1) });
+    ok(m.buscarHechos(C, '¿qué coche tiene el abogado?').filter(x => x.puntuacion >= m.UMBRAL_RECUERDO).length === 0, 'sin semilla firme no se propaga nada (la abstención no cambia)');
+    r = m.buscarHechos(C, '¿qué dice Playwright del proveedor de PHP?');
+    ok(!r.some(x => x.via || x.reforzado), 'lo que nombra algo desconocido («Playwright», «PHP») no es semilla', motivos(r));
+    // lo que repite las mismas palabras que la semilla no la adelanta (es otra versión de lo mismo, no la otra mitad)
+    const D = proyecto('repite');
+    m.guardarHecho(D, { dimension: 'restriccion.presupuesto', valor: 'máximo 3000 € para la fase 1 de Lumen', claves: ['presupuesto', 'budget'] }, { ahora: T(D, 0) });
+    m.guardarHecho(D, { dimension: 'restriccion.plazo', valor: 'la fase 1 de Lumen se entrega el 15 de noviembre', claves: ['plazo', 'deadline'] }, { ahora: T(D, 1) });
+    r = m.buscarHechos(D, 'presupuesto de la fase 1');
+    ok(r[0].hecho.dimension === 'restriccion.presupuesto', 'un vecino que no aporta palabras nuevas de la pregunta no adelanta a su semilla', motivos(r));
+    // lo que ya no vale no recibe propagación (sin pedir la historia), y con la historia el orden lo pone la historia
+    m.guardarHecho(A, { dimension: 'proyecto.horario-rui', valor: 'Rui Costa responde todo el día' }, { ahora: T(A, 20) });
+    r = m.buscarHechos(A, '¿a qué hora contesta el proveedor de embalajes?', { limite: 5 });
+    ok(!r.some(x => x.hecho.valor.startsWith("Rui Costa só")), "lo sustituido no llega por propagación", motivos(r));
+    r = m.buscarHechos(A, '¿a qué hora contestaba antes Rui Costa?', { historico: 'auto', limite: 6 });
+    const vig = r.findIndex(x => x.hecho.valor === 'Rui Costa responde todo el día'), ant = r.findIndex(x => x.hecho.valor.startsWith('Rui Costa só'));
+    ok(vig >= 0 && ant === vig + 1 && !r[vig].reforzado, 'preguntando por el pasado, lo anterior sigue pegado a lo vigente y nada se refuerza', motivos(r));
+    // los nombres salen de lo que el hecho DICE, no de sus claves; de mayúsculas reales, con cifras o de escrituras sin mayúsculas
+    ok([...m.nombresDe({ valor: 'Stripe en modo test', claves: ['Pagos'] })].join() === 'stripe', 'nombres: de valor y texto, no de las claves', [...m.nombresDe({ valor: 'Stripe en modo test', claves: ['Pagos'] })].join());
+    ok([...m.nombresDe({ valor: 'usamos php8 y el cliente Sol' })].join() === 'php8', 'nombres: con cifras sí; «Sol» (3 letras, sin peso) no', [...m.nombresDe({ valor: 'usamos php8 y el cliente Sol' })].join());
+    // --- casos rebuscados: cada uno caza una forma concreta de romper la propagación
+    // el gemelo: los mismos hechos con los nombres en minúscula puntúan igual (BM25 no ve mayúsculas) y no se enlazan
+    const gemelos = (n, hechos) => [false, true].map(min => {
+        const d = proyecto(n + (min ? '-gemelo' : ''));
+        hechos.forEach((h, i) => m.guardarHecho(d, { ...h, valor: min ? h.valor.toLowerCase() : h.valor }, { ahora: T(d, i) }));
+        return d;
+    });
+    const puntos = (d, q, o) => Object.fromEntries(m.buscarHechos(d, q, o).map(x => [x.hecho.dimension, x.puntuacion]));
+    // dos hechos flojos (una errata en un hecho largo: 0,79) que comparten nombre no se empujan el uno al otro sobre el umbral
+    const largo = 'tarde con retraso por la huelga de transportistas del puerto y la lluvia que no paró en toda la semana mientras el camión esperaba en la cola del muelle junto a otros veinte camiones cargados de fruta';
+    const [F1, F1g] = gemelos('flojos', [{ dimension: 'nota.x', valor: 'el pedido de Quiroga salió ' + largo }, { dimension: 'nota.z', valor: 'el envío de Quiroga llegó ' + largo },
+        { dimension: 'nota.a', valor: 'café sin azúcar' }, { dimension: 'nota.b', valor: 'tema oscuro' }, { dimension: 'nota.c', valor: 'pnpm siempre' }, { dimension: 'nota.d', valor: 'tests con vitest' }]);
+    ok(Math.max(...Object.values(puntos(F1g, 'pedidp enviu'))) < m.UMBRAL_RECUERDO && JSON.stringify(puntos(F1, 'pedidp enviu')) === JSON.stringify(puntos(F1g, 'pedidp enviu')),
+        'lo que no llega al umbral no propaga: dos flojos con el mismo nombre siguen callando', JSON.stringify(puntos(F1, 'pedidp enviu')));
+    // dos versiones de lo mismo (cubren las mismas palabras) no se suman: el orden y las puntuaciones, como sin enlace
+    const [V1, V1g] = gemelos('versiones', [{ dimension: 'restriccion.presupuesto', valor: 'presupuesto de Lumen: 3000 €', claves: ['presupuesto'] },
+        { dimension: 'nota.presupuesto-kora', valor: 'presupuesto de Kora: 5000 €, Kora es socia de Lumen', claves: ['presupuesto'] }]);
+    ok(JSON.stringify(puntos(V1, 'presupuesto de Lumen')) === JSON.stringify(puntos(V1g, 'presupuesto de Lumen')), 'dos versiones de lo mismo no se suman la una a la otra',
+        JSON.stringify([puntos(V1, 'presupuesto de Lumen'), puntos(V1g, 'presupuesto de Lumen')]));
+    // en un mensaje largo, dos palabras sueltas de diez no completan ninguna respuesta: no se suman
+    const largoQ = 'mañana preparo el informe del presupuesto, luego reunión interna y después comida con amigos';
+    const [M1, M1g] = gemelos('mitad', [{ dimension: 'restriccion.presupuesto', valor: 'máximo 3000 € para Lumen', claves: ['presupuesto'] },
+        { dimension: 'nota.reuniones-lumen', valor: 'Lumen quiere la reunión los lunes', claves: ['reunion'] }]);
+    ok(JSON.stringify(puntos(M1, largoQ)) === JSON.stringify(puntos(M1g, largoQ)), 'menos de la mitad de la pregunta cubierta entre las dos: no se suman', JSON.stringify([puntos(M1, largoQ), puntos(M1g, largoQ)]));
+    // lo que llega solo por propagación no le quita el sitio a otra familia que SÍ coincide
+    const [K1] = gemelos('cupo', [{ dimension: 'proyecto.cliente', valor: 'Ventura Lab, estudio de arquitectura', claves: ['cliente', 'client', 'customer'] },
+        { dimension: 'nota.pagos-ventura', valor: 'Ventura Lab paga a 30 días' }, { dimension: 'preferencia.tono', valor: 'tuteo siempre', claves: ['tono'] },
+        { dimension: 'restriccion.horario', valor: 'nada de reuniones por la tarde', claves: ['horario'] }]);
+    r = m.buscarHechos(K1, 'cliente customer client, tono y horario', { limite: 3 });
+    ok(r.map(x => x.hecho.dimension).join() === 'proyecto.cliente,preferencia.tono,restriccion.horario', 'lo propagado va en el cupo de su semilla: no desplaza a lo que coincide de otra familia', motivos(r));
+    r = m.buscarHechos(K1, 'cliente customer client', { limite: 3 });
+    ok(r.some(x => x.hecho.dimension === 'nota.pagos-ventura' && x.via), '(y con sitio, sí llega)', motivos(r));
+    // presupuesto: una semilla con cuatro vecinos por cuatro nombres distintos trae solo los 2 más fuertes
+    const [S1] = gemelos('presupuesto', [{ dimension: 'proyecto.socios', valor: 'socios: Adriana, Beatriz, Carolina y Daniela', claves: ['socios', 'partners'] },
+        ...['Adriana', 'Beatriz', 'Carolina', 'Daniela'].map((n, i) => ({ dimension: `nota.socia-${i}`, valor: `${n} lleva el área ${i}` }))]);
+    r = m.buscarHechos(S1, '¿quiénes son los socios?', { limite: 8 });
+    ok(r.filter(x => x.via).length === m.MAX_PROPAGADOS, `cuatro vecinos y presupuesto de ${m.MAX_PROPAGADOS}`, motivos(r));
+    // la respuesta de dos hechos sigue pegada aunque otra familia coincida por una palabra suelta
+    g('restriccion.pci', 'no guardamos tarjetas: todo se cobra en la pasarela', ['pci', 'tarjeta'], {}, 10);
+    r = m.buscarHechos(A, '¿cuánto cobra el fotógrafo?', { limite: 3 });
+    ok(r[0].hecho.dimension === 'nota.fotografo' && r[1].hecho.dimension === 'nota.tarifa-bianchi', 'con otra familia que roza «cobra», el fotógrafo y su tarifa siguen juntos', motivos(r));
+    // el efecto abanico de ACT-R, medido: S − ln(abanico), normalizado a 1 con dos hechos
+    ok(m.fuerzaNombre(1) === 0 && m.fuerzaNombre(2) === 1 && Math.abs(m.fuerzaNombre(3) - 0.558) < 0.001 && Math.abs(m.fuerzaNombre(4) - 0.243) < 0.001 && m.fuerzaNombre(5) === 0 && m.fuerzaNombre(50) === 0,
+        'abanico: 1 → 0, 2 → 1, 3 → 0,56, 4 → 0,24, 5 o más → 0', [1, 2, 3, 4, 5, 50].map(m.fuerzaNombre).join());
+    ok(JSON.stringify(m.buscarHechos(A, 'how much does the photographer charge?')) === JSON.stringify(m.buscarHechos(A, 'how much does the photographer charge?')), 'determinista también con la propagación');
+}
+
 // 4. cupos por familia: que una familia no se coma el espacio
 const C = proyecto('cupos');
 for (let i = 0; i < 6; i++) m.guardarHecho(C, { dimension: `nota.${i}`, valor: `nota de diseño ${i}`, claves: ['diseño'] }, { ahora: T(C, i) });

@@ -5,7 +5,7 @@
 // recuerdo vivo (UMBRAL_RECUERDO).
 //   recall@1 / recall@3: con respuesta, el hecho esperado sale el primero / entre los 3 primeros
 //   abstención: sin respuesta (o no vigente), no sale nada por encima del umbral
-//   node tools/eval-hechos.mjs [--fallos] [--json] [--estricto] [--solo desarrollo|reservada] [--corpus base|fitlab]
+//   node tools/eval-hechos.mjs [--fallos] [--json] [--estricto] [--solo desarrollo|reservada] [--corpus base|fitlab] [--cat saltos] [--sin-cat saltos]
 // --estricto sale con 1 si no llega a los objetivos (recall@3 ≥ 90 % y abstención ≥ 90 %).
 
 import fs from 'node:fs';
@@ -24,6 +24,9 @@ const m = await import(pathToFileURL(path.join(process.env.SENZU_HOOKS_DIR || pa
 const DIR = path.join(ROOT, 'tools', 'eval-hechos');
 const corpora = fs.readdirSync(DIR).filter(f => /^corpus.*\.json$/.test(f)).sort().map(f => ({ nombre: f.replace(/^corpus-?|\.json$/g, '') || 'base', ...JSON.parse(fs.readFileSync(path.join(DIR, f), 'utf8')) }));
 const soloCorpus = (() => { const i = args.indexOf('--corpus'); return i >= 0 ? args[i + 1] : null; })();
+// una categoría, o todas menos una (X-T13: los saltos se miden por recall@3; su respuesta es una pareja de hechos)
+const soloCat = (() => { const i = args.indexOf('--cat'); return i >= 0 ? args[i + 1] : null; })();
+const sinCat = (() => { const i = args.indexOf('--sin-cat'); return i >= 0 ? args[i + 1] : null; })();
 
 // Relleno determinista (muchos hechos parecidos entre sí: ruido de verdad). La primera mitad, suministro; la segunda,
 // mantenimiento, para que no haya dos con la misma combinación y «¿quién mantiene…?» tenga competidores.
@@ -57,6 +60,7 @@ for (const corpus of corpora) {
         ids.set(r.hecho.id, h.id);
     }
     for (const q of corpus.preguntas) {
+        if ((soloCat && q.cat !== soloCat) || (sinCat && q.cat === sinCat)) continue;
         if (solo === 'desarrollo' && q.reservada) continue;
         if (solo === 'reservada' && !q.reservada) continue;
         // --auto-temporal (X-T12): sin la marca del corpus; el pasado se detecta en la pregunta, como en el recuerdo vivo

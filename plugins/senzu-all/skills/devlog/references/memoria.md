@@ -159,6 +159,17 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
   Medido con `tools/eval-reconsolidacion.mjs`: la misma pregunta otra vez pasa del 91,4 % al 100 % (recall@3) sin
   estropear nada; con un agente que se equivoca un 20 % de las veces, recall@3 tampoco baja en nada. Lo aprendido
   sale en `--informe`.
+- **Une lo que va junto (activación propagada)**: lo que se encuentra con fuerza activa lo que comparte con ello un
+  NOMBRE propio («Marco Bianchi» en el fotógrafo y en su tarifa) o un enlace guardado, hasta dos saltos y perdiendo
+  fuerza en cada uno. Así «¿cuánto cobra el fotógrafo?» llega a la tarifa, que no dice «fotógrafo». Llega marcado
+  «vía «bianchi» con nota.fotografo» y pegado a lo que lo trajo. Prudente a propósito:
+  - solo propaga lo que ya se inyectaría: si la pregunta no tiene respuesta, sigue callando;
+  - un nombre que está en 5 hechos o más no enlaza nada (efecto abanico de ACT-R); una palabra en minúscula no es un
+    nombre;
+  - dos hechos solo se suman si juntos cubren al menos la mitad de la pregunta y cada uno aporta algo.
+
+  Para que funcione, guarda los nombres como se escriben («Rui Costa», no «rui costa»). Medido con `eval-hechos
+  --cat saltos`: las preguntas de varios saltos pasan del 56 % al 87,5 % (recall@3) y ninguna otra pregunta empeora.
 - **Uso y enfriamiento**: lo que llega al agente (al hablar, al editar, `--buscar`, `--recordar`) suma un uso; lo
   usado sube un poco y lo que pasa de 90 días sin usarse se enfría despacio (×0,9 como mucho). Nada se borra.
 - **Llega sola**: al iniciar (lo vigente), con cada mensaje (recuerdo-vivo: hechos, decisiones y devlog de lo que

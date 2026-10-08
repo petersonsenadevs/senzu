@@ -56,7 +56,11 @@
     { "id": "b37", "dimension": "nota.oficina", "valor": "l'oficina és al carrer Pujades 77, Barcelona", "claves": ["office", "oficina", "address", "dirección", "adreça"], "idioma": "ca", "t": 45 },
     { "id": "b38", "dimension": "objetivo.expansion", "valor": "Expansion nach Andorra im Jahr 2032", "claves": ["expansion", "expansión", "andorra", "market", "mercado"], "idioma": "de", "t": 46 },
     { "id": "b39a", "dimension": "preferencia.tests", "valor": "Jest", "claves": ["tests", "testing", "unit tests"], "t": 47 },
-    { "id": "b39b", "dimension": "preferencia.tests", "valor": "Vitest con Testing Library", "texto": "cambiamos Jest por Vitest", "claves": ["tests", "testing", "unit tests"], "t": 90 }
+    { "id": "b39b", "dimension": "preferencia.tests", "valor": "Vitest con Testing Library", "texto": "cambiamos Jest por Vitest", "claves": ["tests", "testing", "unit tests"], "t": 90 },
+    { "id": "b40", "dimension": "nota.nuvol", "valor": "Nuvol tarda dos semanas en cada cambio grande", "claves": ["cambios", "changes"], "t": 91 },
+    { "id": "b41", "dimension": "nota.tarifa-laia", "valor": "Laia cobra 0,08 € por palabra", "claves": ["tarifa", "precio", "rate"], "t": 92 },
+    { "id": "b44", "dimension": "nota.zendesk-admin", "valor": "Zendesk lo administra Marta Ruiz", "claves": ["admin", "administra"], "t": 93 },
+    { "id": "b45", "dimension": "nota.marta-ruiz", "valor": "Marta Ruiz está de baja; mientras, los tickets van a Pol", "claves": ["ausencia", "absence"], "t": 94 }
   ],
   "preguntas": [
     { "q": "¿cómo me llamo?", "lang": "es", "espera": "a1", "cat": "directa" },
@@ -323,6 +327,14 @@
     { "q": "¿cuántos gimnasios tenía FitLab en 2019?", "lang": "es", "espera": null, "cat": "sin-respuesta" },
     { "q": "¿qué precio tiene la cuota mensual?", "lang": "es", "espera": null, "cat": "sin-respuesta" },
     { "q": "¿qué horario tienen los gimnasios?", "lang": "es", "espera": null, "cat": "sin-respuesta" },
-    { "q": "¿hay app para Apple Watch?", "lang": "es", "espera": null, "cat": "sin-respuesta", "reservada": true }
+    { "q": "¿hay app para Apple Watch?", "lang": "es", "espera": null, "cat": "sin-respuesta", "reservada": true },
+    { "q": "¿cuánto tarda el estudio de diseño con un cambio grande?", "lang": "es", "espera": "b40", "cat": "saltos" },
+    { "q": "how long does the design studio take for big changes?", "lang": "en", "espera": "b40", "cat": "saltos" },
+    { "q": "¿cuánto cobra la traductora?", "lang": "es", "espera": "b41", "cat": "saltos" },
+    { "q": "what's the translator's rate?", "lang": "en", "espera": "b41", "cat": "saltos" },
+    { "q": "quant cobra la traductora?", "lang": "ca", "espera": "b41", "cat": "saltos", "reservada": true },
+    { "q": "who administers the support tool?", "lang": "en", "espera": "b44", "cat": "saltos" },
+    { "q": "¿a quién escribo si falla el helpdesk?", "lang": "es", "espera": "b45", "cat": "saltos" },
+    { "q": "is the person who runs the helpdesk available?", "lang": "en", "espera": "b45", "cat": "saltos" }
   ]
 }

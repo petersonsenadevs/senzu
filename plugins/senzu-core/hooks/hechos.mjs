@@ -626,7 +626,7 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
         // X-T11: lo aprendido UNA vez es una pista, no una prueba: si solo coincide eso y la pregunta trae otras palabras
         // con peso que el hecho no tiene («¿qué coche tengo?» con un «tengo» aprendido), no se inyecta solo
         if (puntuacion && porAprender.size && [...conPesoQueCoinciden].every(w => porAprender.has(w)) && qConPeso > conPesoQueCoinciden.size) puntuacion = +Math.min(puntuacion * 0.5, UMBRAL_RECUERDO * 0.75).toFixed(3);
-        return { hecho: h, puntuacion, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined, nombra, rescatado };
+        return { hecho: h, puntuacion, motivo, debil, solo: debil ? [...conPesoQueCoinciden][0] : undefined, nombra, rescatado, cubre: conPesoQueCoinciden };
     }).filter(x => x.puntuacion > 0);
     // y en el orden, lo rescatado va DETRÁS de lo que coincide por lo que dice (sin bajar del umbral si ya lo pasaba)
     const firmes = hits.filter(x => !x.rescatado && x.puntuacion >= UMBRAL_RECUERDO).map(x => x.puntuacion);
@@ -655,38 +655,108 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
         }
     }
     hits.sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
-    // Expansión de UN salto por los enlaces (F6-T1): de los 3 mejores, lo que está enlazado a su dimensión (en los dos
-    // sentidos), con su valor vigente, como mucho 2 y marcado «vía enlace»
-    const yaEnHits = new Set(hits.map(x => x.hecho.id));
+    // Activación propagada (X-T13; Synapse, HippoRAG y la activación de ACT-R): lo que se encuentra con fuerza activa lo
+    // conectado con ello, por un enlace guardado (F6-T1) o por un NOMBRE que comparten («Marco Bianchi» en el fotógrafo
+    // y en su tarifa), hasta dos saltos y perdiendo fuerza en cada uno. Así «¿cuánto cobra el fotógrafo?» llega a la
+    // tarifa, que no dice «fotógrafo». Solo propaga lo que ya se inyectaría (≥ umbral y no rescatado; lo que nombra algo
+    // desconocido ya queda siempre debajo): una pregunta sin respuesta sigue callando. Lo que llega solo por propagación
+    // entra como mucho 2 veces y marcado «vía …»; lo que además coincide por sí mismo suma, y puede adelantar a su
+    // semilla, solo si completa la respuesta (abajo). Medido en devlog 135: la abstención no cambia en ninguna pregunta.
     const porDimension = d => docs.filter(h => h.dimension === d && (historico ? h.estado !== 'invalidado' : vigente(h, ahora)));
-    let presupuesto = 2;
-    for (const padre of hits.slice(0, 3)) {
-        if (presupuesto <= 0) break;
-        const destinos = new Set([...(padre.hecho.enlaces || []), ...docs.filter(h => (h.enlaces || []).includes(padre.hecho.dimension)).map(h => h.dimension)]);
-        for (const d of destinos) {
-            for (const h of porDimension(d)) {
-                if (presupuesto <= 0 || yaEnHits.has(h.id)) continue;
-                hits.push({ hecho: h, puntuacion: +(padre.puntuacion * 0.7).toFixed(3), motivo: [`vía enlace con ${padre.hecho.dimension}`], via: padre.hecho.dimension });
-                yaEnHits.add(h.id); presupuesto--;
+    const semillas = hits.slice(0, 3).filter(x => x.puntuacion >= UMBRAL_RECUERDO && !x.rescatado);
+    if (semillas.length) {
+        const red = redDeNombres(docs.map((h, i) => (vigente(h, ahora) || h.estado === 'dudoso') && base[i]), docs);
+        const porId = new Map(hits.map(x => [x.hecho.id, x]));
+        const vecinos = h => {
+            const v = new Map();   // id → { hecho, peso, por }: si comparten varios nombres («Marco» y «Bianchi»), el mejor
+            const poner = (y, peso, por) => { if (y.id !== h.id && !(v.get(y.id)?.peso >= peso)) v.set(y.id, { hecho: y, peso, por }); };
+            for (const d of new Set([...(h.enlaces || []), ...docs.filter(y => (y.enlaces || []).includes(h.dimension)).map(y => y.dimension)]))
+                for (const y of porDimension(d)) poner(y, DECAE_ENLACE, null);
+            for (const n of red.nombres(h)) { const con = red.conNombre(n), w = fuerzaNombre(con.length); if (w > 0) for (const y of con) poner(y, DECAE_NOMBRE * w, n); }
+            return [...v.values()];
+        };
+        const activo = new Map(), inicio = new Set(semillas.map(x => x.hecho.id));
+        let frontera = semillas.map(x => ({ hecho: x.hecho, a: x.puntuacion, semilla: x }));
+        for (let salto = 0; salto < SALTOS && frontera.length; salto++) {
+            const sig = [];
+            for (const f of frontera) for (const v of vecinos(f.hecho)) {
+                const a = f.a * v.peso;
+                if (v.hecho.id === f.semilla.hecho.id || activo.get(v.hecho.id)?.a >= a) continue;   // otra semilla también se refuerza
+                const nuevo = { hecho: v.hecho, a, via: f.hecho.dimension, por: v.por, semilla: f.semilla };
+                activo.set(v.hecho.id, nuevo);
+                if (!inicio.has(v.hecho.id)) sig.push(nuevo);   // y no se propaga dos veces
             }
+            frontera = sig;
         }
+        const solo = [];
+        for (const [id, p] of activo) {
+            const x = porId.get(id);
+            if (!x) { solo.push(p); continue; }
+            if (historico) continue;   // preguntando por el pasado, el orden lo pone la historia (lo anterior junto a lo vigente)
+            const s = p.semilla, suma = x.puntuacion + p.a;
+            // juntas responden si cubren al menos la mitad de la pregunta y el hecho aporta algo que la semilla no tiene
+            // («esta» en un mensaje de diez palabras no completa nada: entonces cuenta la más fuerte de las dos señales)
+            const juntas = new Set([...s.cubre, ...(x.cubre || [])]);
+            const complementa = [...(x.cubre || [])].some(w => !s.cubre.has(w)) && 2 * juntas.size >= qConPeso;
+            x.puntuacion = +(complementa ? suma : Math.max(x.puntuacion, Math.min(p.a, s.puntuacion * 0.99))).toFixed(3);
+            x.reforzado = { via: p.via, por: p.por, semilla: s.hecho.id, junto: complementa };
+        }
+        for (const p of solo.sort((a, b) => b.a - a.a).slice(0, MAX_PROPAGADOS))
+            hits.push({ hecho: p.hecho, puntuacion: +p.a.toFixed(3), motivo: [], via: p.via, por: p.por, origen: p.semilla.hecho.dimension });
     }
     hits.sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
     // lo rescatado que no llega al umbral no ocupa sitio en el reparto: va al final, si cabe
     const flojo = x => x.rescatado && x.puntuacion < UMBRAL_RECUERDO;
-    // con la historia, cada dimensión va JUNTA (lo vigente y, pegado, lo anterior): el reparto por familias no la parte
-    const juntar = l => { if (!historico) return l; const g = new Map(); for (const x of l) { if (!g.has(x.hecho.dimension)) g.set(x.hecho.dimension, []); g.get(x.hecho.dimension).push(x); } return [...g.values()]; };
-    const elegidos = historico
-        ? conCupos(juntar(hits.filter(x => !flojo(x))), limite, g => familia(g[0].hecho.dimension)).flat().slice(0, limite)
-        : conCupos(hits.filter(x => !flojo(x)), limite, x => familia(x.hecho.dimension));
+    // El reparto por familias no parte lo que va JUNTO: con la historia, cada dimensión (lo vigente y, pegado, lo
+    // anterior); y lo que completa la respuesta con su semilla (X-T13: el fotógrafo y su tarifa), pegado a ella
+    const juntar = l => {
+        const g = new Map(), de = new Map();
+        for (const x of l) {
+            const k = historico ? x.hecho.dimension : x.reforzado?.junto && de.has(x.reforzado.semilla) ? de.get(x.reforzado.semilla) : x.hecho.id;
+            if (!g.has(k)) g.set(k, []);
+            g.get(k).push(x); de.set(x.hecho.id, k);
+        }
+        return [...g.values()];
+    };
+    // lo que llega SOLO por propagación va en el cupo de la familia de la semilla de la que sale: no le quita su sitio a otra familia
+    const cupo = x => familia(x.origen || x.via || x.hecho.dimension);
+    const elegidos = conCupos(juntar(hits.filter(x => !flojo(x))), limite, g => cupo(g[0])).flat().slice(0, limite);
     return elegidos.concat(hits.filter(flojo).slice(0, Math.max(0, limite - elegidos.length))).map(x => ({ ...x,
-        motivo: (x.via ? `vía enlace con ${x.via}` : `coincide: ${x.motivo.join(', ')}`) + (x.hecho.estado === 'sustituido' ? ` · ya no vigente (sustituido el ${String(x.hecho.hasta || '').slice(0, 10)})` : '')
+        motivo: (x.via ? (x.por ? `vía «${x.por}» con ${x.via}` : `vía enlace con ${x.via}`) : `coincide: ${x.motivo.join(', ')}`)
+            + (x.reforzado ? ` · reforzado ${x.reforzado.por ? `vía «${x.reforzado.por}»` : 'vía enlace'} con ${x.reforzado.via}` : '') + (x.hecho.estado === 'sustituido' ? ` · ya no vigente (sustituido el ${String(x.hecho.hasta || '').slice(0, 10)})` : '')
             + (x.hecho.estado === 'cerrado' ? ` · cerrado (${x.hecho.progreso} el ${String(x.hecho.cerrado || '').slice(0, 10)}${x.hecho.nota_cierre ? ': ' + x.hecho.nota_cierre : ''})` : '')
             + (x.hecho.progreso === 'en-curso' && x.hecho.estado === 'activo' ? ' · en curso' : '')
             + (x.hecho.estado === 'dudoso' ? ' · dudoso (el usuario no lo afirmó del todo)' : '')
             + (x.hecho.fuente === 'agente' ? ' · lo dedujo el agente (el usuario no lo dijo)' : x.hecho.fuente === 'devlog' ? ' · sacado del devlog' : '')
             + (x.debil ? ` · relación débil (solo coincide «${x.solo}»: úsalo solo si de verdad viene al caso)` : '')
             + (x.nombra ? ` · la pregunta nombra «${x.nombra.join('», «')}», que la memoria no conoce: no es la respuesta` : '') }));
+}
+// La red de NOMBRES de la memoria (X-T13): nombre propio = palabra con mayúscula («Bianchi», «Nuvol», «FitLab»), con
+// letras y cifras («php8»), o de una escritura sin mayúsculas (大阪, القاهرة), y con peso. Un nombre enlaza los
+// hechos que lo llevan con la fuerza del efecto abanico de ACT-R (S − ln abanico): en 2 hechos, 1; en 3, 0,56; en 4,
+// 0,24; en 5 o más ya no distingue nada («FitLab» está en medio proyecto) y no enlaza.
+export const SALTOS = 2, DECAE_ENLACE = 0.7, DECAE_NOMBRE = 0.6, MAX_PROPAGADOS = 2;
+const ABANICO = Math.log(5);
+export const fuerzaNombre = abanico => (abanico < 2 ? 0 : Math.max(0, (ABANICO - Math.log(abanico)) / (ABANICO - Math.log(2))));
+export function nombresDe(h) {
+    const out = new Set();
+    for (const s of SEG.segment([h.valor, h.texto].filter(Boolean).join(' '))) {
+        const w = s.segment;
+        if (!s.isWordLike || !(/\p{Lu}/u.test(w) || (/\p{L}/u.test(w) && /\d/.test(w)) || (/\p{L}/u.test(w) && !/[\p{Lu}\p{Ll}]/u.test(w)))) continue;
+        const n = normalizar(w);
+        if (palabraConPeso(n)) out.add(n);
+    }
+    return out;
+}
+// Rápida con 10 000 hechos: solo mira las mayúsculas de los hechos que comparten la PALABRA (una palabra en más de 4
+// hechos, aunque en otros vaya en minúscula, no distingue a nadie).
+function redDeNombres(palabrasDe, docs) {
+    const donde = new Map(), cache = new Map();
+    palabrasDe.forEach((ws, i) => { if (ws) for (const w of new Set(ws)) { const l = donde.get(w); if (!l) donde.set(w, [i]); else if (l.length <= 4) l.push(i); } });
+    const nombresDeI = i => { if (!cache.has(i)) cache.set(i, nombresDe(docs[i])); return cache.get(i); };
+    const conNombre = n => { const l = donde.get(n) || []; return l.length > 4 ? [] : l.filter(i => nombresDeI(i).has(n)).map(i => docs[i]); };
+    const indice = new Map(docs.map((h, i) => [h.id, i]));
+    return { nombres: h => nombresDeI(indice.get(h.id)), conNombre };
 }
 // Reparto por turnos entre familias: que un tipo de recuerdo no se coma todo el espacio
 function conCupos(lista, limite, fam) {
