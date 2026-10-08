@@ -50,7 +50,7 @@ const inicio = (d, env) => contexto(hook('session-start.mjs', d, { session_id: `
     ok(/\[identidad\.nombre\] «Peterson» · del usuario/.test(c) && !/\[proyecto\./.test(c), 'inicio en otro proyecto: llegan los hechos del usuario, no los de otro proyecto', c.slice(0, 500));
     // …y sin nada en ningún sitio, no hay bloque, pero sí la guía para empezar a guardar
     const c2 = inicio(V, { SENZU_MEMORIA_USUARIO: path.join(base, 'otro-usuario', 'memoria.md') });
-    ok(!/HECHOS que ya sabes/.test(c2) && /Memoria de hechos: si el usuario afirma algo estable/.test(c2), 'inicio sin hechos en ningún sitio: solo la guía');
+    ok(!/HECHOS que ya sabes/.test(c2) && /TU MEMORIA \(Senzu \/ Hemispheric\)/.test(c2) && /--guardar/.test(c2) && /--recordar/.test(c2), 'inicio sin hechos en ningún sitio: solo la guía (qué es la memoria y cómo usarla)');
 }
 {   // un valor con instrucciones o saltos de línea no se cuela como orden
     const P = proyecto('inyeccion');
@@ -102,7 +102,7 @@ const mensaje = (d, prompt, sid, env) => contexto(hook('recuerdo-vivo.mjs', d, {
     ok(/Stripe en modo test/.test(mensaje(P, 'vamos a añadir los pagos con stripe al checkout del carrito', `vivo2-${RUN}`)), 'mensaje: en otra sesión sí vuelve');
     ok(/máximo 3000 €/.test(mensaje(P, 'what is the budget limit for this client?', `vivo3-${RUN}`)), 'mensaje en inglés: encuentra el hecho por sus claves');
     ok(mensaje(P, 'ok vale', `vivo4-${RUN}`) === '' && mensaje(P, 'sí', `vivo4-${RUN}`) === '', 'mensaje de una o dos palabras: nada (sin ruido)');
-    ok(mensaje(P, 'cambia el color del botón del pie de página a gris oscuro', `vivo5-${RUN}`) === '', 'mensaje sin relación con la memoria: nada');
+    ok(!/Lo que la memoria ya sabe/.test(mensaje(P, 'cambia el color del botón del pie de página a gris oscuro', `vivo5-${RUN}`)), 'mensaje sin relación con la memoria: ningún dato (como mucho, el índice de lo que hay)');
     ok(mensaje(P, '<agent-message from="a1">[Subagent hand-back] los pagos con stripe y el presupuesto</agent-message>', `vivo6-${RUN}`) === '', 'informe de un subagente: nada');
     ok(/Stripe en modo test/.test(mensaje(P, '/plan pagos con stripe en el checkout', `vivo7-${RUN}`)), 'comando con texto: busca por el texto, no por el nombre del comando');
 }
@@ -262,7 +262,7 @@ for (const modo of ['claude', 'codex']) {
     const Q = proyecto('e2e-otro');
     const c = inicio(Q);
     ok(!/Cerámicas Sol/.test(c) && !/3000/.test(c), 'otro proyecto no recibe los hechos de este');
-    ok(mensaje(Q, 'how much budget do we have for the first phase?', `e2e-otro-${RUN}`) === '', '…ni con una pregunta sobre ellos');
+    { const x = mensaje(Q, 'how much budget do we have for the first phase?', `e2e-otro-${RUN}`); ok(!/Lo que la memoria ya sabe/.test(x) && !/3000|Cerámicas/.test(x), '…ni con una pregunta sobre ellos', x); }
 }
 
 const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abiertos', 'memoria.md') };
@@ -324,6 +324,27 @@ const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abierto
     m.guardarHecho(P, { dimension: 'proyecto.tests', valor: 'pruebas unitarias con Pest', claves: ['tests', 'testing', 'pruebas'] }, { ahora: T(0) });
     ok(!/Pest/.test(mensaje(P, '¿tenemos pruebas end to end con Playwright?', `ns1-${RUN}`)), 'pregunta por Playwright (desconocido): recuerdo-vivo no inyecta «pruebas con Pest»');
     ok(/Pest/.test(mensaje(P, '¿cómo hacemos las pruebas del proyecto?', `ns2-${RUN}`)), 'sin nombres desconocidos, sí lo inyecta');
+}
+
+// ---------------------------------------------------------------- X-T9 · el agente sabe qué tiene la memoria y la consulta
+{
+    const P = proyecto('mapa');
+    fs.writeFileSync(path.join(P, 'senzu', 'devlog', 'MEMORIA.md'), '# Memoria\n\n## Decisiones vigentes\n- D-001 · Laravel con servicios · ver 001\n- D-002 · Pagos solo por Stripe\n\n## Reglas del cliente y del proyecto\n- Tono cercano.\n');
+    m.guardarHecho(P, { dimension: 'proyecto.hosting', valor: 'Forge' }, { ahora: T(0) });
+    m.guardarHecho(P, { dimension: 'proyecto.cliente', valor: 'FitLab' }, { ahora: T(1) });
+    m.guardarHecho(P, { dimension: 'pendiente.contrato', valor: 'falta el contrato firmado' }, { ahora: T(2) });
+    const ctx = inicio(P);
+    ok(/TU MEMORIA \(Senzu \/ Hemispheric\)/.test(ctx) && /el proyecto: (hosting, cliente|cliente, hosting)/.test(ctx) && /objetivos, pendientes y límites: contrato/.test(ctx), 'al empezar: el MAPA con los temas de cada zona', ctx.slice(0, 600));
+    ok(/2 decisiones y 1 reglas en MEMORIA\.md/.test(ctx) && /CONSÚLTALA antes de preguntar/.test(ctx) && /--recordar/.test(ctx) && /GUARDA lo estable/.test(ctx), 'y cómo consultarla y guardarla');
+    const nada = mensaje(P, 'quiero exportar los resultados a una hoja de cálculo', `mapa1-${RUN}`);
+    ok(/no tiene nada que coincida directamente/.test(nada) && /el proyecto: /.test(nada) && /--recordar/.test(nada) && !/Lo que la memoria ya sabe/.test(nada), 'un mensaje sin nada que coincida: una línea con lo que hay y el comando (sin datos)', nada);
+    ok(mensaje(P, 'ok', `mapa2-${RUN}`) === '' && mensaje(P, 'vale perfecto', `mapa3-${RUN}`) === '', '«ok» o «vale perfecto» (sin contenido): nada');
+    const s = `mapa4-${RUN}`;
+    const con = mensaje(P, '¿dónde tenemos el hosting?', s);
+    ok(/Forge/.test(con) && /Si necesitas más/.test(con) && /--recordar/.test(con), 'cuando coincide: los datos y cómo ampliar', con);
+    ok(mensaje(P, '¿dónde tenemos el hosting?', s) === '', 'lo ya dicho en la sesión no se repite ni se dice que «no hay nada» (sería falso)');
+    const V = proyecto('mapa-vacio');
+    ok(/vacía: se llena con lo que guardes/.test(inicio(V, { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-mapa-vacio', 'memoria.md') })), 'memoria vacía: lo dice, para que guarde');
 }
 
 // ---------------------------------------------------------------- X-T7 · Cortex vivo: se regenera solo al cerrar
@@ -460,7 +481,7 @@ const VACIA = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-vacio', 'memoria
     const pregunta = q => mensaje(G, q, `gar-vig-${RUN}-${n++}`, VACIA);
     const ciudad = pregunta('¿en qué ciudad vive el usuario ahora mismo?');
     ok(/Valencia/.test(ciudad) && !/Málaga/.test(ciudad), 'lo sustituido NO se inyecta como vigente (solo Valencia)', ciudad);
-    ok(pregunta('¿qué hosting y qué servidor usamos?') === '', 'lo olvidado NO se inyecta');
+    ok(!/Lo que la memoria ya sabe/.test(pregunta('¿qué hosting y qué servidor usamos?')), 'lo olvidado NO se inyecta');
     ok(!/agosto/.test(pregunta('¿podemos hacer despliegues en agosto?')), 'lo caducado NO se inyecta');
     ok(!/2030/.test(pregunta('¿cuándo es el lanzamiento del proyecto?')), 'lo futuro NO se inyecta como vigente');
     ok(!/Plausible/.test(pregunta('¿cuándo es el lanzamiento del proyecto?')), 'la palabra «proyecto» ya no roza todos los proyecto.* (la familia no se indexa)');

@@ -6,7 +6,7 @@ import path from 'node:path';
 import {
     readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion, ramaProtegida, siguientePaso, estadoVersion, rutaBuscador,
 } from './lib.mjs';
-import { contextoHechos, decisionesObsoletas, abiertos, FAMILIAS_CICLO, contradicciones } from './hechos.mjs';
+import { contextoHechos, decisionesObsoletas, abiertos, FAMILIAS_CICLO, contradicciones, mapaMemoria, textoMapa } from './hechos.mjs';
 
 const p = readHookInput() || {};
 const root = projectRoot();
@@ -124,7 +124,12 @@ try {
         if (c.tipo === 'valores') L.push(`- CONTRADICCIÓN en la memoria (pregunta al usuario cuál vale): ${c.dimension} = ${c.hechos.map(h => `${citar(h.valor)}${h.estado === 'dudoso' ? ' (dudoso)' : ''} [${h.id}]`).join(' y ')}. Si vale uno, vuelve a guardarlo (sustituye al otro); si ninguno, node ${cli} --olvidar <id>.`);
         else L.push(`- ¿MISMO DATO con dos claves? ${c.hechos.map(h => `${h.dimension} = ${citar(h.valor)} [${h.id}]`).join(' y ')} comparten «${c.comunes.slice(0, 3).join('», «')}». Si es lo mismo, guarda el valor que vale en una dimensión y --olvidar el otro.`);
     }
-    L.push(`- Memoria de hechos: si el usuario afirma algo estable de sí o del proyecto (dónde vive, su stack, una preferencia, un límite), en el idioma que sea, guárdalo: node ${cli} --guardar --dimension familia.tema --valor "…" --claves "…" (claves también en inglés y en su idioma). Para recordar: --recordar "…" (hechos, memoria y devlog a la vez).`);
+    // X-T9: el agente tiene que SABER qué memoria tiene y cómo usarla, no solo recibir lo que coincide
+    const mapa = mapaMemoria(root);
+    L.push('- TU MEMORIA (Senzu / Hemispheric): persiste entre sesiones y la comparten Claude y Codex. Lo que hay ahora:');
+    L.push(mapa.hechos || mapa.decisiones || mapa.entradas ? textoMapa(mapa) : '  · vacía: se llena con lo que guardes de lo que te cuenten');
+    L.push(`  CONSÚLTALA antes de preguntar al usuario o de decidir algo del proyecto, aunque no te llegue sola: node ${cli} --recordar "palabras" (hechos + MEMORIA.md + devlog a la vez; --historico para el pasado); --lista para verlo todo.`);
+    L.push(`  GUARDA lo estable que diga el usuario (en el idioma que sea): node ${cli} --guardar --dimension familia.tema --valor "…" --claves "término en inglés,en su idioma" (familia: identidad, preferencia, proyecto, objetivo, pendiente, restriccion, nota, aprendizaje; tema en castellano: ubicacion, cliente, stack, hosting, presupuesto, plazo…). Con «creo que…», --duda; lo que deduces tú, --fuente agente.`);
 } catch { }
 for (const a of revisarMemoria(root)) L.push(`- Memoria: ${a}`);
 // En qué se quedó la sesión anterior (estado-sesion): para seguir sin que el usuario tenga que contarlo

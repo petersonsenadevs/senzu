@@ -54,6 +54,13 @@ que tienen prioridad sobre cualquier atajo.
 - Para lo que no esté en la memoria, busca en el devlog antes de decidir o preguntar:
   `node <skills-dir>/devlog/scripts/buscar.mjs "palabras"`. Cita la entrada (NNN) al responder; si no
   aparece nada, di que no hay registro. Detalle en la skill `devlog` (references/memoria.md).
+- **Memoria de hechos (Hemispheric)**: los DATOS estables del usuario y del proyecto (dónde vive, el cliente, el
+  stack, el hosting, un presupuesto, un plazo, una preferencia, lo aprendido) en `senzu/memoria/`, en cualquier
+  idioma, con su historia (lo sustituido no se pierde). Al empezar te llega el MAPA de lo que hay; con cada mensaje,
+  lo que coincide o una línea con lo que hay. **Consúltala** antes de preguntar o decidir:
+  `node <skills-dir>/devlog/scripts/memoria.mjs --recordar "palabras"` (hechos + MEMORIA.md + devlog; `--lista`
+  para todo). **Guarda** lo estable que diga el usuario: `--guardar --dimension familia.tema --valor "…" --claves
+  "…"` (tema en castellano; claves en inglés y en su idioma). `--cortex` lo enseña en un HTML.
 
 ## Dónde se guarda lo que generas
 Todo lo que genera Senzu va DENTRO de `senzu/`, nunca en el scratchpad ni en carpetas temporales del sistema

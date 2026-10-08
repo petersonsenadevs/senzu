@@ -889,3 +889,31 @@ export const LEXICO = {
 const LEXICO_TOKENS = new Map(Object.entries(LEXICO).map(([t, s]) => [t, palabras(s)]));
 // Las palabras del léxico de un hecho (si su tema es de la convención); [] si no
 function lexicoDe(dimension) { return LEXICO_TOKENS.get(dimension.slice(dimension.indexOf('.') + 1)) || []; }
+
+// ---------------------------------------------------------------- mapa de la memoria (X-T9)
+// Para que el agente SEPA qué hay y qué puede consultar (no solo lo que coincide con un mensaje): los temas de cada
+// zona, cuántas decisiones y entradas del devlog. Corto: es un índice, no el contenido.
+const NOMBRE_ZONA = { frontal: 'objetivos, pendientes y límites', parietal: 'el proyecto', temporal: 'el usuario', hipocampo: 'aprendizajes y notas' };
+export function mapaMemoria(root, { ahora = hoy(), maxTemas = 12 } = {}) {
+    const vig = todosLosHechos(root).filter(h => vigente(h, ahora) || h.estado === 'dudoso');
+    const zonas = {};
+    for (const h of vig) {
+        const z = zonaDe(h), t = h.dimension.slice(h.dimension.indexOf('.') + 1);
+        (zonas[z] = zonas[z] || new Map()).set(t, (zonas[z].get(t) || 0) + 1);
+    }
+    const decisiones = memoriaDelProyecto(root).filter(x => x.tipo === 'decision').length;
+    const reglas = memoriaDelProyecto(root).filter(x => x.tipo === 'regla').length;
+    const entradas = entradasDelDevlog(root, 100000);
+    return {
+        hechos: vig.length,
+        zonas: Object.entries(NOMBRE_ZONA).filter(([z]) => zonas[z]).map(([z, nombre]) => ({ zona: z, nombre, temas: [...zonas[z].keys()].slice(0, maxTemas), mas: Math.max(0, zonas[z].size - maxTemas) })),
+        decisiones, reglas, entradas: entradas.length, ultima: entradas[0] ? { num: entradas[0].devlog, titulo: entradas[0].valor } : null,
+    };
+}
+// El mapa en texto, para inyectarlo (session-start: completo; recuerdo-vivo: en una línea)
+export function textoMapa(m, { corto = false } = {}) {
+    const temas = m.zonas.map(z => `${z.nombre}: ${z.temas.join(', ')}${z.mas ? ` y ${z.mas} más` : ''}`);
+    const resto = [m.decisiones ? `${m.decisiones} decisiones${m.reglas ? ` y ${m.reglas} reglas` : ''} en MEMORIA.md` : '', m.entradas ? `${m.entradas} entradas de devlog` : ''].filter(Boolean);
+    if (corto) return (temas.length ? temas.join(' · ') : 'sin hechos todavía') + (resto.length ? ' · ' + resto.join(' · ') : '');
+    return [...temas.map(t => `  · ${t}`), ...(resto.length ? [`  · ${resto.join(' · ')}${m.ultima ? ` (la última: ${m.ultima.num}, ${m.ultima.titulo.slice(0, 70)})` : ''}`] : [])].join('\n');
+}

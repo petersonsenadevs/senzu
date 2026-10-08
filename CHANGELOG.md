@@ -4,6 +4,10 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-08
+
+- **feature** — El agente sabe qué tiene la memoria y la consulta: mapa al empezar y aviso con cada mensaje (X-T9) (entrada 131)
+
 ## 2026-10-07
 
 - **fix** — El agente sube a ramas de trabajo; las principales siguen protegidas (2.19.2, D-042) (entrada 130)
