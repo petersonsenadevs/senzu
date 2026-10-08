@@ -522,6 +522,29 @@ const VACIA_ABIERTOS = { SENZU_MEMORIA_USUARIO: path.join(base, 'usuario-abierto
     ok(Object.keys(apr(b)).length <= m.MAX_APRENDIDAS, 'tope de palabras aprendidas por hecho', String(Object.keys(apr(b)).length));
 }
 
+// ---------------------------------------------------------------- X-T12 · las pistas temporales traen la historia
+{
+    const pistas = ['¿qué hosting teníamos antes?', 'where did we host it before?', 'what did we use to deploy with?', 'onde eu morava antigamente?', 'avant, on utilisait quoi ?',
+        'was hatten wir früher?', 'cosa usavamo prima?', 'abans on vivia?', '以前はどこに住んでいましたか', '我们以前用什么服务器？', '전에 어디에 살았어요?', 'где мы раньше хостились?', 'al principio usábamos Netlify', 'ya no usamos Netlify'];
+    const malas = pistas.filter(q => !m.pistaTemporal(q));
+    ok(!malas.length, 'las pistas temporales, en muchos idiomas', JSON.stringify(malas));
+    const no = ['¿dónde está alojada la web?', 'what do we use for tests?', 'welche Schriftart nutzen wir?', 'qual è il nostro hosting?', 'ホスティングはどこですか'].filter(q => m.pistaTemporal(q));
+    ok(!no.length, 'sin pista, no (el presente sigue siendo el presente)', JSON.stringify(no));
+    const P = proyecto('pasado');
+    m.guardarHecho(P, { dimension: 'proyecto.hosting', valor: 'Netlify', claves: ['hosting', 'servidor'] }, { ahora: T(0) });
+    m.guardarHecho(P, { dimension: 'proyecto.hosting', valor: 'Laravel Forge', claves: ['hosting', 'servidor'] }, { ahora: T(5) });
+    m.guardarHecho(P, { dimension: 'objetivo.lanzamiento', valor: 'lanzar la beta el 1 de octubre', hasta: T(2) }, { ahora: T(1) });   // caducado, de otro tema
+    const s = `pa-${RUN}`;
+    const c1 = mensaje(P, '¿qué hosting teníamos antes?', s);
+    ok(/Laravel Forge/.test(c1) && /Netlify/.test(c1) && c1.indexOf('Laravel Forge') < c1.indexOf('Netlify') && /ya no vigente/.test(c1), 'con una pista temporal llega también la historia: lo vigente delante y lo anterior detrás, marcado', c1.slice(0, 500));
+    const c2 = mensaje(P, '¿qué hosting hay que revisar antes del lanzamiento?', `pa2-${RUN}`);
+    ok(/Laravel Forge/.test(c2) && (!/lanzar la beta/.test(c2) || c2.indexOf('Laravel Forge') < c2.indexOf('lanzar la beta')), '«antes del lanzamiento»: lo vigente sigue primero y lo caducado de otro tema, detrás', c2.slice(0, 500));
+    const c3 = mensaje(P, '¿qué hosting usamos?', `pa3-${RUN}`);
+    ok(/Laravel Forge/.test(c3) && !/Netlify/.test(c3), 'sin pista, solo lo vigente (como siempre)', c3.slice(0, 300));
+    const ex = m.buscarHechos(P, 'hosting', { historico: true });
+    ok(ex[0] && ex[0].hecho.valor === 'Netlify', 'con --historico pedido por el agente, lo anterior sigue delante (no cambia)');
+}
+
 // ---------------------------------------------------------------- F6-T5 · lo que llega al agente cuenta como uso
 {
     const P = proyecto('usos');

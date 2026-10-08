@@ -551,7 +551,9 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     const todosH = todosLosHechos(root);
     const docs = todosH.filter(h => h.estado !== 'invalidado' && (historico || vigente(h, ahora) || h.estado === 'dudoso'));
     const aprendidasDe = aprendidasPorDimension(todosH.filter(h => h.estado !== 'invalidado'));
-    const q = [...new Set(palabras(consulta))];
+    // con una pista temporal detectada (X-T12), la pista habla del TIEMPO, no del tema: no busca («antes» traía
+    // cualquier hecho que dijera «antes de…»)
+    const q = [...new Set(palabras(consulta))].filter(w => historico !== 'auto' || !PISTAS_TEMPORALES.has(w));
     if (!docs.length || !q.length) return [];
     // De la dimensión se indexa el TEMA, no la familia: «proyecto.analitica» → «analitica». Con la familia, cualquier
     // pregunta que dijera «proyecto» rozaba todos los proyecto.* (lo destapó la batería de garantías)
@@ -565,10 +567,14 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     const toks = docs.map((h, i) => base[i].concat(lexicos[i], [...aprend[i].keys()]));
     const media = base.reduce((s, t) => s + t.length, 0) / base.length || 1;
     const df = new Map();
-    for (const t of toks) for (const w of new Set(t)) df.set(w, (df.get(w) || 0) + 1);
+    // la rareza de cada palabra, solo con lo VIGENTE: con la historia, «hosting» contaba dos veces (el valor viejo y el
+    // nuevo), valía menos y otro hecho se adelantaba (X-T12)
+    const cuenta = docs.map(h => !historico || vigente(h, ahora) || h.estado === 'dudoso');
+    const nVig = cuenta.filter(Boolean).length || 1;
+    toks.forEach((t, i) => { if (cuenta[i]) for (const w of new Set(t)) df.set(w, (df.get(w) || 0) + 1); });
     // IDF suavizado: con el clásico, un término presente en TODOS los hechos vale ~0 (en una memoria pequeña pasa a
     // menudo y dejaba fuera justo lo relevante); así sigue contando algo (≈0,7) y los raros pesan más
-    const idf = w => Math.log(1 + (docs.length + 1) / ((df.get(w) || 0) + 0.5));
+    const idf = w => Math.log(1 + (nVig + 1) / ((df.get(w) || 0) + 0.5));
     const qConPeso = q.filter(palabraConPeso).length;
     const desconocidos = nombresDesconocidos(consulta, new Set(toks.flat()));
     const hits = docs.map((h, i) => {
@@ -633,11 +639,20 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     // Preguntando por el PASADO (lo decide el agente con --historico): la historia de cada dimensión encontrada entra
     // entera y lo sustituido va delante («¿dónde vivía antes?» encuentra «Valencia» por «mudado» y trae «Málaga»)
     if (historico) {
+        // detectado ('auto'): lo que ya no vale (también lo caducado de OTROS temas) va siempre detrás de lo vigente
+        if (historico === 'auto') for (const x of hits) if (!vigente(x.hecho, ahora) && x.hecho.estado !== 'dudoso') x.puntuacion = +(x.puntuacion * 0.6).toFixed(3);
         const mejorPorDim = new Map();
         for (const x of hits) mejorPorDim.set(x.hecho.dimension, Math.max(mejorPorDim.get(x.hecho.dimension) || 0, x.puntuacion));
         const yaEsta = new Set(hits.map(x => x.hecho.id));
         for (const h of docs) if (mejorPorDim.has(h.dimension) && !yaEsta.has(h.id)) hits.push({ hecho: h, puntuacion: 0, motivo: [`historia de ${h.dimension}`] });
-        for (const x of hits) if (mejorPorDim.has(x.hecho.dimension)) x.puntuacion = +(mejorPorDim.get(x.hecho.dimension) * (vigente(x.hecho, ahora) ? 1 : 1.05)).toFixed(3);
+        // pedido (--historico): lo anterior delante; detectado en el mensaje (X-T12, 'auto'): justo detrás de lo vigente
+        const atras = historico === 'auto' ? 0.98 : 1.05;
+        for (const x of hits) if (mejorPorDim.has(x.hecho.dimension)) x.puntuacion = +(mejorPorDim.get(x.hecho.dimension) * (vigente(x.hecho, ahora) ? 1 : atras)).toFixed(3);
+        if (historico === 'auto') {   // lo caducado de un tema sin nada vigente encontrado, detrás de todo lo vigente
+            const conVigente = new Set(hits.filter(x => vigente(x.hecho, ahora) || x.hecho.estado === 'dudoso').map(x => x.hecho.dimension));
+            const minVig = Math.min(...hits.filter(x => vigente(x.hecho, ahora)).map(x => x.puntuacion));
+            if (isFinite(minVig)) for (const x of hits) if (!conVigente.has(x.hecho.dimension)) x.puntuacion = +Math.min(x.puntuacion, minVig * 0.97).toFixed(3);
+        }
     }
     hits.sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
     // Expansión de UN salto por los enlaces (F6-T1): de los 3 mejores, lo que está enlazado a su dimensión (en los dos
@@ -659,7 +674,11 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
     hits.sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
     // lo rescatado que no llega al umbral no ocupa sitio en el reparto: va al final, si cabe
     const flojo = x => x.rescatado && x.puntuacion < UMBRAL_RECUERDO;
-    const elegidos = conCupos(hits.filter(x => !flojo(x)), limite, x => familia(x.hecho.dimension));
+    // con la historia, cada dimensión va JUNTA (lo vigente y, pegado, lo anterior): el reparto por familias no la parte
+    const juntar = l => { if (!historico) return l; const g = new Map(); for (const x of l) { if (!g.has(x.hecho.dimension)) g.set(x.hecho.dimension, []); g.get(x.hecho.dimension).push(x); } return [...g.values()]; };
+    const elegidos = historico
+        ? conCupos(juntar(hits.filter(x => !flojo(x))), limite, g => familia(g[0].hecho.dimension)).flat().slice(0, limite)
+        : conCupos(hits.filter(x => !flojo(x)), limite, x => familia(x.hecho.dimension));
     return elegidos.concat(hits.filter(flojo).slice(0, Math.max(0, limite - elegidos.length))).map(x => ({ ...x,
         motivo: (x.via ? `vía enlace con ${x.via}` : `coincide: ${x.motivo.join(', ')}`) + (x.hecho.estado === 'sustituido' ? ` · ya no vigente (sustituido el ${String(x.hecho.hasta || '').slice(0, 10)})` : '')
             + (x.hecho.estado === 'cerrado' ? ` · cerrado (${x.hecho.progreso} el ${String(x.hecho.cerrado || '').slice(0, 10)}${x.hecho.nota_cierre ? ': ' + x.hecho.nota_cierre : ''})` : '')
@@ -696,6 +715,20 @@ function buscarEnDevlog(root, consulta, limite) {
         const r = spawnSync(process.execPath, [b, consulta, '--json', '--max', String(limite)], { cwd: root, encoding: 'utf8', timeout: 8000 });
         return (JSON.parse(r.stdout || '{}').resultados || []);
     } catch { return []; }
+}
+// X-T12 · ¿pregunta por el PASADO? Pistas temporales en ~20 idiomas («antes», «solía», «used to», «früher», «以前»,
+// «раньше»…). Con una, el recuerdo vivo trae también la historia de lo que encuentra (modo «auto»: lo vigente sigue
+// delante y lo anterior justo detrás, marcado «ya no vigente»; quien entiende si era el pasado lo que se pedía es el
+// agente). «antes del lanzamiento» también la activa: cuesta poco (lo vigente no se mueve del primer puesto).
+const PISTAS_TEMPORALES = new Set(('antes anterior anteriormente antiguamente antiguo antigua solia soliamos solian originalmente inicialmente '
+    + 'before previously formerly originally initially earlier anymore '
+    + 'antigamente costumava costumavamos avant auparavant autrefois precedemment initialement '
+    + 'fruher vorher zuvor ursprunglich damals bisher prima precedentemente inizialmente abans '
+    + 'vroeger eerder voorheen wczesniej dawniej раньше прежде ранее раніше колись πριν παλια eskiden '
+    + 'سابقا سابقًا בעבר पहले truoc tidigare forut').split(' '));
+const PISTAS_FRASE = /\bdid( \w+)? use to\b|\b(used to|at first|in the beginning|al principio|ya no|no longer|au debut|am anfang|all'inizio|una volta|no inicio)\b|以前|之前|原来|過去|过去|前は|昔|元々|전에|예전|이전/;
+export function pistaTemporal(texto) {
+    return palabras(texto).some(w => PISTAS_TEMPORALES.has(w)) || PISTAS_FRASE.test(normalizar(texto));
 }
 export function recuerdo(root, consulta, { limite = 6, historico = false } = {}) {
     const hechos = buscarHechos(root, consulta, { historico, limite }).map(x => ({
@@ -998,14 +1031,14 @@ export function informeUso(root, { dias = 30, ahora = hoy() } = {}) {
 // red ni modelo: la clave es la convención (X-T3) y la convención trae su vocabulario.
 export const LEXICO = {
     nombre: 'name nombre nom nome naam imie isim имя імя όνομα 名前 名字 이름 اسم नाम namn',
-    ubicacion: 'location city ciudad ciutat cidade ville stadt wohnort citta stad miasto sehir город місто πόλη 都市 住所 城市 도시 مدينة עיר शहर vivo vive live lives moro habite wohne abito woon mieszkam yasiyorum живу μένω 住んでいる 住在 사는 أعيش גר रहता bor',
+    ubicacion: 'location city ciudad ciutat cidade ville stadt wohnort citta stad miasto sehir город місто πόλη 都市 住所 城市 도시 مدينة עיר शहर vivo vive live lives moro morava mora morei vivia viviamos lived habite habitais habitait wohne wohnte wohnt abito abitavo abita abitava woon woonde mieszkam yasiyorum живу μένω 住んでいる 住在 사는 أعيش גר रहता bor',
     idioma: 'language idioma llengua lingua langue sprache taal jezyk dil язык мова γλώσσα 言語 语言 언어 لغة שפה भाषा sprak',
     'zona-horaria': 'timezone zeitzone tijdzone tidszon horaria horari fuseau タイムゾーン 时区 시간대',
     horario: 'schedule horario horari horaire arbeitszeit orario werktijden график графік ωράριο 勤務時間 工作时间 arbetstid',
     cliente: 'client customer cliente kunde klant klient musteri клиент клієнт πελάτης クライアント 顧客 客户 客戶 고객 클라이언트 عميل العميل לקוח הלקוח ग्राहक khach kund kunden',
     'contacto-cliente': 'contact contacto contacte contato interlocuteur ansprechpartner referente contactpersoon kontaktowa irtibat kontakt контакт контактна επαφή 担当者 联系人 담당자 الاتصال संपर्क kontaktperson',
     stack: 'stack technology tecnologia framework technologie tecnologie technologia teknoloji технологии технології τεχνολογία 技術 技术栈 기술 تقنية טכנולוגיה तकनीक cong nghe teknik',
-    hosting: 'hosting host server servidor alojamiento allotjament hospedagem hebergement serveur serwer sunucu хостинг сервер φιλοξενία διακομιστής ホスティング サーバー 托管 服务器 호스팅 서버 استضافة خادم אחסון שרת होस्टिंग सर्वर may chu',
+    hosting: 'hosting host server servidor alojamiento alojada alojado alojar alojamos allotjament hospedado hospedada hosted hospedagem hebergement serveur serwer sunucu хостинг сервер φιλοξενία διακομιστής ホスティング サーバー 托管 服务器 호스팅 서버 استضافة خادم אחסון שרת होस्टिंग सर्वर may chu',
     dominio: 'domain dominio domini domaine domein domena домен τομέας ドメイン 域名 도메인 نطاق דומיין डोमेन doman',
     repositorio: 'repository repo repositorio repositori depot repozytorium depo репозиторий репозиторій αποθετήριο リポジトリ 仓库 저장소 مستودع מאגר रिपॉजिटरी',
     'pasarela-pago': 'payment payments pagos pasarela pagaments pagamentos paiement paiements zahlung zahlungen pagamenti betaling betalingen platnosci odeme оплата платежи платежі πληρωμές 決済 支付 결제 دفع תשלום भुगतान betalning',

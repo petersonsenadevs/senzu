@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { readHookInput, projectRoot, sessionFlag, outHookJson, esMensajeDelUsuario } from './lib.mjs';
-import { recuerdo, palabras, palabraConPeso, UMBRAL_RECUERDO, anotarUso, apuntarInyeccion, mapaMemoria, textoMapa, rutaBuscador } from './hechos.mjs';
+import { recuerdo, palabras, palabraConPeso, UMBRAL_RECUERDO, anotarUso, apuntarInyeccion, mapaMemoria, textoMapa, rutaBuscador, pistaTemporal } from './hechos.mjs';
 
 // Umbrales (se afinan con la evaluación de F4). Hechos: BM25 del motor (IDF suavizado, escala estable). Memoria y
 // devlog: los puntos de buscar.mjs dependen del tamaño del devlog (0,7 en uno pequeño, 38 en uno grande), así que el
@@ -29,7 +29,8 @@ let ya = new Set();
 try { ya = new Set(fs.readFileSync(flag, 'utf8').split('\n').filter(Boolean)); } catch { }
 const clave = x => crypto.createHash('md5').update(`${x.fuente}|${x.id}|${x.texto}`).digest('hex').slice(0, 12);
 
-const todos = recuerdo(root, consulta.slice(0, 600), { limite: 10 });
+// X-T12: si pregunta por el pasado («antes», «used to», «以前»…), también la historia de lo que encuentra
+const todos = recuerdo(root, consulta.slice(0, 600), { limite: 10, historico: pistaTemporal(consulta) ? 'auto' : false });
 const mejor = f => Math.max(0, ...todos.filter(x => x.fuente === f).map(x => x.puntuacion));
 const elegidos = todos
     .filter(x => (x.fuente === 'hecho' ? x.puntuacion >= UMBRAL_HECHO : x.puntuacion > 0 && x.puntuacion >= RELATIVO * mejor(x.fuente)) && !ya.has(clave(x)))

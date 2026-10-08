@@ -59,7 +59,9 @@ for (const corpus of corpora) {
     for (const q of corpus.preguntas) {
         if (solo === 'desarrollo' && q.reservada) continue;
         if (solo === 'reservada' && !q.reservada) continue;
-        const hits = m.buscarHechos(P, q.q, { historico: !!q.historico, limite: 3 }).filter(x => x.puntuacion >= UMBRAL);
+        // --auto-temporal (X-T12): sin la marca del corpus; el pasado se detecta en la pregunta, como en el recuerdo vivo
+        const hist = opt('--sin-historico') ? false : opt('--auto-temporal') ? (m.pistaTemporal(q.q) ? 'auto' : false) : !!q.historico;
+        const hits = m.buscarHechos(P, q.q, { historico: hist, limite: 3 }).filter(x => x.puntuacion >= UMBRAL);
         const got = hits.map(x => ids.get(x.hecho.id));
         const conRespuesta = q.espera !== null;
         filas.push({ ...q, corpus: corpus.nombre, got, top: hits[0] ? `${ids.get(hits[0].hecho.id)} (${hits[0].puntuacion}; ${hits[0].motivo})` : '—',
@@ -77,7 +79,7 @@ function medir(l) {
 const agrupar = clave => Object.fromEntries([...new Set(filas.map(f => f[clave]))].sort().map(k => [k, medir(filas.filter(f => f[clave] === k))]));
 const total = medir(filas);
 const res = { umbral: UMBRAL, total, desarrollo: medir(filas.filter(f => !f.reservada)), reservada: medir(filas.filter(f => f.reservada)),
-    porCorpus: agrupar('corpus'), porCategoria: agrupar('cat'), porIdioma: agrupar('lang'), fallos: filas.filter(f => f.r3 === false || f.calla === false) };
+    porCorpus: agrupar('corpus'), porCategoria: agrupar('cat'), porIdioma: agrupar('lang'), fallos: filas.filter(f => f.r3 === false || f.calla === false), ...(opt('--filas') ? { filas } : {}) };
 
 if (opt('--json')) { process.stdout.write(JSON.stringify(res, null, 2) + '\n'); }
 else {

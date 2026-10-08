@@ -98,6 +98,9 @@ jobs:
       - name: eval-hechos total (con la batería dura de FitLab; mínimos de no regresión)
         run: node tools/eval-hechos.mjs --min-recall3 92 --min-recall1 85 --min-abstencion 62
 
+      - name: eval-hechos con el pasado detectado en la pregunta, como el recuerdo vivo (X-T12)
+        run: node tools/eval-hechos.mjs --auto-temporal --min-recall3 93 --min-recall1 80 --min-abstencion 62
+
       - name: eval-reconsolidacion (aprender del uso no estropea nada, también con un agente que se equivoca)
         run: |
           node tools/eval-reconsolidacion.mjs --rondas 2 --estricto

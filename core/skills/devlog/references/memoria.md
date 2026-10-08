@@ -144,6 +144,11 @@ un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: 
 - **Uso real** (`--informe`): cada inyección (y cada silencio) se apunta en `senzu/.estado/recuerdo-uso.jsonl`
   (privado, fuera de git); al cerrar se mira en la conversación si el agente la usó. Da la precisión real, lo que
   más se ignora (ruido) y los silencios para revisar. Sin la conversación (Codex) queda «sin datos».
+- **El pasado, solo**: si el mensaje pregunta por el pasado («antes», «solía», «al principio», «used to», «früher»,
+  «prima», «以前», «раньше»… en unos 20 idiomas), el recuerdo vivo trae también la historia de lo que encuentra. Va lo
+  vigente delante y lo anterior pegado detrás, marcado «ya no vigente»; lo caducado de otros temas, detrás de todo.
+  La pista no cuenta como tema («antes» no trae cualquier hecho que diga «antes de…»). Con `--historico`, pedido por el
+  agente, lo anterior sigue delante.
 - **Aprende del uso (reconsolidación)**: si el usuario pregunta con palabras que el hecho no tiene y el agente lo
   encuentra él (`--recordar`/`--buscar`, que también se apuntan) y lo usa, al cerrar el hecho aprende esas palabras;
   la próxima vez llega solo. Lo que llega y se ignora desaprende lo que lo trajo. Prudente a propósito:

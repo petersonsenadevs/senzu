@@ -200,6 +200,19 @@
     { "q": "¿qué versión de PHP hay en el servidor de staging?", "lang": "es", "espera": null, "cat": "sin-respuesta", "reservada": true },
     { "q": "quale editor di testo consigli per Markdown?", "lang": "it", "espera": null, "cat": "sin-respuesta", "reservada": true },
     { "q": "o cliente gosta de futebol?", "lang": "pt", "espera": null, "cat": "sin-respuesta", "reservada": true },
-    { "q": "मौसम कैसा है?", "lang": "hi", "espera": null, "cat": "sin-respuesta", "reservada": true }
+    { "q": "मौसम कैसा है?", "lang": "hi", "espera": null, "cat": "sin-respuesta", "reservada": true },
+    { "q": "where did we host the site before?", "lang": "en", "espera": "p7a", "cat": "temporal", "historico": true },
+    { "q": "which font did we use at first?", "lang": "en", "espera": "p30a", "cat": "temporal", "historico": true },
+    { "q": "onde eu morava antes?", "lang": "pt", "espera": "u2a", "cat": "temporal", "historico": true },
+    { "q": "quelle typographie utilisions-nous avant ?", "lang": "fr", "espera": "p30a", "cat": "temporal", "historico": true },
+    { "q": "welche Laravel-Version hatten wir früher?", "lang": "de", "espera": "p2a", "cat": "temporal", "historico": true },
+    { "q": "dove abitavo prima?", "lang": "it", "espera": "u2a", "cat": "temporal", "historico": true },
+    { "q": "我以前住在哪个城市？", "lang": "zh", "espera": "u2a", "cat": "temporal", "historico": true },
+    { "q": "¿qué hosting hay que revisar antes del lanzamiento?", "lang": "es", "espera": "p7b", "cat": "antes-presente" },
+    { "q": "before the launch: which fonts are we using for headings?", "lang": "en", "espera": "p30b", "cat": "antes-presente" },
+    { "q": "necesito saber en qué ciudad vivo antes del viernes", "lang": "es", "espera": "u2b", "cat": "antes-presente" },
+    { "q": "avant la mise en ligne, quel framework utilise le projet ?", "lang": "fr", "espera": "p2b", "cat": "antes-presente" },
+    { "q": "¿qué coche tenía antes?", "lang": "es", "espera": null, "cat": "sin-respuesta" },
+    { "q": "what did I use to eat for breakfast?", "lang": "en", "espera": null, "cat": "sin-respuesta" }
   ]
 }
