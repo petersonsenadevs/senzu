@@ -1,7 +1,7 @@
 {
   "_que_es": "Novedades que session-start enseña a quien tiene una versión anterior de Senzu (las 3 más recientes; primero las importantes). Una línea por versión, en llano: qué gana el usuario al actualizar.",
   "novedades": [
-    { "version": "2.20.0", "importante": false, "texto": "al adoptar, Senzu te pregunta el idioma por ejes: identificadores en ingles, terminos de dominio en el idioma del negocio (como en DDD), y comentarios, devlog y commits a tu eleccion" },
+    { "version": "2.20.0", "importante": false, "texto": "el código nuevo va en inglés por defecto (los términos de dominio en el idioma del negocio, como en DDD); al adoptar eliges el idioma de comentarios, devlog y commits, y /adoptar puede sellar otra convención" },
     { "version": "2.19.4", "importante": false, "texto": "un muro nuevo (pool-guard) avisa de lo que agota el pool de conexiones a la base de datos en Node/Python y serverless (new PrismaClient() sin singleton, o un pool por petición): el fallo que tumba la app en producción" },
     { "version": "2.19.3", "importante": true, "texto": "el plan a medias ya no aparece como terminado: cuenta bien las tarjetas con cualquier id (F1-T1, A-H01…) y, al cerrar, si quedan tarjetas y hay código sin commitear te avisa (plan y memoria ligados)" },
     { "version": "2.19.2", "importante": true, "texto": "el agente ya sube a tu rama de trabajo (feat/…, fix/…) sin configurar nada; a main, develop, staging o production, no. Antes se bloqueaba todo push: reinstala (/instalar) para limpiarlo" },
