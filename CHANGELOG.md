@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-07
 
+- **fix** — El agente sube a ramas de trabajo; las principales siguen protegidas (2.19.2, D-042) (entrada 130)
 - **fix** — verify-build entiende el tipo de proyecto: sin manifiesto no es un build · v2.19.0 (entrada 097)
 - **feature** — Arquitectura declarada: MVC con servicios, hexagonal o DDD, cumplida por un muro · v2.18.0 (entrada 096)
 - **feature** — La cadena del método entre comandos y muros de backend para que una feature no falle · v2.17.0 (entrada 095)

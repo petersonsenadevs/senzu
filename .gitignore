@@ -15,9 +15,13 @@ core/effects-vendor/*/
 !core/effects-vendor/README.md
 !core/effects-vendor/manifest.json
 
+# Plan de trabajo de Senzu (plan/PLAN.md, brief.md): interno, como el devlog; no se publica (solo el de la raíz).
+/plan/
 # Diario del proyecto (devlog/ con MEMORIA.md): es PRIVADO. Vive en el disco y en su propio repositorio
 # privado (devlog/.git); aquí solo se publica el CHANGELOG generado (sin nombres: devlog/privado.txt).
-devlog/
+# Con barra inicial: SOLO el diario de la raíz. Sin ella ignoraba también core/skills/devlog/ y sus copias en
+# plugins/, y los archivos nuevos de esa skill (memoria-check.mjs, memoria.mjs) nunca llegaban al repo (devlog 099).
+/devlog/
 
 # Dependencias instaladas solo para las pruebas (p. ej. playwright en el CI)
 node_modules/

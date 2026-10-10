@@ -78,4 +78,4 @@ description: "ÚSAME PRIMERO en cualquier tarea no trivial: árbol de decisión 
 <!-- END GENERATED -->
 ## 3. Reglas que aplican sin leer nada más
 Contraste 4.5:1 y estados completos en UI · `prefers-reduced-motion` · tipado estricto · validar en el borde · tests del
-comportamiento · autorización en cada acción sensible · sin `git push` ni operaciones destructivas sin aprobación · devlog antes de commitear.
+comportamiento · autorización en cada acción sensible · push solo a la rama de trabajo, ni operaciones destructivas sin aprobación · devlog antes de commitear.

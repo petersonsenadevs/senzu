@@ -29,7 +29,8 @@ que tienen prioridad sobre cualquier atajo.
    propón guardarla en `stacks/<stack>/rules/` de Senzu para que todos los proyectos la hereden.
 
 ## Seguridad / acciones prohibidas
-- Respeta la lista de **acciones prohibidas**: nunca `git push`, ni borrados/alteraciones
+- Respeta la lista de **acciones prohibidas**: nunca `git push` a una rama principal ni forzado (a tu rama de
+  trabajo, sí), ni borrados/alteraciones
   destructivas de base de datos (`DROP`, `TRUNCATE`, `DELETE`/`UPDATE` sin `WHERE`,
   `migrate:fresh/refresh`, `db:wipe`, resets destructivos), ni deploys/publicaciones,
   sin mi **aprobación explícita en el momento**.

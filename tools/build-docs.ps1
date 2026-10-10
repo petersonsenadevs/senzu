@@ -111,7 +111,7 @@ function Get-HooksBody {
     $hookInfo = [ordered]@{
         'session-start.mjs'        = @('SessionStart', 'Inyecta estado: si Senzu está DESACTUALIZADO (qué hacer y qué se pierde, de core/novedades.json), stack/perfil, el SIGUIENTE PASO del método que falta (/instalar, /adoptar; sin plan, saber qué se hace o preguntarlo), idioma, diario propio detectado, versiones con aviso EOL, convenciones adoptadas, git, design system, plan, devlog y protocolo de skills.')
         'prompt-router.mjs'        = @('UserPromptSubmit', 'Sugiere la skill que encaja con la petición (señales de docs/skills.md), una vez por skill y sesión.')
-        'guard.mjs'                = @('PreToolUse Bash/PowerShell', 'Mira lo que se EJECUTA, no lo citado (mensajes de commit, heredocs a un archivo, echo, grep). BLOQUEA: git push, escribir, mover, borrar o restaurar las convenciones selladas desde la terminal (sin escape para el agente), destructivos de BD/git, rm -rf, deploy a prod sin aprobación (escape `SENZU_ALLOW_DEPLOY=1`), generadores de logos con logo ya elegido (`SENZU_ALLOW_LOGO=1`), jQuery/Bootstrap (`SENZU_ALLOW_LIB=1`), devops peligroso (curl\|bash, chmod 777, dd, mkfs, docker prune, parar servicios, vaciar firewall, crontab -r); commits: rama protegida, Conventional ≤72, sin co-autores.')
+        'guard.mjs'                = @('PreToolUse Bash/PowerShell', 'Mira lo que se EJECUTA, no lo citado (mensajes de commit, heredocs a un archivo, echo, grep). BLOQUEA: git push a una rama principal, forzado o sin ver a qué rama va (a las de trabajo, sí), escribir, mover, borrar o restaurar las convenciones selladas desde la terminal (sin escape para el agente), destructivos de BD/git, rm -rf, deploy a prod sin aprobación (escape `SENZU_ALLOW_DEPLOY=1`), generadores de logos con logo ya elegido (`SENZU_ALLOW_LOGO=1`), jQuery/Bootstrap (`SENZU_ALLOW_LIB=1`), devops peligroso (curl\|bash, chmod 777, dd, mkfs, docker prune, parar servicios, vaciar firewall, crontab -r); commits: rama protegida, Conventional ≤72, sin co-autores.')
         'protect-files.mjs'        = @('PreToolUse Edit/Write', 'BLOQUEA editar: generados por Senzu, secretos (.env, *.pem, credentials), dependencias/artefactos, migraciones versionadas, conventions.md/json sellados (no se puede apagar), maestros del logo elegido (logos/final/) y `protectedPaths` del proyecto.')
         'secrets-guard.mjs'        = @('PreToolUse Edit/Write', 'BLOQUEA escribir credenciales reales (AWS, GitHub, Stripe, OpenAI/Anthropic, PEM, JWT, cadenas con password); ignora placeholders.')
         'code-hygiene.mjs'         = @('PreToolUse Edit/Write', 'BLOQUEA introducir (no en scripts de la carpeta temporal del agente): console.log/debugger/dd()/var_dump/ray, términos vetados en `gustos.md` §No, marcadores de conflicto de git, `.only`/`.skip`/xit en tests, y la lista negra anti-IA (badges de disponibilidad, numeración de secciones). Escape puntual: comentario `senzu-allow`.')
@@ -257,6 +257,17 @@ if (Test-Path $idxPath) {
         if ($line -match '^\|\s*(\d{3})\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|\s*([^|]+?)\s*\|\s*(\w+)\s*\|') {
             $rows += [pscustomobject]@{ N = $Matches[1]; Fecha = $Matches[2]; Titulo = $Matches[3]; Tipo = $Matches[4] }
         }
+    }
+    # Lo de una rama EXPERIMENTAL (la entrada dice «rama exp/…») solo sale si esa rama ya está en el historial de
+    # HEAD (algún commit «(exp)»): un parche desde main no anuncia en el CHANGELOG público lo que no se ha publicado
+    # (el 2.19.1 se llevó las entradas 098-099 de Hemispheric; el 2.19.2 iba a llevarse de la 100 a la 129).
+    $hayExp = $false
+    try { $hayExp = [bool](& git -C $root log HEAD --grep='(exp)$' -n 1 --format='%h' 2>$null) } catch {}
+    if (-not $hayExp) {
+        $rows = @($rows | Where-Object {
+            $f = Get-ChildItem -Path (Join-Path $root "devlog\$($_.Fecha)") -Filter "$($_.N)-*.md" -ErrorAction SilentlyContinue | Select-Object -First 1
+            -not ($f -and ((Read-Utf8 $f.FullName) -match 'rama exp/'))
+        })
     }
     # El devlog es privado (no se versiona) y el CHANGELOG es público: devlog/privado.txt (también privado)
     # lista sustituciones "nombre ==> genérico" que se aplican a los títulos, para que ningún nombre de
