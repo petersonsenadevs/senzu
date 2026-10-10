@@ -420,7 +420,7 @@ function hookSet(hasFront) {
         UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs', 'memoria-viva.mjs'] }],
         PreToolUse: [
             { matcher: 'Bash|PowerShell', files: ['guard.mjs'] },
-            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
+            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'pool-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
         ],
         PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs', 'feature-guard.mjs'] }],
         Stop: [{ matcher: null, files: ['stop-guard.mjs', 'cierre-limpio.mjs', 'feature-guard.mjs', 'estado-sesion.mjs'] }],
@@ -452,6 +452,7 @@ const HOOKS_ELEGIBLES = [
     ['code-hygiene', 'console.log, tests desactivados, conflictos, vetos y clichés de IA'],
     ['conventions-guard', 'Hace cumplir las convenciones selladas con /adoptar'],
     ['backend-guard', 'Backend: migraciones destructivas, env() fuera de config, datos personales en logs'],
+    ['pool-guard', 'Backend: avisa de conexiones que agotan el pool (Prisma sin singleton, pool por petición)'],
     ['back-skill-reminder', 'Backend: recuerda la receta del stack en la primera edición'],
     ['depurar-coach', 'Si falla un test o un build, activa el método de depuración'],
     ['front-skill-reminder', 'Front: pregunta antes de diseñar y recuerda las reglas de UI'],

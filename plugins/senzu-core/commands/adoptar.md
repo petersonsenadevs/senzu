@@ -12,7 +12,9 @@ Aplica `code-quality §references/adopt-conventions.md` paso a paso (lo que el u
    de pasos aplican igual desde el 3.
 1. **Analiza con evidencia**: configs (.editorconfig, linters, tsconfig, pint), 3–5 archivos por capa
    (los más recientes), tests y `git log --oneline -30`. Notas con ejemplos literales archivo:línea.
-2. **Entrevista corta** (máx. 5 preguntas, solo lo ambiguo, cada una con propuesta por defecto).
+2. **Entrevista corta** (máx. 5 preguntas, solo lo ambiguo, cada una con propuesta por defecto). Pregunta
+   **siempre el idioma por ejes** (§3 de la referencia): identificadores en inglés (recomendado), términos
+   de dominio en el idioma del negocio, y comentarios + devlog/memoria a elección del usuario.
 3. **Escribe `senzu/conventions.md`** (humano: regla + ejemplo real por sección) y **`senzu/conventions.json`**
    (3–8 reglas ejecutables sin falsos positivos para el hook conventions-guard), ambos en la raíz y
    con el sello `senzu:inmutable` (§4 de la referencia tiene el esquema exacto).

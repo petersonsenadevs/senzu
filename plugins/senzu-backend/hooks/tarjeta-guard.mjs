@@ -33,7 +33,9 @@ else if (p.tool_name === 'Edit') despues = aplicar(antes, ti.old_string, ti.new_
 else for (const e of [].concat(ti.edits || [])) despues = aplicar(despues, e.old_string, e.new_string, e.replace_all);
 
 // tarjetas: «### ID · Título [S|M|L] [estado]» y su cuerpo hasta la siguiente cabecera
-const CAB = /^###\s+([A-Z]+\d*-T\d+[a-z]?)\s*[·-]\s*(.+?)\s*\[(?:S|M|L)\]\s*\[(todo|doing|blocked|done)\]/;
+// id: mayúscula inicial + letras/números/./- (F1-T3a, X-T2 y variantes del planner como A-H01, A-H0608);
+// espacio antes del separador para no partir el guion interno del id (ver planStatus en lib.mjs).
+const CAB = /^###\s+([A-Z][\w.-]*?)\s+[·-]\s*(.+?)\s*\[(?:S|M|L)\]\s*\[(todo|doing|blocked|done)\]/;
 function tarjetas(txt) {
     const out = {}; let actual = null;
     for (const l of txt.split('\n')) {

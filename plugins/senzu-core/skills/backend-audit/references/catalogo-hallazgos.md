@@ -35,6 +35,7 @@ Gravedad por defecto; ajústala con superficie y probabilidad (`protocolo.md` §
 | Trabajo lento dentro de la petición | Emails, PDFs o llamadas externas síncronas | Tiempo de respuesta medido | Media | `code-quality/references/jobs-and-queues.md` |
 | Listado sin paginar | Consultas que devuelven todo | Tamaño de la respuesta con datos realistas | Media | `code-quality/references/api-design.md` |
 | Caché que nunca se invalida | Revisión de claves y escrituras | Test: se escribe y la lectura devuelve lo viejo | Media | `code-quality/references/caching.md` |
+| Pool de conexiones que se agota | Pool/cliente creado por petición, `new PrismaClient()` sin singleton, o conexión directa en serverless; conexiones activas vs `max_connections` bajo carga | archivo:línea + nº de conexiones a la BD durante una ráfaga realista | Alta (tumba la app en prod) | `code-quality/references/database-design.md` (§Conexiones y pool) |
 
 ## Arquitectura y acoplamiento
 
