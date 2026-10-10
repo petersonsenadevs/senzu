@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-10
 
+- **feature** — Conexiones y pool: la skill lo explica y un hook (pool-guard) lo hace cumplir (entrada 139)
 - **fix** — El plan a medias ya no parece terminado, y el cierre liga plan y memoria (entrada 138)
 
 ## 2026-10-07

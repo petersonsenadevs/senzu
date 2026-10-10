@@ -141,6 +141,21 @@ deja(pf('.env.example'), 'protect-files deja editar .env.example');
 bloquea(pf('.env'), 'protect-files sigue protegiendo .env');
 bloquea(pf('.env.production'), 'protect-files sigue protegiendo .env.production');
 
+// ---- pool-guard (PreToolUse): avisa de lo que agota el pool de conexiones (no bloquea; una vez por archivo y sesión)
+const pgd = (d, rel, content, sid) => hook('pool-guard.mjs', d, { session_id: sid, tool_name: 'Write', tool_input: { file_path: path.join(d, rel), content } });
+const avisa = r => /AVISO de conexiones/.test(r.stdout || '');
+ok(avisa(pgd(N, 'src/lib/prisma.ts', "import { PrismaClient } from '@prisma/client';\nexport const prisma = new PrismaClient();\n", `pg1-${RUN}`)), 'Prisma sin singleton global → avisa');
+ok(!avisa(pgd(N, 'src/lib/prisma.ts', "import { PrismaClient } from '@prisma/client';\nconst prisma = globalThis.prisma ?? new PrismaClient();\nif (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;\nexport { prisma };\n", `pg2-${RUN}`)), 'Prisma con singleton globalThis → no avisa');
+ok(avisa(pgd(N, 'src/routes/pedidos.ts', "import { Pool } from 'pg';\nrouter.get('/', (req, res) => { const pool = new Pool(); res.end(); });\n", `pg3-${RUN}`)), 'pool nuevo en una ruta → avisa');
+ok(!avisa(pgd(N, 'src/lib/db.ts', "import { Pool } from 'pg';\nexport const pool = new Pool();\n", `pg4-${RUN}`)), 'pool en módulo compartido (no enrutado) → no avisa');
+ok(avisa(pgd(N, 'app/api/users/route.ts', "import { Pool } from 'pg';\nexport async function GET() { const pool = new Pool(); return Response.json({}); }\n", `pg5-${RUN}`)), 'pool en app/api/route → avisa');
+ok(avisa(pgd(N, 'app/routers/users.py', 'from sqlalchemy.ext.asyncio import create_async_engine\n@router.get("/")\ndef x():\n    engine = create_async_engine(url)\n    return engine\n', `pg6-${RUN}`)), 'Python create_async_engine en un router → avisa');
+ok(!avisa(pgd(N, 'app/db.py', 'from sqlalchemy.ext.asyncio import create_async_engine\nengine = create_async_engine(url)\n', `pg7-${RUN}`)), 'Python engine en el arranque (no enrutado) → no avisa');
+ok(!avisa(pgd(N, 'app/Http/Controllers/C.php', "<?php\nnew PrismaClient();\n", `pg8-${RUN}`)), 'PHP queda fuera del pool-guard (PHP-FPM lo lleva solo)');
+const sidPG = `pg9-${RUN}`;
+pgd(N, 'src/lib/prisma.ts', "import { PrismaClient } from '@prisma/client';\nexport const prisma = new PrismaClient();\n", sidPG);
+ok(!avisa(pgd(N, 'src/lib/prisma.ts', "import { PrismaClient } from '@prisma/client';\nexport const prisma = new PrismaClient();\n", sidPG)), 'avisa una sola vez por archivo y sesión');
+
 fs.rmSync(base, { recursive: true, force: true });
 for (const f of fs.readdirSync(os.tmpdir())) if (f.includes(RUN)) { try { fs.rmSync(path.join(os.tmpdir(), f), { force: true }); } catch { } }
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
