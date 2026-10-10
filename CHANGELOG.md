@@ -4,6 +4,10 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-10
+
+- **fix** — El plan a medias ya no parece terminado, y el cierre liga plan y memoria (entrada 138)
+
 ## 2026-10-07
 
 - **fix** — El agente sube a ramas de trabajo; las principales siguen protegidas (2.19.2, D-042) (entrada 130)

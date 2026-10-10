@@ -7,7 +7,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawnSync, execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -277,6 +277,39 @@ const hook = (nombre, input, cwd = proj, env = {}) => spawnSync(process.execPath
     const r5 = hook('stop-guard.mjs', { session_id: sid + '-d' }, p3);
     ok(/hist[oó]rico/i.test(r5.stdout), 'memoria > 60 líneas -> aviso de pasar al histórico', r5.stdout.slice(0, 300));
     fs.rmSync(p3, { recursive: true, force: true });
+}
+
+{   // stop-guard: plan y memoria LIGADOS. Tarjetas del plan sin terminar + código sin commitear -> bloquea una vez.
+    const pp = fs.mkdtempSync(path.join(os.tmpdir(), 'ds-plan-stop-'));
+    const gg = (...a) => execFileSync('git', ['-C', pp, ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+    const hoy = new Date(); const f = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-${String(hoy.getDate()).padStart(2, '0')}`;
+    gg('init', '-q', '-b', 'feat/x'); gg('config', 'user.email', 't@t'); gg('config', 'user.name', 't');
+    fs.mkdirSync(path.join(pp, 'plan'), { recursive: true });
+    fs.mkdirSync(path.join(pp, 'devlog', f), { recursive: true });
+    // devlog de hoy indexado y sin decisiones (para aislar: solo queremos el muro del plan, no el de memoria/devlog)
+    fs.writeFileSync(path.join(pp, 'devlog', 'INDEX.md'), '| 140 | x |\n');
+    fs.writeFileSync(path.join(pp, 'devlog', f, '140-algo.md'), '# 140 — Algo\n\n## Qué se hizo\n- cosas\n');
+    fs.writeFileSync(path.join(pp, 'plan', 'PLAN.md'), '# Plan\n\n### F1-T1 · Hecha  [S] [done]\n### A-H02 · A medias  [M] [doing]\n');
+    fs.writeFileSync(path.join(pp, 'src.js'), 'const x = 1;\n');
+    gg('add', '-A'); gg('commit', '-q', '-m', 'base');
+    // deja código sin commitear
+    fs.writeFileSync(path.join(pp, 'src.js'), 'const x = 2;\n');
+    const sidP = 'plan-stop-' + Date.now();
+    const r1 = hook('stop-guard.mjs', { session_id: sidP }, pp);
+    ok(/"decision":"block"/.test(r1.stdout) && /tareas sin terminar \(1\/2\)/.test(r1.stdout) && /A-H02/.test(r1.stdout), 'tarjetas pendientes + código sin commitear -> bloquea con el plan', r1.stdout.slice(0, 360));
+    ok(/X-Tn/.test(r1.stdout), 'ofrece la salida: cerrar la tarjeta o apuntar tarea ad hoc X-Tn', r1.stdout.slice(0, 360));
+    const r2 = hook('stop-guard.mjs', { session_id: sidP }, pp);
+    ok(!/"decision":"block"/.test(r2.stdout), 'el muro del plan solo bloquea una vez por sesión', r2.stdout.slice(0, 200));
+    // si no hay código sin commitear, no molesta aunque el plan esté a medias
+    gg('add', '-A'); gg('commit', '-q', '-m', 'commiteo');
+    const r3 = hook('stop-guard.mjs', { session_id: sidP + '-limpio' }, pp);
+    ok(!/tareas sin terminar/.test(r3.stdout), 'plan a medias pero sin código suelto -> no bloquea por el plan', r3.stdout.slice(0, 200));
+    // plan terminado + código sin commitear -> el muro del plan no salta (no hay tarjetas pendientes)
+    fs.writeFileSync(path.join(pp, 'plan', 'PLAN.md'), '# Plan\n\n### F1-T1 · Hecha  [S] [done]\n### A-H02 · Ya hecha  [M] [done]\n');
+    fs.writeFileSync(path.join(pp, 'src.js'), 'const x = 3;\n');
+    const r4 = hook('stop-guard.mjs', { session_id: sidP + '-fin' }, pp);
+    ok(!/tareas sin terminar/.test(r4.stdout), 'plan terminado -> el muro del plan no salta aunque haya código suelto', r4.stdout.slice(0, 200));
+    fs.rmSync(pp, { recursive: true, force: true });
 }
 
 {   // ubicación nueva: senzu/devlog (proyectos instalados o migrados con Senzu)

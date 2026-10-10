@@ -609,7 +609,10 @@ export function planStatus(root) {
     if (txt === null) return r;
     r.exists = true;
     for (const line of txt.split(/\r?\n/)) {
-        const m = /^###\s+([A-Z]+\d*-T\d+[a-z]?)\s*[·\-]\s*(.+?)\s*\[(S|M|L)\]\s*\[(todo|doing|blocked|done)\]/.exec(line);
+        // ID: letra inicial + letras/números/./- (F1-T1, F1-T3a, X-T2, pero también los que improvisa el
+        // planner: A-H01, A-H01d3b2, A-H0608). Se exige espacio ANTES del separador para no partir el guion
+        // interno del propio ID (si no, «A-H01 ·» se leería como id «A» y título «H01 · …»).
+        const m = /^###\s+([A-Z][\w.-]*?)\s+[·\-]\s*(.+?)\s*\[(S|M|L)\]\s*\[(todo|doing|blocked|done)\]/.exec(line);
         if (m && !/^(…|\.\.\.|<)/.test(m[2])) {   // las tarjetas de ejemplo de la plantilla («X-T1 …», «<Verbo + objeto>») no cuentan
             r.total++;
             const [, id, title, , st] = m;
