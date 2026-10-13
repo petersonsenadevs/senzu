@@ -73,6 +73,11 @@ $null = Case 'chmod 777 -> bloquea' 'guard.mjs' @{ tool_name='Bash'; tool_input=
 $null = Case 'docker system prune -> bloquea' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='docker system prune -af' } } 2
 $null = Case 'chmod 755 -> pasa' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='chmod -R 755 storage' } } 0
 $null = Case 'curl descarga simple -> pasa' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='curl -fsSL https://example.com/x.tgz -o x.tgz' } } 0
+# i18n: el motivo del muro (array rules) sale en el idioma de la UI
+OutCase 'muro rm -rf por defecto -> ingles' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='rm -rf build' } } 'can delete too much'
+$env:SENZU_LANG = 'es'
+OutCase 'muro rm -rf con lang=es -> castellano' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='rm -rf build' } } 'puede borrar de m'
+$env:SENZU_LANG = ''
 
 # --- code-hygiene: debug ---
 $null = Case 'introduce console.log -> bloquea' 'code-hygiene.mjs' @{ tool_name='Edit'; tool_input=@{ file_path='C:\x\src\app.ts'; old_string='const a = 1;'; new_string='const a = 1; console.log(a);' } } 2

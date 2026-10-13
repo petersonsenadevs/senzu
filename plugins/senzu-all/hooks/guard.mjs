@@ -46,33 +46,33 @@ function pushPermitido() {
     return pushes.length > 0;
 }
 
-// --- Patrones prohibidos: { p: patrón; m: motivo } ---
+// --- Patrones prohibidos: { p: patrón; id: mensaje en el catálogo (messages.mjs) } ---
 const rules = [
-    { p: /\bgit\s+push\b/i,                                   m: 'git push está prohibido sin aprobación explícita. (Si el usuario quiere permitirlo en este proyecto: "permisos": { "push": true } en senzu/senzu.json; a una rama principal (main, develop, staging, production, release/…), además "pushMain": true. Lo decide el usuario, no el agente.)' },
-    { p: /\bgit\s+push\s+.*--force/i,                         m: 'git push --force está terminantemente prohibido.' },
-    { p: /--force-with-lease/i,                               m: 'push forzado (--force-with-lease) prohibido.' },
-    { p: /\bdrop\s+(database|table|schema)\b/i,               m: 'DROP DATABASE/TABLE/SCHEMA en BD requiere aprobación explícita.' },
-    { p: /\btruncate\s+table\b|\btruncate\s+\w/i,             m: 'TRUNCATE en BD requiere aprobación explícita.' },
-    { p: /\bdelete\s+from\s+\w+\s*(;|$)/i,                    m: 'DELETE sin WHERE requiere aprobación explícita.' },
-    { p: /\bupdate\s+\w+\s+set\b(?!.*\bwhere\b)/i,            m: 'UPDATE sin WHERE requiere aprobación explícita.' },
-    { p: /migrate:(fresh|refresh)/i,                          m: 'migrate:fresh/refresh es destructivo: requiere aprobación.' },
-    { p: /\bdb:wipe\b/i,                                      m: 'db:wipe es destructivo: requiere aprobación.' },
-    { p: /prisma\s+migrate\s+reset/i,                         m: 'prisma migrate reset es destructivo: requiere aprobación.' },
-    { p: /drop_all\b|metadata\.drop_all/i,                    m: 'drop_all (SQLAlchemy) es destructivo: requiere aprobación.' },
-    { p: /\bgit\s+reset\s+--hard\b/i,                         m: 'git reset --hard descarta trabajo: requiere aprobación.' },
-    { p: /\bgit\s+clean\s+-\w*f/i,                            m: 'git clean -f elimina archivos no versionados: requiere aprobación.' },
-    { p: /rm\s+-\w*r\w*f|rm\s+-\w*f\w*r/i,                    m: 'rm -rf requiere revisión: puede borrar de más.' },
-    { p: /remove-item\s+.*-recurse.*-force|remove-item\s+.*-force.*-recurse/i, m: 'Remove-Item -Recurse -Force requiere revisión.' },
-    { p: /\bnpm\s+publish\b|\bcomposer\s+.*publish\b/i,       m: 'Publicar paquetes requiere aprobación explícita.' },
+    { p: /\bgit\s+push\b/i, id: 'rule.gitPush' },
+    { p: /\bgit\s+push\s+.*--force/i, id: 'rule.gitPushForce' },
+    { p: /--force-with-lease/i, id: 'rule.forceWithLease' },
+    { p: /\bdrop\s+(database|table|schema)\b/i, id: 'rule.dropDb' },
+    { p: /\btruncate\s+table\b|\btruncate\s+\w/i, id: 'rule.truncate' },
+    { p: /\bdelete\s+from\s+\w+\s*(;|$)/i, id: 'rule.deleteNoWhere' },
+    { p: /\bupdate\s+\w+\s+set\b(?!.*\bwhere\b)/i, id: 'rule.updateNoWhere' },
+    { p: /migrate:(fresh|refresh)/i, id: 'rule.migrateFresh' },
+    { p: /\bdb:wipe\b/i, id: 'rule.dbWipe' },
+    { p: /prisma\s+migrate\s+reset/i, id: 'rule.prismaReset' },
+    { p: /drop_all\b|metadata\.drop_all/i, id: 'rule.dropAll' },
+    { p: /\bgit\s+reset\s+--hard\b/i, id: 'rule.resetHard' },
+    { p: /\bgit\s+clean\s+-\w*f/i, id: 'rule.gitClean' },
+    { p: /rm\s+-\w*r\w*f|rm\s+-\w*f\w*r/i, id: 'rule.rmrf' },
+    { p: /remove-item\s+.*-recurse.*-force|remove-item\s+.*-force.*-recurse/i, id: 'rule.removeItem' },
+    { p: /\bnpm\s+publish\b|\bcomposer\s+.*publish\b/i, id: 'rule.publish' },
     // --- devops / linux peligrosos ---
-    { p: /\b(curl|wget)\b[^|;&]*\|\s*(sudo\s+)?(ba|z|da)?sh\b/i, m: 'curl|bash ejecuta código remoto sin revisarlo: descarga el script, revísalo y ejecútalo en dos pasos.' },
-    { p: /\bchmod\s+(-[a-z]+\s+)*0?777\b/i,                   m: 'chmod 777 abre el archivo a todo el mundo: usa permisos mínimos (644/755) o pide aprobación.' },
-    { p: /\bdd\b[^|;&]*\bof=\/dev\//i,                        m: 'dd sobre /dev/* puede destruir un disco entero: requiere aprobación explícita.' },
-    { p: /\bmkfs(\.\w+)?\b/i,                                 m: 'mkfs formatea un dispositivo (borra TODO): requiere aprobación explícita.' },
-    { p: /\bdocker\s+(system|volume|image|container)\s+prune\b/i, m: 'docker prune borra recursos compartidos de la máquina (volúmenes = datos): requiere aprobación.' },
-    { p: /\bsystemctl\s+(stop|disable|mask)\b/i,              m: 'Parar/deshabilitar servicios del sistema puede tumbar producción: requiere aprobación explícita.' },
-    { p: /\biptables\s+(-F\b|--flush)|\bnft\s+flush\s+ruleset\b/i, m: 'Vaciar el firewall deja el servidor expuesto: requiere aprobación explícita.' },
-    { p: /\bcrontab\s+-\w*r\b/i,                              m: 'crontab -r borra TODOS los cron del usuario (sin deshacer): requiere aprobación.' },
+    { p: /\b(curl|wget)\b[^|;&]*\|\s*(sudo\s+)?(ba|z|da)?sh\b/i, id: 'rule.curlBash' },
+    { p: /\bchmod\s+(-[a-z]+\s+)*0?777\b/i, id: 'rule.chmod777' },
+    { p: /\bdd\b[^|;&]*\bof=\/dev\//i, id: 'rule.dd' },
+    { p: /\bmkfs(\.\w+)?\b/i, id: 'rule.mkfs' },
+    { p: /\bdocker\s+(system|volume|image|container)\s+prune\b/i, id: 'rule.dockerPrune' },
+    { p: /\bsystemctl\s+(stop|disable|mask)\b/i, id: 'rule.systemctl' },
+    { p: /\biptables\s+(-F\b|--flush)|\bnft\s+flush\s+ruleset\b/i, id: 'rule.iptables' },
+    { p: /\bcrontab\s+-\w*r\b/i, id: 'rule.crontab' },
 ];
 
 function deny(lines) {
@@ -174,13 +174,14 @@ if (envSenzu('ALLOW_LIB') !== '1' && /\b(npm|pnpm|yarn|bun)\s+(install|add|i)\b/
 }
 
 const pushOk = pushPermitido();
+const lang = localeUI(root);
 for (const r of rules) {
     if (pushOk && r === rules[0]) continue;   // push normal permitido por el proyecto (las reglas de forzado siguen)
     if (r.p.test(c)) {
         deny([
-            `[BLOQUEADO por Senzu] ${r.m}`,
-            `Comando: ${cmd}`,
-            'Si de verdad quieres hacerlo, pídeme aprobación explícita y ejecútalo tú, o autorízalo para esta vez.',
+            msg('guard.prefix', lang) + ' ' + msg(r.id, lang),
+            msg('guard.cmdLine', lang, { cmd }),
+            msg('guard.ruleAsk', lang),
         ]);
     }
 }
