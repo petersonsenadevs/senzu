@@ -11,7 +11,7 @@
 
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, psRegex, testIntroduced, readText, ruta, rutaRel, relDelProyecto, rutaNativa,
+    readHookInput, projectRoot, psRegex, testIntroduced, readText, ruta, rutaRel, relDelProyecto, rutaNativa, localeUI, msg,
 } from './lib.mjs';
 
 const p = readHookInput();
@@ -48,9 +48,10 @@ for (const r of rules) {
         // sin comentarios (citar la convención no la viola); los strings se miran: una regla puede ser sobre ellos
         const hit = testIntroduced(forbidRx, pair[0], pair[1], { strings: false, almohadilla: /\.(php|py|rb|sh)$/i.test(rel) });
         if (hit) {
-            const why = r.why ? String(r.why) : `patron prohibido por convencion: ${r.forbid}`;
-            process.stderr.write(`[BLOQUEADO por Senzu] Convencion del proyecto (conventions.json): ${why}. Linea: '${hit}'.\n`);
-            process.stderr.write(`Las convenciones adoptadas GANAN a tus preferencias: escribe el codigo como lo hace este proyecto (${CV}). Si el usuario decide cambiar la convencion, que lo diga explicitamente y se re-ejecuta /adoptar.\n`);
+            const lang = localeUI(root);
+            const why = r.why ? String(r.why) : msg('conventions.whyFallback', lang, { forbid: r.forbid });
+            process.stderr.write(msg('conventions.hit', lang, { why, hit }) + '\n');
+            process.stderr.write(msg('conventions.hit2', lang, { cv: CV }) + '\n');
             process.exit(2);
         }
     }

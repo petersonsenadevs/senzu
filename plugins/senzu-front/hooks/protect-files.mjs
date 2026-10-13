@@ -9,7 +9,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { readHookInput, projectRoot, hookConfig, git, readText, relDelProyecto, rutaNativa } from './lib.mjs';
+import { readHookInput, projectRoot, hookConfig, git, readText, relDelProyecto, rutaNativa, localeUI, msg } from './lib.mjs';
 
 const p = readHookInput();
 if (!p || !['Edit', 'Write', 'MultiEdit', 'NotebookEdit'].includes(p.tool_name)) process.exit(0);
@@ -24,9 +24,10 @@ let rel = relDelProyecto(root, file);
 if (rel === null) rel = rutaNativa(file, root).replace(/\\/g, '/');
 const exists = fs.existsSync(file);
 
-function deny(why) {
-    process.stderr.write(`[BLOQUEADO por Senzu] ${why}\n`);
-    process.stderr.write(`Archivo: ${rel}\n`);
+const lang = localeUI(root);
+function deny(id, vars) {
+    process.stderr.write(msg('guard.prefix', lang) + ' ' + msg(id, lang, vars) + '\n');
+    process.stderr.write(msg('protect.fileLine', lang, { rel }) + '\n');
     process.exit(2);
 }
 
@@ -34,45 +35,45 @@ function deny(why) {
 if (/^(CLAUDE\.md|AGENTS\.md)$/i.test(rel) && exists) {
     const head = (readText(file) || '').split(/\r?\n/).slice(0, 2).join(' ');
     if (/GENERADO por (Senzu|dev-standards)/i.test(head))   // compat-dev-standards
-        deny('Archivo generado por Senzu. Edita stacks/<stack>/ o core/ en el paquete Senzu y actualiza el proyecto con /instalar.');
+        deny('protect.genGuide');
 }
 if (/^(\.claude\/skills|\.agents\/skills|\.cursor\/skills|\.windsurf\/skills|\.cursor\/rules|\.windsurf\/rules|\.claude\/hooks)\//i.test(rel)
     || /^(\.claude\/settings\.json|\.mcp\.json|\.dev-standards\.json|senzu\/senzu\.json)$/i.test(rel)) {   // compat-dev-standards
-    deny('Archivo generado por Senzu (skills, reglas, hooks, settings, mcp, marcador con permisos). Edita el origen en el paquete Senzu y actualiza con /instalar; para permisos locales usa .claude/settings.local.json.');
+    deny('protect.genConfig');
 }
 if (/^(plugins|core\/skills-vendor)\//i.test(rel) && fs.existsSync(path.join(root, 'tools', 'vendor.ps1'))) {
-    deny('Carpeta generada de Senzu (plugins/ o core/skills-vendor/). Edita core/skills-overlay o core/skills y regenera con build-plugins.ps1 / vendor.ps1.');
+    deny('protect.genPlugins');
 }
 
 // 1a) Maestros del logo elegido (design-system/<slug>/logos/final/): no se sobrescriben ni se borran. Añadir
 //     archivos nuevos (otro tamaño, otro formato) sí se permite.
 if (/(^|\/)design-system\/[^/]+\/logos\/final\//i.test(rel) && exists) {
-    deny('Es un maestro del logo ELEGIDO (logos/final/): no se sobrescribe. Si el usuario quiere cambiar el logo, que lo diga explícitamente: el nuevo va con otro nombre, se actualiza «Fijado» en gustos.md y la memoria, y el anterior lo retira el usuario.');
+    deny('protect.logoMaster');
 }
 
 // 1b) Convenciones adoptadas (/adoptar) selladas como inmutables
 if (/^(senzu\/)?conventions\.(md|json)$/i.test(rel) && exists && /(senzu|dev-standards):inmutable/.test(readText(file) || '')) {   // compat-dev-standards
-    deny('Convenciones del proyecto SELLADAS como inmutables (/adoptar): no se editan sin decision explicita del usuario. Con su aprobacion: borra los archivos conventions.json y conventions.md y re-ejecuta /adoptar, o que los edite el mismo.');
+    deny('protect.conventions');
 }
 // 1c) Arquitectura declarada sellada (senzu/arquitectura/capas.json): relajarla para que pase un cambio no es arreglarlo
 if (/^(senzu\/)?arquitectura\/capas\.json$/i.test(rel) && exists && /senzu:inmutable/.test(readText(file) || '')) {
-    deny('Arquitectura del proyecto SELLADA (capas.json): no se edita para que pase un cambio. Mueve el código a la capa que le toca; si el usuario decide cambiar la arquitectura o añadir una excepción, que la edite él (o que quite el sello) y se anota en el devlog.');
+    deny('protect.arquitectura');
 }
 
 // 2) Secretos
 // (.env.example y parecidos NO: son la documentación de las claves, sin valores reales; feature-guard pide tenerlos al día)
 if ((/(^|\/)\.env(\.|$)/i.test(rel) && !/(^|\/)\.env\.(example|sample|dist|template)$/i.test(rel)) ||/\.(pem|key|p12|pfx)$/i.test(rel) || /(^|\/)(id_rsa|id_ed25519)/i.test(rel) || /(^|\/)(credentials|secrets?)(\.|\/|$)/i.test(rel)) {
-    deny('Archivo de secretos/credenciales. No se edita desde el agente: hazlo tu a mano.');
+    deny('protect.secrets');
 }
 
 // 3) Dependencias y artefactos
 if (/(^|\/)(vendor|node_modules|\.git|dist|build|\.next|\.nuxt|\.astro|__pycache__|\.venv|venv)\//i.test(rel) || /(^|\/)storage\/framework\//i.test(rel)) {
-    deny('Dependencias o artefactos generados: no se editan a mano (cambia la fuente o la configuracion).');
+    deny('protect.deps');
 }
 
 // 4) Migraciones ya versionadas (Laravel/Prisma/Alembic): solo bloquea si el archivo ya esta en git
 if (exists && /(^|\/)(database\/migrations|prisma\/migrations|alembic\/versions|migrations)\/[^/]+/i.test(rel)) {
-    if (git(root, ['ls-files', '--error-unmatch', '--', rel])) deny('Migracion ya versionada/compartida: no se edita. Crea una migracion nueva.');
+    if (git(root, ['ls-files', '--error-unmatch', '--', rel])) deny('protect.migration');
 }
 
 // 5) Rutas extra del proyecto (config.json -> protectedPaths)
@@ -83,7 +84,7 @@ if (cfg && cfg.protectedPaths) {
             if (!g) continue;
             const esc = String(g).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const rx = new RegExp('^' + esc.replace(/\\\*\\\*\//g, '(.*/)?').replace(/\\\*\\\*/g, '.*').replace(/\\\*/g, '[^/]*') + '$', 'i');
-            if (rx.test(rel)) deny(`Ruta protegida por el proyecto (${g}). Pide aprobacion explicita.`);
+            if (rx.test(rel)) deny('protect.projectPath', { g });
         }
     } catch {}
 }

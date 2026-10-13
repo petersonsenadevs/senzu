@@ -4,7 +4,7 @@
 // claves privadas PEM, JWT largos, cadenas de conexión con password, Google API keys.
 // Ignora placeholders obvios (xxx, your-, example, changeme, <...>, ${...}, env('...'), process.env, os.environ).
 
-import { readHookInput } from './lib.mjs';
+import { readHookInput, projectRoot, localeUI, msg } from './lib.mjs';
 
 const p = readHookInput();
 if (!p || !['Edit', 'Write', 'MultiEdit'].includes(p.tool_name)) process.exit(0);
@@ -31,11 +31,12 @@ const patterns = [
     { n: 'Anthropic key',         p: /\bsk-ant-[A-Za-z0-9_\-]{32,}\b/g },
     { n: 'OpenAI key',            p: /\bsk-(proj-)?[A-Za-z0-9_\-]{32,}\b/g },
     { n: 'Google API key',        p: /\bAIza[0-9A-Za-z\-_]{35}\b/g },
-    { n: 'Clave privada PEM',     p: /-----BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g },
-    { n: 'Cadena de conexion con password', p: /\b(mysql|postgres(ql)?|mongodb(\+srv)?|redis|amqp):\/\/[^:\s/]+:[^@\s]{6,}@/gi },
+    { n: 'PEM private key',       p: /-----BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----/g },
+    { n: 'connection string with password', p: /\b(mysql|postgres(ql)?|mongodb(\+srv)?|redis|amqp):\/\/[^:\s/]+:[^@\s]{6,}@/gi },
     { n: 'JWT',                   p: /\beyJ[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{20,}\.[A-Za-z0-9_\-]{20,}\b/g },
-    { n: 'Asignacion de secreto literal', p: /\b(api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|password)\b\s*[:=]\s*["'][A-Za-z0-9/+_\-.=]{20,}["']/gi },
+    { n: 'literal secret assignment', p: /\b(api[_-]?key|secret[_-]?key|access[_-]?token|auth[_-]?token|client[_-]?secret|password)\b\s*[:=]\s*["'][A-Za-z0-9/+_\-.=]{20,}["']/gi },
 ];
+const lang = localeUI(projectRoot());
 const placeholder = /(xxx|your[-_]|example|changeme|placeholder|<[^>]+>|\$\{[^}]+\}|env\(|process\.env|os\.environ|getenv|import\.meta\.env|\bdummy\b|\bfake\b|\btest[-_]?key\b|\*{4,}|0{8,}|1{8,})/i;
 
 for (const pt of patterns) {
@@ -43,8 +44,8 @@ for (const pt of patterns) {
         const start = Math.max(0, m.index - 40);
         const ctx = text.substring(start, start + Math.min(120, text.length - start));
         if (placeholder.test(ctx)) continue;
-        process.stderr.write(`[BLOQUEADO por Senzu] Parece que vas a escribir un secreto real (${pt.n}) en el codigo.\n`);
-        process.stderr.write('Usa variables de entorno (.env, config) y nunca commitees credenciales. Si es un valor de ejemplo, usa un placeholder claro (xxx, your-key, <API_KEY>).\n');
+        process.stderr.write(msg('secrets.block', lang, { tipo: pt.n }) + '\n');
+        process.stderr.write(msg('secrets.hint', lang) + '\n');
         process.exit(2);
     }
 }
