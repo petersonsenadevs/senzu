@@ -48,7 +48,8 @@ $author    = @{ name = 'Senzu' }
 # 'en' en el lanzamiento. Se fuerza con -Lang en|es o SENZU_LANG. El mapa es->en esta en core/i18n/commands.json.
 if (-not $Lang) { $Lang = $env:SENZU_LANG }
 $script:Lang = if ("$Lang".ToLower().StartsWith('en')) { 'en' } else { 'es' }
-$script:CmdMap = (Get-Content (Join-Path $root 'core\i18n\commands.json') -Raw | ConvertFrom-Json).comandos
+$script:CmdMap = (Get-Content (Join-Path $root 'core\i18n\commands.json') -Raw -Encoding UTF8 | ConvertFrom-Json).comandos
+$script:CmdDesc = (Get-Content (Join-Path $root 'core\i18n\command-descriptions.json') -Raw -Encoding UTF8 | ConvertFrom-Json).descripciones
 
 function New-Plugin {
     param([string]$Name, [string]$Description, [string[]]$Skills, [hashtable]$Hooks, [string[]]$HookFiles = @(), [string[]]$ExtraSkillDirs = @(), [string[]]$Commands = @())
@@ -85,7 +86,17 @@ function New-Plugin {
                 $base = [IO.Path]::GetFileNameWithoutExtension($c)
                 $en = $script:CmdMap.$base
                 $outName = if ($script:Lang -eq 'en' -and $en) { "$en.md" } else { $c }
-                Copy-Item $f (Join-Path $dir "commands\$outName") -Force
+                $dst = Join-Path $dir "commands\$outName"
+                Copy-Item $f $dst -Force
+                # Localiza solo la linea 'description:' del frontmatter (lo que ve el usuario en el menu /); el cuerpo no se traduce
+                $d = $script:CmdDesc.$base
+                if ($d -and $d.($script:Lang)) {
+                    $nueva = 'description: ' + $d.($script:Lang)
+                    $utf8 = New-Object System.Text.UTF8Encoding $false
+                    $raw = [IO.File]::ReadAllText($dst, $utf8)
+                    $raw = [regex]::Replace($raw, '(?m)^description:[^\r\n]*', [System.Text.RegularExpressions.MatchEvaluator] { param($mm) $nueva })
+                    [IO.File]::WriteAllText($dst, $raw, $utf8)
+                }
             }
         }
     }

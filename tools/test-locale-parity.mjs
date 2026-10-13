@@ -41,6 +41,13 @@ ok(mapaSobra.length === 0, `commands.json no mapea comandos inexistentes (sobran
 const vals = Object.values(mapa);
 ok(new Set(vals).size === vals.length, 'los nombres en ingles no colisionan');
 
+// --- 2b. Descripciones de comando: todas las de los archivos, con en y es no vacios ---
+const desc = JSON.parse(fs.readFileSync(path.join(ROOT, 'core', 'i18n', 'command-descriptions.json'), 'utf8')).descripciones;
+const sinDesc = archivos.filter(a => !(a in desc));
+ok(sinDesc.length === 0, `todos los comandos tienen descripcion en command-descriptions.json (faltan: ${sinDesc.join(', ')})`);
+const descMal = Object.entries(desc).filter(([, v]) => !v || !String(v.en || '').trim() || !String(v.es || '').trim()).map(([k]) => k);
+ok(descMal.length === 0, `cada descripcion tiene en y es no vacios (mal: ${descMal.join(', ')})`);
+
 // --- 3. Router: si skills-registry gana keywords_en/when_en, TODAS las entradas deben tenerlo (aun no existe) ---
 const reg = JSON.parse(fs.readFileSync(path.join(ROOT, 'core', 'skills-registry.json'), 'utf8'));
 const skills = Array.isArray(reg.skills) ? reg.skills : Object.values(reg.skills || {});
