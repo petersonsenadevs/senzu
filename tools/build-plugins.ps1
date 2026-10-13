@@ -20,7 +20,7 @@
 .PARAMETER Version
   Version para plugin.json (por defecto: fecha yyyy.M.d).
 #>
-param([string]$Version = '')
+param([string]$Version = '', [string]$Lang = '')
 # Version del plugin = version de producto (tags de git), siempre creciente:
 #  - Release: SENZU_RELEASE=1.2.0 al commitear -> plugin 1.2.0, y despues se crea el tag v1.2.0.
 #  - Entre releases: ultimo tag vX.Y.Z + commits desde el -> X.Y.(Z+N+1) (el +1 porque el pre-commit
@@ -42,6 +42,13 @@ if (-not $Version) {
 $root      = Get-StandardsRoot
 $pluginsDir = Join-Path $root 'plugins'
 $author    = @{ name = 'Senzu' }
+
+# Idioma de la UI generada (de momento solo afecta al NOMBRE de los comandos: /adoptar vs /adopt).
+# Por defecto 'es' durante el desarrollo para no cambiarle los comandos al mantenedor; el primario pasara a
+# 'en' en el lanzamiento. Se fuerza con -Lang en|es o SENZU_LANG. El mapa es->en esta en core/i18n/commands.json.
+if (-not $Lang) { $Lang = $env:SENZU_LANG }
+$script:Lang = if ("$Lang".ToLower().StartsWith('en')) { 'en' } else { 'es' }
+$script:CmdMap = (Get-Content (Join-Path $root 'core\i18n\commands.json') -Raw | ConvertFrom-Json).comandos
 
 function New-Plugin {
     param([string]$Name, [string]$Description, [string[]]$Skills, [hashtable]$Hooks, [string[]]$HookFiles = @(), [string[]]$ExtraSkillDirs = @(), [string[]]$Commands = @())
@@ -72,7 +79,15 @@ function New-Plugin {
     }
     if ($Commands.Count) {
         Ensure-Dir (Join-Path $dir 'commands')
-        foreach ($c in $Commands) { $f = Join-Path $root "core\commands\$c"; if (Test-Path $f) { Copy-Item $f (Join-Path $dir "commands\$c") -Force } }
+        foreach ($c in $Commands) {
+            $f = Join-Path $root "core\commands\$c"
+            if (Test-Path $f) {
+                $base = [IO.Path]::GetFileNameWithoutExtension($c)
+                $en = $script:CmdMap.$base
+                $outName = if ($script:Lang -eq 'en' -and $en) { "$en.md" } else { $c }
+                Copy-Item $f (Join-Path $dir "commands\$outName") -Force
+            }
+        }
     }
     Write-Utf8 (Join-Path $dir 'README.md') "# $Name`n`n$Description`n`nSkills: $($installed -join ', ')`n`nGenerado por tools/build-plugins.ps1 (Senzu). No editar a mano.`n"
     Write-Host "  [plugin] $Name  ($($installed.Count) skills)"
