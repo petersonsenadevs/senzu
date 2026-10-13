@@ -146,6 +146,22 @@ $cases = @(
     @{ n = 'mapa proyecto';         prompt = 'explícame este proyecto, dónde está el código de pagos';     skills = @('code-quality','skill-router'); expect = 'code-quality' }
     @{ n = 'instalar dev-standards'; prompt = 'instala dev-standards en este proyecto por categorías';     skills = @('instalar-proyecto','skill-router'); expect = 'instalar-proyecto' }
     @{ n = 'instalar senzu'; prompt = 'actualiza senzu en este proyecto por categorías';     skills = @('instalar-proyecto','skill-router'); expect = 'instalar-proyecto' }
+    # --- Enrutado en INGLES (keywords union ES+EN): un usuario que escribe en ingles dispara la skill correcta ---
+    @{ n = 'EN plan';            prompt = 'plan the online shop project from scratch';                  expect = 'project-planner'; expectFirst = 'project-planner' }
+    @{ n = 'EN tests refactor';  prompt = 'refactor the payments service and add tests';                expect = 'code-quality' }
+    @{ n = 'EN debug';           prompt = "the shipping calculation doesn't work and throws a 500";     skills = @('depurar','code-quality','skill-router'); expect = 'depurar'; expectFirst = 'depurar' }
+    @{ n = 'EN audit backend';   prompt = 'audit the backend and find the technical debt';              skills = @('backend-audit','code-quality','skill-router'); expect = 'backend-audit'; expectFirst = 'backend-audit' }
+    @{ n = 'EN why decide';      prompt = 'why did we decide the stripe webhook like this?';            expect = 'devlog'; expectFirst = 'devlog' }
+    @{ n = 'EN where left';      prompt = 'where did we leave off with the payments';                   expect = 'devlog' }
+    @{ n = 'EN landing';         prompt = 'build the landing page for the billing app';                 expect = 'ui-ux-pro-max'; expectFirst = 'ui-ux-pro-max' }
+    @{ n = 'EN check mobile';    prompt = 'check the ui on mobile, something looks off';                expect = 'ui-verify' }
+    @{ n = 'EN launch prod';     prompt = 'launch the site to production';                              expect = 'ui-verify' }
+    @{ n = 'EN image gen';       prompt = 'generate an image of the product floating for the hero';     skills = @('ui-ux-pro-max','image-gen','skill-router'); expect = 'image-gen' }
+    @{ n = 'EN seo';             prompt = 'improve the seo to rank on google';                          skills = @('ui-ux-pro-max','marketing-seo','skill-router'); expect = 'marketing-seo' }
+    @{ n = 'EN deploy';          prompt = 'prepare the deploy to production on netlify';                skills = @('deploy-ops','skill-router'); expect = 'deploy-ops' }
+    @{ n = 'EN which framework'; prompt = 'which framework should I use for a restaurant website';      expect = 'skill-router' }
+    @{ n = 'EN install senzu';   prompt = 'install senzu in this project';                              skills = @('instalar-proyecto','skill-router'); expect = 'instalar-proyecto' }
+    @{ n = 'EN break screen';    prompt = 'an intro where the logo falls and breaks the screen';        expect = 'front-activation' }
     @{ n = 'prompt trivial';        prompt = 'hola';                                                       expectSilence = $true }
 )
 
