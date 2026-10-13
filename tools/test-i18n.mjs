@@ -58,6 +58,20 @@ ok(/You edited code/.test(lib.msg('stop.verifyBuild', 'en')), 'stop.verifyBuild 
 ok(lib.msg('no.existe', 'en') === '?no.existe?', 'id inexistente -> marcador visible (no revienta)');
 ok(lib.msg('deploy.block', 'es', { x: 1 })[0] === dep[0], 'vars sin placeholders no altera el mensaje');
 
+// 5. Integridad: los hooks copiados al plugin resuelven sus imports locales (el fallo de messages.mjs:
+//    lib.mjs importaba './messages.mjs' pero build-plugins no lo copiaba -> ERR_MODULE_NOT_FOUND en runtime).
+const pluginHooks = path.join(ROOT, 'plugins', 'senzu-all', 'hooks');
+if (fs.existsSync(pluginHooks)) {
+    const rotos = [];
+    for (const f of fs.readdirSync(pluginHooks).filter(f => f.endsWith('.mjs'))) {
+        const txt = fs.readFileSync(path.join(pluginHooks, f), 'utf8');
+        for (const m of txt.matchAll(/\bfrom\s+'(\.\/[^']+\.mjs)'/g)) {
+            if (!fs.existsSync(path.join(pluginHooks, m[1]))) rotos.push(`${f} -> ${m[1]}`);
+        }
+    }
+    ok(rotos.length === 0, `los hooks del plugin senzu-all resuelven sus imports locales (${rotos.join(', ')})`);
+}
+
 for (const d of temporales) { try { fs.rmSync(d, { recursive: true, force: true }); } catch {} }
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
 process.exit(fallos ? 1 : 0);
