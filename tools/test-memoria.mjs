@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const BUSCAR = path.join(ROOT, 'core', 'skills', 'devlog', 'scripts', 'buscar.mjs');
 const HOOKS = path.join(ROOT, 'core', 'hooks');
+process.env.SENZU_LANG = 'es';   // este suite comprueba el CONTENIDO en castellano de los avisos de stop-guard; se ejerce en locale es
 let fallos = 0, casos = 0;
 const ok = (cond, nombre, detalle = '') => { casos++; if (!cond) { fallos++; console.log(`FAIL ${nombre}${detalle ? ' -> ' + detalle : ''}`); } };
 

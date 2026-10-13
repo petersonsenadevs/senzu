@@ -14,15 +14,16 @@ const p = readHookInput();
 // muestra systemMessage al usuario. Mismo formato para los dos.
 const recordar = texto => process.stdout.write(JSON.stringify({ systemMessage: texto }) + '\n');
 const root = projectRoot();
+const lang = localeUI(root);   // idioma de la UI (en por defecto); los avisos salen por msg(id, lang)
 const DL = rutaRel(root, 'devlog'), PL = rutaRel(root, 'plan'), DS = rutaRel(root, 'design-system'), CV = rutaRel(root, 'conventions.md');   // rutas reales (senzu/ o antiguas)
 const sid = p && p.session_id ? String(p.session_id) : 'default';
 const plan = planStatus(root);
 let planMsg = '';
-if (plan.exists && plan.doing.length) planMsg = ` Ademas hay tarea(s) en curso en ${PL}/PLAN.md (${plan.doing.join('; ')}): si la has terminado, márcala done (con Verificado, Cumple y el enlace al devlog) y propón /siguiente; si no, di qué falta.`;
+if (plan.exists && plan.doing.length) planMsg = msg('stop.plan', lang, { pl: PL, doing: plan.doing.join('; ') });
 // Si la sesión editó UI (marcador de front-skill-reminder), exigir la verificación con móvil primero (skill ui-verify).
 let frontMsg = '';
 if (fs.existsSync(sessionFlag(sid, 'frontedit'))) {
-    frontMsg = " Has editado archivos de UI en esta sesion: NO la des por hecha sin verificarla (skill ui-verify): ejecuta 'node <skills-dir>/ui-verify/scripts/verify-ui.mjs <url-local>' (o la pasada con navegador) EMPEZANDO POR MOVIL 375px, corrige hasta 0 problemas y pega el resultado en el devlog.";
+    frontMsg = msg('stop.front', lang);
 }
 const alreadyActive = !!(p && p.stop_hook_active === true);
 // Código editado sin verificación posterior (flags por proyecto: edit-tracker vs verify-build).
@@ -52,14 +53,14 @@ function revisarAssets(base) {
             let st; try { st = fs.statSync(f); } catch { continue; }
             if (st.mtimeMs < limite) continue;
             const kb = Math.round(st.size / 1024), rel = path.relative(base, f).replace(/\\/g, '/');
-            if (/\.(jpe?g|png|gif|webp|avif)$/i.test(e.name) && kb > 500) avisos.push(`${rel} (${kb} KB: comprímela a WebP o AVIF, idealmente < 300 KB)`);
-            else if (/\.svg$/i.test(e.name) && kb > 150) avisos.push(`${rel} (${kb} KB: optimiza el SVG con SVGO)`);
-            else if (/\.(ttf|otf)$/i.test(e.name)) avisos.push(`${rel} (fuente sin comprimir: usa woff2)`);
-            else if (/\.(mp4|mov|webm)$/i.test(e.name) && kb > 5 * 1024) avisos.push(`${rel} (${Math.round(kb / 1024)} MB: vídeo pesado, comprímelo y añade poster)`);
+            if (/\.(jpe?g|png|gif|webp|avif)$/i.test(e.name) && kb > 500) avisos.push(msg('stop.assetImg', lang, { rel, kb }));
+            else if (/\.svg$/i.test(e.name) && kb > 150) avisos.push(msg('stop.assetSvg', lang, { rel, kb }));
+            else if (/\.(ttf|otf)$/i.test(e.name)) avisos.push(msg('stop.assetFont', lang, { rel }));
+            else if (/\.(mp4|mov|webm)$/i.test(e.name) && kb > 5 * 1024) avisos.push(msg('stop.assetVideo', lang, { rel, mb: Math.round(kb / 1024) }));
         }
     };
     for (const d of dirs) visitar(path.join(base, d), 0);
-    return avisos.length ? ` Assets pesados añadidos hoy: ${avisos.join('; ')}. Revísalos antes de cerrar (ui-verify references/web-performance.md).` : '';
+    return avisos.length ? msg('stop.assets', lang, { avisos: avisos.join('; ') }) : '';
 }
 planMsg += revisarAssets(root);
 
@@ -93,10 +94,10 @@ let memMsg = '', memLarga = '';
         if (!refs.some(r => recogida(r, '')) && !recogida('-1', txtDec)) conDecision.push('DECISIONES.md');
     }
     if (conDecision.length) {
-        memMsg = ` Hay decisiones nuevas en el devlog de hoy (${conDecision.join(', ')}) y ${DL}/MEMORIA.md sin actualizar: añádelas como vigentes con su D-xxx y su entrada (o marca como sustituida la que cambian), con la skill devlog (references/memoria.md).`;
+        memMsg = msg('stop.mem', lang, { dec: conDecision.join(', '), dl: DL });
     }
     if (mem.existe && mem.lineas.length > 60) {
-        memLarga = ` ${DL}/MEMORIA.md tiene ${mem.lineas.length} líneas (máximo 60): pasa lo sustituido o cerrado a ${DL}/MEMORIA-historico.md.`;
+        memLarga = msg('stop.memLong', lang, { dl: DL, lineas: mem.lineas.length });
     }
 }
 
@@ -104,33 +105,33 @@ const today = todayDevlog(root);
 if (today.length) {
     const notIdx = today.filter(n => !devlogIndexed(root, n));
     let extra = '';
-    if (notIdx.length) extra = ` Falta indexar en ${DL}/INDEX.md: ${notIdx.join(', ')}.`;
+    if (notIdx.length) extra = msg('stop.notIndexed', lang, { dl: DL, notidx: notIdx.join(', ') });
     const cfg = hookConfig(root);
     if (cfg && cfg.commands && gitBranch(root) && gitDirty(root) > 0) {
-        extra += ' Hay cambios sin commitear: ejecuta los comandos del stack (lint/test/types de config.json) y pega la salida antes de cerrar.';
+        extra += msg('stop.uncommitted', lang);
     }
     extra += memLarga;
     const bloqueaUi = (frontMsg || buildMsg) && !alreadyActive && testOnce(sid, 'stop-ui');
     const bloqueaMem = memMsg && !alreadyActive && testOnce(sid, 'stop-memoria');
     const sinRegistrar = logosSinRegistrar(root);
-    if (sinRegistrar.length) memMsg += ` Hay logo final sin registrar (${sinRegistrar.map(l => l.maestro).join(', ')}): anótalo en «Fijado» de gustos.md con su ruta y como decisión en la memoria, para que ningún agente vuelva a hacer bocetos.`;
+    if (sinRegistrar.length) memMsg += msg('stop.logo', lang, { logos: sinRegistrar.map(l => l.maestro).join(', ') });
     const bloqueaLogos = sinRegistrar.length && !alreadyActive && testOnce(sid, 'stop-logos');
     if (bloqueaUi || bloqueaMem || bloqueaLogos) {
         process.stdout.write(JSON.stringify({ decision: 'block', reason: '[senzu]' + buildMsg + frontMsg + memMsg + planMsg + extra }) + '\n');
         process.exit(0);
     }
-    if (planMsg || extra || frontMsg || buildMsg || memMsg) recordar('recordatorio:' + buildMsg + frontMsg + memMsg + planMsg + extra);
+    if (planMsg || extra || frontMsg || buildMsg || memMsg) recordar(msg('stop.reminderPrefix', lang) + buildMsg + frontMsg + memMsg + planMsg + extra);
     process.exit(0);
 }
 
 let dirty = 0;
 if (gitBranch(root)) dirty = gitDirty(root);
 const date = todayStr();
-const reason = `[senzu] Hay ${dirty} archivo(s) con cambios y no existe ninguna entrada en ${DL}/${date}/. Antes de terminar: crea ${DL}/${date}/NNN-<slug>.md (numeracion global correlativa) con que se hizo, verificacion y proximos pasos, y actualiza ${DL}/INDEX.md (skill devlog). Si el cambio es trivial y no merece devlog, dilo explicitamente y termina.` + buildMsg + frontMsg + planMsg;
+const reason = msg('stop.noDevlog', lang, { dirty, dl: DL, date }) + buildMsg + frontMsg + planMsg;
 
 if (dirty > 0 && !alreadyActive && testOnce(sid, 'stop-devlog')) {
     process.stdout.write(JSON.stringify({ decision: 'block', reason }) + '\n');
     process.exit(0);
 }
-recordar(`recordatorio: aun no hay entrada de devlog para hoy (${date}). Documenta el avance en ${DL}/${date}/ antes de cerrar.` + buildMsg + frontMsg + planMsg);
+recordar(msg('stop.noDevlogReminder', lang, { dl: DL, date }) + buildMsg + frontMsg + planMsg);
 process.exit(0);

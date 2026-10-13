@@ -112,6 +112,53 @@ export const CAT = {
             'Si el usuario lo aprueba explicitamente: que lo ejecute el, o reintenta con SENZU_ALLOW_LIB=1 en el entorno y documenta la aprobacion en el devlog.',
         ],
     },
+
+    // --- stop-guard: avisos de cierre (fragmentos que se concatenan; empiezan por espacio) ---
+    'stop.reminderPrefix': { en: 'reminder:', es: 'recordatorio:' },
+    'stop.plan': {
+        en: ' Also there are task(s) in progress in {pl}/PLAN.md ({doing}): if you finished it, mark it done (with Verified, Meets, and the link to the devlog) and suggest /next; if not, say what is missing.',
+        es: ' Ademas hay tarea(s) en curso en {pl}/PLAN.md ({doing}): si la has terminado, márcala done (con Verificado, Cumple y el enlace al devlog) y propón /siguiente; si no, di qué falta.',
+    },
+    'stop.front': {
+        en: " You edited UI files this session: do NOT call it done without verifying it (skill ui-verify): run 'node <skills-dir>/ui-verify/scripts/verify-ui.mjs <local-url>' (or the browser pass) STARTING WITH MOBILE 375px, fix until 0 problems and paste the result in the devlog.",
+        es: " Has editado archivos de UI en esta sesion: NO la des por hecha sin verificarla (skill ui-verify): ejecuta 'node <skills-dir>/ui-verify/scripts/verify-ui.mjs <url-local>' (o la pasada con navegador) EMPEZANDO POR MOVIL 375px, corrige hasta 0 problemas y pega el resultado en el devlog.",
+    },
+    'stop.assetImg': { en: '{rel} ({kb} KB: compress it to WebP or AVIF, ideally < 300 KB)', es: '{rel} ({kb} KB: comprímela a WebP o AVIF, idealmente < 300 KB)' },
+    'stop.assetSvg': { en: '{rel} ({kb} KB: optimize the SVG with SVGO)', es: '{rel} ({kb} KB: optimiza el SVG con SVGO)' },
+    'stop.assetFont': { en: '{rel} (uncompressed font: use woff2)', es: '{rel} (fuente sin comprimir: usa woff2)' },
+    'stop.assetVideo': { en: '{rel} ({mb} MB: heavy video, compress it and add a poster)', es: '{rel} ({mb} MB: vídeo pesado, comprímelo y añade poster)' },
+    'stop.assets': {
+        en: ' Heavy assets added today: {avisos}. Review them before closing (ui-verify references/web-performance.md).',
+        es: ' Assets pesados añadidos hoy: {avisos}. Revísalos antes de cerrar (ui-verify references/web-performance.md).',
+    },
+    'stop.mem': {
+        en: " There are new decisions in today's devlog ({dec}) and {dl}/MEMORIA.md is not updated: add them as current with their D-xxx and their entry (or mark as replaced the one they change), with the devlog skill (references/memoria.md).",
+        es: ' Hay decisiones nuevas en el devlog de hoy ({dec}) y {dl}/MEMORIA.md sin actualizar: añádelas como vigentes con su D-xxx y su entrada (o marca como sustituida la que cambian), con la skill devlog (references/memoria.md).',
+    },
+    'stop.memLong': {
+        en: " {dl}/MEMORIA.md has {lineas} lines (max 60): move what's replaced or closed to {dl}/MEMORIA-historico.md.",
+        es: ' {dl}/MEMORIA.md tiene {lineas} líneas (máximo 60): pasa lo sustituido o cerrado a {dl}/MEMORIA-historico.md.',
+    },
+    'stop.notIndexed': {
+        en: ' Missing from the index in {dl}/INDEX.md: {notidx}.',
+        es: ' Falta indexar en {dl}/INDEX.md: {notidx}.',
+    },
+    'stop.uncommitted': {
+        en: ' There are uncommitted changes: run the stack commands (lint/test/types from config.json) and paste the output before closing.',
+        es: ' Hay cambios sin commitear: ejecuta los comandos del stack (lint/test/types de config.json) y pega la salida antes de cerrar.',
+    },
+    'stop.logo': {
+        en: ' There is a final logo not recorded ({logos}): note it under «Fijado» in gustos.md with its path and as a decision in memory, so no agent makes drafts again.',
+        es: ' Hay logo final sin registrar ({logos}): anótalo en «Fijado» de gustos.md con su ruta y como decisión en la memoria, para que ningún agente vuelva a hacer bocetos.',
+    },
+    'stop.noDevlog': {
+        en: '[senzu] There are {dirty} file(s) with changes and no entry exists in {dl}/{date}/. Before finishing: create {dl}/{date}/NNN-<slug>.md (global sequential numbering) with what was done, verification and next steps, and update {dl}/INDEX.md (devlog skill). If the change is trivial and does not deserve a devlog, say so explicitly and finish.',
+        es: '[senzu] Hay {dirty} archivo(s) con cambios y no existe ninguna entrada en {dl}/{date}/. Antes de terminar: crea {dl}/{date}/NNN-<slug>.md (numeracion global correlativa) con que se hizo, verificacion y proximos pasos, y actualiza {dl}/INDEX.md (skill devlog). Si el cambio es trivial y no merece devlog, dilo explicitamente y termina.',
+    },
+    'stop.noDevlogReminder': {
+        en: "reminder: there's still no devlog entry for today ({date}). Document the progress in {dl}/{date}/ before closing.",
+        es: 'recordatorio: aun no hay entrada de devlog para hoy ({date}). Documenta el avance en {dl}/{date}/ antes de cerrar.',
+    },
 };
 
 // Devuelve el mensaje en el idioma pedido (si falta, cae a 'en' y luego a 'es'). Mantiene el tipo guardado:
