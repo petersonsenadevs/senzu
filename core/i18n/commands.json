@@ -1,0 +1,27 @@
+{
+  "_que_es": "Mapa de nombres de comando por idioma de la UI. La clave es el nombre FUENTE (archivo core/commands/<clave>.md); el valor es el nombre en ingles. Por defecto la UI es inglesa: build-plugins renombra el comando al valor EN; con --lang es usa la clave. Un solo sitio para los 22 comandos (sin colisiones de valor).",
+  "comandos": {
+    "adoptar": "adopt",
+    "auditar": "audit",
+    "brief": "brief",
+    "depurar": "debug",
+    "design-system": "design-system",
+    "desplegar": "deploy",
+    "efecto": "effect",
+    "entregar": "handoff",
+    "estimar": "estimate",
+    "instalar": "install",
+    "lanzar": "launch",
+    "mapa": "map",
+    "plan": "plan",
+    "propuestas": "proposals",
+    "refactor": "refactor",
+    "recordar": "remember",
+    "repaso": "walkthrough",
+    "retomar": "resume",
+    "revisar-ui": "review-ui",
+    "ronda": "round",
+    "siguiente": "next",
+    "verificar": "verify"
+  }
+}

@@ -138,6 +138,19 @@ function getMarkerSeguro(root) { try { return readJson(rutaMarcador(root)); } ca
 // Variables de entorno: SENZU_X (nombre actual) o SENZU_X (nombre anterior, se sigue aceptando)
 export const envSenzu = n => process.env['SENZU_' + n] || process.env['DEV_STANDARDS_' + n] || '';   // compat-dev-standards
 
+// Idioma de la UI que ve el usuario (nombres y descripciones de comando, mensajes de los muros, keywords,
+// avisos). El CONTENIDO de las skills no depende de esto: lo lee el agente, que responde en el idioma del
+// usuario. Por defecto 'en' (Senzu es ingles por defecto); 'es' si el proyecto lo pide.
+// Orden: SENZU_LANG (entorno) > senzu.json "lang" > 'en'. Solo 'es'/'en'; cualquier otra cosa cae a 'en'.
+export function localeUI(root) {
+    const norm = v => { const s = String(v || '').trim().toLowerCase(); return s.startsWith('es') ? 'es' : s.startsWith('en') ? 'en' : ''; };
+    const env = norm(envSenzu('LANG'));
+    if (env) return env;
+    const m = getMarkerSeguro(root);
+    const marker = m && norm(m.lang);
+    return marker || 'en';
+}
+
 export function readHookInput() {
     const p = leerEntradaCruda();
     if (!p) return p;
