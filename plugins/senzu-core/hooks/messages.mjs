@@ -297,6 +297,68 @@ export const CAT = {
         en: 'Swallowed error: an empty catch (or except/if err) hides the failure and turns it into corrupt data or an untraceable bug. Log it with context and rethrow it, turn it into a domain error or return a clear error response (code-quality references/errors-logging.md). If it really can be ignored, write why with senzu-allow.',
         es: 'Error tragado: un catch (o except/if err) vacío esconde el fallo y lo convierte en un dato corrupto o en un bug imposible de rastrear. Regístralo con contexto y relánzalo, conviértelo en un error de dominio o devuelve una respuesta de error clara (code-quality references/errors-logging.md). Si de verdad se puede ignorar, escribe por qué con senzu-allow.',
     },
+
+    // --- feature-guard: que una feature no se de por hecha a medias (Stop, decision block) ---
+    'feature.intro': { en: '[senzu] Before calling the feature done:', es: '[senzu] Antes de dar la feature por hecha:' },
+    'feature.noTest': {
+        en: 'You touched backend code ({back}) and no test. A feature with no test does not prove it works nor warns when it breaks: write the test that covers it (happy path + the error that matters most; code-quality, testing) and run it. If it really does not apply (configuration, renaming, code already covered by an existing test), say so in your reply with the reason.',
+        es: 'Has tocado código de backend ({back}) y ningún test. Una feature sin test no demuestra que funciona ni avisa cuando se rompa: escribe el test que la cubre (camino feliz + el error que más importa; code-quality, testing) y ejecútalo. Si de verdad no aplica (configuración, renombrado, código ya cubierto por un test existente), dilo en tu respuesta con el motivo.',
+    },
+    'feature.faltaExec': { en: "you haven't run it", es: 'no la has ejecutado' },
+    'feature.faltaRollback': { en: "you haven't tested its rollback", es: 'no has probado su vuelta atrás' },
+    'feature.rollbackClause': {
+        en: ', test the rollback (migrate:rollback, alembic downgrade -1…) and migrate again',
+        es: ', prueba el rollback (migrate:rollback, alembic downgrade -1…) y vuelve a migrar',
+    },
+    'feature.migration': {
+        en: 'You created or touched migrations ({migs}) and {falta}. Run it locally (php artisan migrate, prisma migrate dev, alembic upgrade head…){rollback}: that is how you see, before production, if it breaks or cannot be undone. If there is no database here, say so in your reply and leave the step to the user.',
+        es: 'Has creado o tocado migraciones ({migs}) y {falta}. Ejecútala en local (php artisan migrate, prisma migrate dev, alembic upgrade head…){rollback}: así se ve antes de producción si rompe o si no se puede deshacer. Si aquí no hay base de datos, dilo en tu respuesta y deja el paso al usuario.',
+    },
+    'feature.envAdd': { en: 'Add them to {ej} with an example value (never the real one)', es: 'Añádelas a {ej} con un valor de ejemplo (nunca el real)' },
+    'feature.envNoFile': { en: 'There is no .env.example: create it with those keys and example values (never the real ones)', es: 'No hay .env.example: créalo con esas claves y valores de ejemplo (nunca los reales)' },
+    'feature.env': {
+        en: 'The code uses new environment variables that are not documented: {keys}. {add}, and in Laravel read them from config/. Whoever installs the project (or the production server) will not know they exist and it will fail.',
+        es: 'El código usa variables de entorno nuevas que no están documentadas: {keys}. {add}, y en Laravel léelas desde config/. Quien instale el proyecto (o el servidor de producción) no sabrá que existen y fallará.',
+    },
+
+    // --- code-hygiene: basura de debug, tests apagados, olor a IA y vetos de gustos.md ---
+    'hygiene.conflict': {
+        en: "[BLOCKED by Senzu] You are writing a git CONFLICT MARKER ('{hit}'): resolve the merge for real (choose or combine the content) instead of saving the file with the markers in it.",
+        es: "[BLOQUEADO por Senzu] Estas escribiendo un MARCADOR DE CONFLICTO de git ('{hit}'): resuelve el merge de verdad (elige o combina el contenido) en vez de guardar el archivo con los marcadores dentro.",
+    },
+    'hygiene.skip': {
+        en: "[BLOCKED by Senzu] You are introducing {m} in a test: '{hit}'. A focused or disabled test that reaches CI silently disables the suite. If it is on purpose (documented bug), add 'senzu-allow' with the reason on that line.",
+        es: "[BLOQUEADO por Senzu] Estas introduciendo {m} en un test: '{hit}'. Un test enfocado o apagado que llega a CI desactiva la suite en silencio. Si es a proposito (bug documentado), anade 'senzu-allow' con el motivo en esa linea.",
+    },
+    'hygiene.debug': {
+        en: "[BLOCKED by Senzu] You are introducing {m}: '{hit}'. Use the project logger or remove it before saving. If it is intentional (CLI script), add 'senzu-allow' as a comment on that line.",
+        es: "[BLOQUEADO por Senzu] Estas introduciendo {m}: '{hit}'. Usa el logger del proyecto o eliminalo antes de guardar. Si es intencional (script CLI), anade 'senzu-allow' como comentario en esa linea.",
+    },
+    'hygiene.aiSlop': {
+        en: "[BLOCKED by Senzu] You are introducing {m}: '{hit}'. Blacklist: ui-ux-pro-max references/es/anti-ia.md (what to use instead). Only if the USER asked for it by name: add 'senzu-allow' on that line and note it in gustos.md.",
+        es: "[BLOQUEADO por Senzu] Estas introduciendo {m}: '{hit}'. Lista negra: ui-ux-pro-max references/es/anti-ia.md (que usar en su lugar). Solo si el USUARIO lo pidio por su nombre: anade 'senzu-allow' en esa linea y anotalo en gustos.md.",
+    },
+    'hygiene.veto': {
+        en: "[BLOCKED by Senzu] '{v}' is VETOED by the client in {gustos} (No section): '{hit}'. A veto is not re-proposed without explicitly asking the user.",
+        es: "[BLOQUEADO por Senzu] '{v}' esta VETADO por el cliente en {gustos} (seccion No): '{hit}'. No se re-propone un veto sin preguntar explicitamente al usuario.",
+    },
+    'hygiene.d.console': { en: 'console.log/debug in source code', es: 'console.log/debug en codigo fuente' },
+    'hygiene.d.debugger': { en: 'a debugger statement', es: 'sentencia debugger' },
+    'hygiene.d.dd': { en: 'dd() debug call', es: 'dd() de depuracion' },
+    'hygiene.d.varDump': { en: 'var_dump()', es: 'var_dump()' },
+    'hygiene.d.ray': { en: 'ray() debug call', es: 'ray() de depuracion' },
+    'hygiene.s.onlySkip': { en: '.only/.skip', es: '.only/.skip' },
+    'hygiene.s.fitXit': { en: 'fit/xit (focused or disabled test)', es: 'fit/xit (test enfocado o apagado)' },
+    'hygiene.s.pest': { en: '->only()/->skip() from Pest', es: '->only()/->skip() de Pest' },
+    'hygiene.s.markSkipped': { en: 'markTestSkipped/Incomplete', es: 'markTestSkipped/Incomplete' },
+    'hygiene.ai.badge': {
+        en: 'an availability badge ("open agenda", "slots available"): false urgency that gives away an AI-made site',  // senzu-allow: cadena del catalogo de UI, no codigo de web
+        es: 'un badge de disponibilidad ("agenda abierta", "slots disponibles"): urgencia falsa que delata web hecha con IA',  // senzu-allow: cadena del catalogo de UI, no codigo de web
+    },
+    'hygiene.ai.numbering': {
+        en: 'section numbering ("02 — WORKS"): the most recognizable AI-portfolio tic',  // senzu-allow: cadena del catalogo de UI, no codigo de web
+        es: 'numeracion de secciones ("02 — TRABAJOS"): el tic mas reconocible del portfolio-IA',  // senzu-allow: cadena del catalogo de UI, no codigo de web
+    },
 };
 
 // Devuelve el mensaje en el idioma pedido (si falta, cae a 'en' y luego a 'es'). Mantiene el tipo guardado:

@@ -9,17 +9,19 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, findFirstFile, testIntroduced, ruta, relDelProyecto,
+    readHookInput, projectRoot, findFirstFile, testIntroduced, ruta, relDelProyecto, localeUI, msg,
 } from './lib.mjs';
 
 const p = readHookInput();
 if (!p || !['Edit', 'Write', 'MultiEdit'].includes(p.tool_name)) process.exit(0);
 const file = p.tool_input && p.tool_input.file_path ? String(p.tool_input.file_path) : '';
 if (!file) process.exit(0);
+const root = projectRoot();
+const lang = localeUI(root);
 if (!/\.(ts|tsx|js|jsx|mjs|cjs|vue|astro|svelte|php|html|css|blade\.php)$/i.test(file)) process.exit(0);
 // Un script en la carpeta temporal del agente (fuera del proyecto) no es código que se vaya a entregar. Solo eso:
 // el código de fuera del proyecto en otro sitio (un paquete hermano de un monorepo) se sigue revisando.
-if (relDelProyecto(projectRoot(), file) === null && relDelProyecto(os.tmpdir(), file) !== null) process.exit(0);
+if (relDelProyecto(root, file) === null && relDelProyecto(os.tmpdir(), file) !== null) process.exit(0);
 const isExcluded = /(\.config\.|vite\.config|astro\.config|tailwind\.config|[\\/](scripts?|tools|\.claude|devlog|design-system|node_modules|vendor)[\\/])/i.test(file);
 const isTest = /(test|spec)/i.test(file);
 
@@ -34,7 +36,7 @@ else if (p.tool_name === 'MultiEdit') for (const e of [].concat(ti.edits || []))
 for (const pair of pairs) {
     const hit = testIntroduced(/^(<{7}|>{7})( |$)|^={7}$/m, pair[0], pair[1]);
     if (hit) {
-        process.stderr.write(`[BLOQUEADO por Senzu] Estas escribiendo un MARCADOR DE CONFLICTO de git ('${hit}'): resuelve el merge de verdad (elige o combina el contenido) en vez de guardar el archivo con los marcadores dentro.\n`);
+        process.stderr.write(msg('hygiene.conflict', lang, { hit }) + '\n');
         process.exit(2);
     }
 }
@@ -42,16 +44,16 @@ for (const pair of pairs) {
 // --- 0b. Tests desactivados: .only / .skip / xit INTRODUCIDOS en archivos de test ---
 if (isTest) {
     const skipPatterns = [
-        { p: /\b(it|test|describe)\s*\.\s*(only|skip)\s*[(.]/, m: '.only/.skip' },
-        { p: /\b(fit|fdescribe|xit|xdescribe|xtest)\s*\(/,     m: 'fit/xit (test enfocado o apagado)' },
-        { p: /->\s*(only|skip)\s*\(/,                          m: '->only()/->skip() de Pest' },
-        { p: /\bmarkTestSkipped|\bmarkTestIncomplete/,         m: 'markTestSkipped/Incomplete' },
+        { p: /\b(it|test|describe)\s*\.\s*(only|skip)\s*[(.]/, m: 'hygiene.s.onlySkip' },
+        { p: /\b(fit|fdescribe|xit|xdescribe|xtest)\s*\(/,     m: 'hygiene.s.fitXit' },
+        { p: /->\s*(only|skip)\s*\(/,                          m: 'hygiene.s.pest' },
+        { p: /\bmarkTestSkipped|\bmarkTestIncomplete/,         m: 'hygiene.s.markSkipped' },
     ];
     for (const pair of pairs) {
         for (const sp of skipPatterns) {
             const hit = testIntroduced(sp.p, pair[0], pair[1]);
             if (hit) {
-                process.stderr.write(`[BLOQUEADO por Senzu] Estas introduciendo ${sp.m} en un test: '${hit}'. Un test enfocado o apagado que llega a CI desactiva la suite en silencio. Si es a proposito (bug documentado), anade 'senzu-allow' con el motivo en esa linea.\n`);
+                process.stderr.write(msg('hygiene.skip', lang, { m: msg(sp.m, lang), hit }) + '\n');
                 process.exit(2);
             }
         }
@@ -62,18 +64,18 @@ if (isExcluded) process.exit(0);
 
 // --- 1. Debug introducido ---
 const debugPatterns = [
-    { p: /console\.(log|debug)\s*\(/, m: 'console.log/debug en codigo fuente' },
-    { p: /^\s*debugger\b/m,           m: 'sentencia debugger' },
-    { p: /(?<![\w$])dd\s*\(/,         m: 'dd() de depuracion' },
-    { p: /\bvar_dump\s*\(/,           m: 'var_dump()' },
-    { p: /(?<![\w$])ray\s*\(/,        m: 'ray() de depuracion' },
+    { p: /console\.(log|debug)\s*\(/, m: 'hygiene.d.console' },
+    { p: /^\s*debugger\b/m,           m: 'hygiene.d.debugger' },
+    { p: /(?<![\w$])dd\s*\(/,         m: 'hygiene.d.dd' },
+    { p: /\bvar_dump\s*\(/,           m: 'hygiene.d.varDump' },
+    { p: /(?<![\w$])ray\s*\(/,        m: 'hygiene.d.ray' },
 ];
 for (const pair of pairs) {
     for (const dp of debugPatterns) {
         // solo el código: un string o un comentario que la MENCIONA no es una llamada de depuración
         const hit = testIntroduced(dp.p, pair[0], pair[1], { strings: true, almohadilla: /\.php$/i.test(file) });
         if (hit) {
-            process.stderr.write(`[BLOQUEADO por Senzu] Estas introduciendo ${dp.m}: '${hit}'. Usa el logger del proyecto o eliminalo antes de guardar. Si es intencional (script CLI), anade 'senzu-allow' como comentario en esa linea.\n`);
+            process.stderr.write(msg('hygiene.debug', lang, { m: msg(dp.m, lang), hit }) + '\n');
             process.exit(2);
         }
     }
@@ -81,21 +83,20 @@ for (const pair of pairs) {
 
 // --- 1b. Olor a IA (lista negra global de ui-ux-pro-max references/es/anti-ia.md) ---
 const aiSlopPatterns = [
-    { p: /agenda (abierta|disponible)|slots? (disponibles?|libres?)|disponible para (nuevos )?proyectos/i, m: 'un badge de disponibilidad ("agenda abierta", "slots disponibles"): urgencia falsa que delata web hecha con IA' },
-    { p: /(^|[>\s"'])0\d\s*[—–-]\s*[A-ZÁÉÍÓÚ]/m, m: 'numeracion de secciones ("02 — TRABAJOS"): el tic mas reconocible del portfolio-IA' },
+    { p: /agenda (abierta|disponible)|slots? (disponibles?|libres?)|disponible para (nuevos )?proyectos/i, m: 'hygiene.ai.badge' },  // senzu-allow: patron del muro, no contenido de web
+    { p: /(^|[>\s"'])0\d\s*[—–-]\s*[A-ZÁÉÍÓÚ]/m, m: 'hygiene.ai.numbering' },
 ];
 for (const pair of pairs) {
     for (const ap of aiSlopPatterns) {
         const hit = testIntroduced(ap.p, pair[0], pair[1]);
         if (hit) {
-            process.stderr.write(`[BLOQUEADO por Senzu] Estas introduciendo ${ap.m}: '${hit}'. Lista negra: ui-ux-pro-max references/es/anti-ia.md (que usar en su lugar). Solo si el USUARIO lo pidio por su nombre: anade 'senzu-allow' en esa linea y anotalo en gustos.md.\n`);
+            process.stderr.write(msg('hygiene.aiSlop', lang, { m: msg(ap.m, lang), hit }) + '\n');
             process.exit(2);
         }
     }
 }
 
 // --- 2. Vetos de gustos.md (términos entre acentos graves bajo "## No") ---
-const root = projectRoot();
 const gustos = findFirstFile(ruta(root, 'design-system'), 'gustos.md');
 if (gustos) {
     let txt = '';
@@ -109,7 +110,7 @@ if (gustos) {
             const pat = new RegExp(v.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
             const hit = testIntroduced(pat, pair[0], pair[1]);
             if (hit) {
-                process.stderr.write(`[BLOQUEADO por Senzu] '${v}' esta VETADO por el cliente en ${path.relative(root, gustos).replace(/\\/g, '/')} (seccion No): '${hit}'. No se re-propone un veto sin preguntar explicitamente al usuario.\n`);
+                process.stderr.write(msg('hygiene.veto', lang, { v, gustos: path.relative(root, gustos).replace(/\\/g, '/'), hit }) + '\n');
                 process.exit(2);
             }
         }
