@@ -266,6 +266,37 @@ export const CAT = {
         en: 'Use environment variables (.env, config) and never commit credentials. If it is an example value, use a clear placeholder (xxx, your-key, <API_KEY>).',
         es: 'Usa variables de entorno (.env, config) y nunca commitees credenciales. Si es un valor de ejemplo, usa un placeholder claro (xxx, your-key, <API_KEY>).',
     },
+
+    // --- backend-guard: muros de backend (bloqueos; la AVISO de transacciones es additionalContext, no se traduce) ---
+    'backend.lineLine': { en: "Line: '{linea}'", es: "Línea: '{linea}'" },
+    'backend.allowLine': {
+        en: "If the user approved it explicitly, add 'senzu-allow' with the reason on that line and note it in the devlog.",
+        es: "Si el usuario lo ha aprobado explícitamente, añade 'senzu-allow' con el motivo en esa línea y anótalo en el devlog.",
+    },
+    'backend.migDestructive': {
+        en: 'Destructive migration (dropping or renaming columns or tables) in the part that runs on migrate. In production it loses data or breaks the version still deployed. Do expand → migrate data → contract in separate deploys (code-quality references/database-design.md, safe migrations) and confirm with the user that there is a backup.',
+        es: 'Migración destructiva (borrar o renombrar columnas o tablas) en la parte que se aplica al migrar. En producción pierde datos o rompe la versión que sigue desplegada. Haz expandir → migrar datos → contraer en despliegues separados (code-quality references/database-design.md, migraciones seguras) y confirma con el usuario que hay backup.',
+    },
+    'backend.migNoDown': {
+        en: 'Migration with no way back: {faltaDown}. Without a down() that undoes the up() there is no rollback when the deploy fails. Write the down() that reverts exactly the up() (code-quality references/database-design.md). If it is irreversible on purpose (deleting data), tell the user and add a «senzu-allow: irreversible because…» comment in the migration.',
+        es: 'Migración sin vuelta atrás: {faltaDown}. Sin un down() que deshaga el up() no hay rollback cuando el despliegue falla. Escribe el down() que revierte exactamente el up() (code-quality references/database-design.md). Si es irreversible a propósito (borrado de datos), dilo al usuario y añade un comentario «senzu-allow: irreversible porque…» en la migración.',
+    },
+    'backend.envOutsideConfig': {
+        en: "env() outside config/: with cached configuration (php artisan config:cache, the normal thing in production) it returns null and fails only in production. Define the key in config/<file>.php and use config('file.key').",
+        es: "env() fuera de config/: con la configuración cacheada (php artisan config:cache, lo normal en producción) devuelve null y falla solo en producción. Define la clave en config/<archivo>.php y usa config('archivo.clave').",
+    },
+    'backend.pii': {
+        en: 'You are logging the whole request or a sensitive value (password, token, key). Logs are stored, copied and read by more people: that is a personal-data leak (GDPR). Log only identifiers and the necessary fields (code-quality references/errors-logging.md).',
+        es: 'Estás registrando en logs la petición completa o un dato sensible (contraseña, token, clave). Los logs se guardan, se copian y los lee más gente: eso es una fuga de datos personales (RGPD). Registra solo identificadores y los campos necesarios (code-quality references/errors-logging.md).',
+    },
+    'backend.massAssign': {
+        en: 'Mass assignment: you save the ENTIRE request into the model. A user can send fields they should not touch (is_admin, price, user_id). Validate at the edge (FormRequest, zod, pydantic) and pass only the validated data or a DTO: $request->validated(), schema.parse(req.body), Model(**data.model_dump()) (code-quality, validation at the edge).',
+        es: 'Asignación masiva: guardas la petición ENTERA en el modelo. Un usuario puede mandar campos que no debería tocar (is_admin, precio, user_id). Valida en el borde (FormRequest, zod, pydantic) y pasa solo lo validado o un DTO: $request->validated(), schema.parse(req.body), Modelo(**datos.model_dump()) (code-quality, validación en el borde).',
+    },
+    'backend.swallowed': {
+        en: 'Swallowed error: an empty catch (or except/if err) hides the failure and turns it into corrupt data or an untraceable bug. Log it with context and rethrow it, turn it into a domain error or return a clear error response (code-quality references/errors-logging.md). If it really can be ignored, write why with senzu-allow.',
+        es: 'Error tragado: un catch (o except/if err) vacío esconde el fallo y lo convierte en un dato corrupto o en un bug imposible de rastrear. Regístralo con contexto y relánzalo, conviértelo en un error de dominio o devuelve una respuesta de error clara (code-quality references/errors-logging.md). Si de verdad se puede ignorar, escribe por qué con senzu-allow.',
+    },
 };
 
 // Devuelve el mensaje en el idioma pedido (si falta, cae a 'en' y luego a 'es'). Mantiene el tipo guardado:

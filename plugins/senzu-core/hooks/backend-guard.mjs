@@ -13,7 +13,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {
-    readHookInput, testIntroduced, soloCodigo, projectRoot, relDelProyecto, esCodigoBackend, esMigracion, testOnce, outHookJson,
+    readHookInput, testIntroduced, soloCodigo, projectRoot, relDelProyecto, esCodigoBackend, esMigracion, testOnce, outHookJson, localeUI, msg,
 } from './lib.mjs';
 
 const p = readHookInput();
@@ -33,8 +33,10 @@ if (p.tool_name === 'Write') despues = String(ti.content || '');
 else if (p.tool_name === 'Edit') despues = antes.replace(String(ti.old_string || ''), () => String(ti.new_string || ''));
 else for (const e of [].concat(ti.edits || [])) despues = despues.replace(String(e.old_string || ''), () => String(e.new_string || ''));
 
-function bloquear(msg, linea) {
-    process.stderr.write(`[BLOQUEADO por Senzu] ${msg}\nLínea: '${linea}'\nSi el usuario lo ha aprobado explícitamente, añade 'senzu-allow' con el motivo en esa línea y anótalo en el devlog.\n`);
+const lang = localeUI(root);
+function bloquear(id, linea, vars) {
+    process.stderr.write(msg('guard.prefix', lang) + ' ' + msg(id, lang, vars) + '\n'
+        + msg('backend.lineLine', lang, { linea }) + '\n' + msg('backend.allowLine', lang) + '\n');
     process.exit(2);
 }
 
@@ -46,16 +48,12 @@ if (esMigracion(rel) || /(database\/migrations|migrations|alembic\/versions|pris
     const parteUp = t => t.split(/(function\s+down\s*\(|def\s+downgrade\s*\(|exports\.down\b|async\s+down\s*\(|public\s+async\s+down\s*\()/i)[0];
     const destructivo = /(->dropColumn\s*\(|->renameColumn\s*\(|Schema::(drop|dropIfExists|rename)\s*\(|->dropIfExists\s*\(|\bDROP\s+(TABLE|COLUMN)\b|\bRENAME\s+(COLUMN|TO)\b|op\.drop_(column|table)\s*\(|new_column_name\s*=|\.dropColumn\s*\(|\.dropTable\s*\(|\.renameColumn\s*\()/i;
     const hit = testIntroduced(destructivo, parteUp(despues), parteUp(antes), COD);
-    if (hit) bloquear('Migración destructiva (borrar o renombrar columnas o tablas) en la parte que se aplica al migrar. '
-        + 'En producción pierde datos o rompe la versión que sigue desplegada. Haz expandir → migrar datos → contraer en despliegues '
-        + 'separados (code-quality references/database-design.md, migraciones seguras) y confirma con el usuario que hay backup.', hit);
+    if (hit) bloquear('backend.migDestructive', hit);
 
     // 4. Sin vuelta atrás: up() sin down() honesto. Solo si lo introduce este cambio (archivo nuevo o down que se vacía).
     const faltaDown = sinVueltaAtras(despues);
     if (faltaDown && !sinVueltaAtras(antes || 'x') && !/senzu-allow/i.test(despues)) {
-        bloquear(`Migración sin vuelta atrás: ${faltaDown}. Sin un down() que deshaga el up() no hay rollback cuando el despliegue `
-            + 'falla. Escribe el down() que revierte exactamente el up() (code-quality references/database-design.md). Si es irreversible '
-            + 'a propósito (borrado de datos), dilo al usuario y añade un comentario «senzu-allow: irreversible porque…» en la migración.', faltaDown);
+        bloquear('backend.migNoDown', faltaDown, { faltaDown });
     }
 }
 
@@ -90,32 +88,25 @@ function sinVueltaAtras(txt) {
 // 2. env() fuera de config/ (Laravel)
 if (/\.php$/i.test(file) && !/(^|\/)config\//i.test(file)) {
     const hit = testIntroduced(/(?<![\w>$:])env\s*\(\s*['"]/, despues, antes, COD);
-    if (hit) bloquear('env() fuera de config/: con la configuración cacheada (php artisan config:cache, lo normal en producción) '
-        + 'devuelve null y falla solo en producción. Define la clave en config/<archivo>.php y usa config(\'archivo.clave\').', hit);
+    if (hit) bloquear('backend.envOutsideConfig', hit);
 }
 
 // 3. Datos personales en logs
 const pii = /((Log::\w+|logger\s*\(|->(info|debug|warning|error|notice)\s*\()[^\n]*\$request->(all|input)\s*\(\s*\)|(logger|log|console)\.(info|debug|warn|error|log)\s*\([^\n]*\breq\.(body|headers|query)\b|(logger|logging|log)\.\w+\s*\([^\n]*\brequest\.(json|body|form|headers|data)\b|(Log::\w+|logger\s*\(|\blog(ger)?\.\w+\s*\()[^\n]*(password|contrase[nñ]a|passwd|api[_-]?key|access[_-]?token|secret)\b)/i;
 const hitPii = testIntroduced(pii, despues, antes, COD);
-if (hitPii) bloquear('Estás registrando en logs la petición completa o un dato sensible (contraseña, token, clave). '
-    + 'Los logs se guardan, se copian y los lee más gente: eso es una fuga de datos personales (RGPD). '
-    + 'Registra solo identificadores y los campos necesarios (code-quality references/errors-logging.md).', hitPii);
+if (hitPii) bloquear('backend.pii', hitPii);
 
 if (!esCodigoBackend(rel)) process.exit(0);
 
 // 5. Asignación masiva: la request entera al modelo
 const masiva = /((::|->)(create|update|fill|forceFill|forceCreate|updateOrCreate|firstOrCreate|firstOrNew|insert|upsert)\s*\(\s*(\$request->(all|input)\(\s*\)|request\(\)->all\(\s*\)|\$_(POST|REQUEST))|\.(create|update|insert|save|upsert|createMany|updateMany|insertOne|updateOne|findOneAndUpdate|findByIdAndUpdate|build|merge)\s*\(\s*(\{\s*data\s*:\s*)?(req|request|ctx\.request)\.body\s*[),}]|Object\.assign\(\s*[\w.]+\s*,\s*(req|request)\.body\s*\)|\w+\(\s*\*\*\s*(await\s+)?request\.(json\(\s*\)|data|POST|form|get_json\(\s*\)))/;
 const hitMasiva = testIntroduced(masiva, despues, antes, COD);
-if (hitMasiva) bloquear('Asignación masiva: guardas la petición ENTERA en el modelo. Un usuario puede mandar campos que no debería tocar '
-    + '(is_admin, precio, user_id). Valida en el borde (FormRequest, zod, pydantic) y pasa solo lo validado o un DTO: '
-    + '$request->validated(), schema.parse(req.body), Modelo(**datos.model_dump()) (code-quality, validación en el borde).', hitMasiva);
+if (hitMasiva) bloquear('backend.massAssign', hitMasiva);
 
 // 6. Errores tragados
 const tragado = /(catch\s*(\([^)]*\))?\s*\{\s*\}|\bexcept\b[^:\n]*:\s*pass\b|if\s+err\s*!=\s*nil\s*\{\s*\})/;
 const hitTragado = testIntroduced(tragado, despues, antes, { strings: true, almohadilla: COD.almohadilla });
-if (hitTragado) bloquear('Error tragado: un catch (o except/if err) vacío esconde el fallo y lo convierte en un dato corrupto o en un '
-    + 'bug imposible de rastrear. Regístralo con contexto y relánzalo, conviértelo en un error de dominio o devuelve una respuesta '
-    + 'de error clara (code-quality references/errors-logging.md). Si de verdad se puede ignorar, escribe por qué con senzu-allow.', hitTragado);
+if (hitTragado) bloquear('backend.swallowed', hitTragado);
 
 // 7. AVISO: varias escrituras en la misma función sin transacción
 const ESCRIBE = /(->save\(|::create\(|->create\(|->update\(|->delete\(|::insert\(|->insert\(|::destroy\(|->attach\(|->detach\(|->sync\(|->increment\(|->decrement\(|::updateOrCreate\(|->forceDelete\(|\b(prisma|db|knex|em|manager|queryRunner|repo|repository|\w+Repo|\w+Repository|\w+Model|this\.\w+)(\.\w+)?\s*\.\s*(create|update|delete|insert|save|upsert|destroy|createMany|updateMany|deleteMany|insertOne|insertMany|updateOne|deleteOne|remove)\s*\(|\b[A-Z]\w*\.(create|insertMany|updateOne|updateMany|deleteOne|deleteMany|findOneAndUpdate)\s*\(|\.save\(\)|objects\.(create|bulk_create|update_or_create|get_or_create)\(|session\.(add|delete|merge)\()/g;
