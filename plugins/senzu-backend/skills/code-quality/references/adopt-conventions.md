@@ -17,7 +17,9 @@ Lee esto y toma notas con ejemplos literales (archivo:línea):
   servicios, componentes de UI, un test. En cada uno: naming (clases, métodos, variables, archivos, tablas y
   columnas), estructura de carpetas, imports (alias `@/` u rutas relativas), manejo de errores, formato de
   respuesta API (envelope? códigos?), validación (FormRequest vs inline; zod vs manual), inyección de
-  dependencias, idioma de nombres y comentarios (¡ES o EN!).
+  dependencias. **Idioma, en tres ejes distintos** (no los mezcles): (a) **identificadores** técnicos
+  (clases, funciones, variables, archivos); (b) **términos de dominio** del negocio (¿`Invoice` o
+  `Factura`?, ¿`customer` o `cliente`?); (c) **comentarios**. Anota qué idioma real tiene cada eje.
 - **Front**: CSS (Tailwind / BEM / CSS Modules / styled), librería de componentes, gestión de estado,
   cómo se nombran y organizan los componentes (`PascalCase.vue`? carpetas por feature?).
 - **Tests**: framework, ubicación (`tests/` espejo vs junto al código), naming (`it('...')` en qué idioma), factories.
@@ -26,17 +28,41 @@ Lee esto y toma notas con ejemplos literales (archivo:línea):
 ## 3. Entrevista (máx. 5 preguntas)
 Pregunta SOLO lo ambiguo o contradictorio (el resto se deduce de la evidencia), siempre con propuesta:
 "Veo X en unos sitios e Y en otros: ¿cuál fijamos? Propongo X (mayoría / más reciente)". Típicas:
-convención dominante cuando hay mezcla, idioma oficial del código, si lo nuevo debe seguir el patrón viejo
-o hay migración en curso (p. ej. Options API → Composition), y qué partes del código NO tocar.
+convención dominante cuando hay mezcla, si lo nuevo debe seguir el patrón viejo o hay migración en curso
+(p. ej. Options API → Composition), y qué partes del código NO tocar.
+
+**Idioma (pregúntalo siempre, cada eje con su propuesta):**
+- **Identificadores técnicos → inglés.** Es la práctica recomendada por Senzu y encaja con el ecosistema
+  (`fs`, `Request`, `repository`, `handler`): propón inglés y séllalo. Excepción: si el proyecto EXISTENTE
+  ya es consistente en otro idioma, gana la consistencia (es el principio de `/adoptar`); si está mezclado,
+  propón consolidar a inglés de aquí en adelante y dilo en el devlog.
+- **Términos de dominio → el idioma del negocio.** El lenguaje ubicuo manda: si el negocio dice "factura",
+  el código dice `Factura`, no `Invoice` (lo enseña `ddd-hexagonal`). Detecta el idioma del dominio del
+  código y confírmalo; no traduzcas el negocio para uniformar.
+- **Comentarios → pregunta** (propuesta: el idioma del equipo, por defecto el del producto).
+- **Devlog y memoria → pregunta** (propuesta: el idioma del equipo). Afecta a lo que escribe la skill `devlog`.
+- **Mensajes de commit → confírmalo** del `git log` (Conventional ≤72 sin co-autores aplica igual, §6).
 
 ## 4. Salida: dos archivos en la raíz
 **`senzu/conventions.md`** (humano, fuente de verdad): secciones Naming · Estructura · Backend · Front · Tests ·
-Git e idioma · Zonas intocables. Cada convención = regla + ejemplo real del proyecto. Encabezado obligatorio:
+Git · **Idioma** · Zonas intocables. Cada convención = regla + ejemplo real del proyecto. Encabezado obligatorio:
 
 ```markdown
 # Convenciones del proyecto (adoptadas con /adoptar)
 <!-- senzu:inmutable -->
 Analizado el YYYY-MM-DD sobre <n> archivos. Estas convenciones GANAN a las preferencias de Senzu.
+```
+
+La sección **Idioma** es obligatoria y separa los tres ejes (más commits y producto), con ejemplo real:
+
+```markdown
+## Idioma
+- Identificadores (clases, funciones, variables, archivos): **inglés** — ej. `OrderRepository`, `sendInvoice()`.
+- Términos de dominio (lenguaje ubicuo): **<idioma del negocio>** — ej. `Factura`, `Pedido`, `Cliente`.
+- Comentarios: **<ES|EN>**.
+- Devlog y memoria: **<ES|EN>**.
+- Mensajes de commit: **<ES|EN>**, Conventional ≤72 sin co-autores.
+- Textos de cara al usuario (UI, errores visibles): **<idioma del producto>**.
 ```
 
 **`senzu/conventions.json`** (ejecutable, lo lee el hook `conventions-guard` en cada edición): reglas de veto
@@ -72,7 +98,8 @@ Solo convierte en regla lo **regexeable sin falsos positivos** (3–8 reglas); e
 Sin código no hay evidencia que analizar: las convenciones se DEFINEN preguntando, no se inventan.
 - **5–7 preguntas, una a una, cada una con propuesta por defecto** (para poder responder "ok" y seguir).
   No preguntes lo que ya diga el brief, el stack o Senzu (commits, seguridad: eso ya está fijado):
-  1. Idioma del código y los comentarios (propuesta: código en inglés, comentarios/UI en español).
+  1. Idioma por ejes (propuesta: **identificadores en inglés**; **términos de dominio** en el idioma del
+     negocio; comentarios, devlog y commits en el idioma del equipo; UI en el del producto). Ver "Idioma" en §4.
   2. Naming de archivos y componentes según el stack (propuesta: la convención oficial del framework).
   3. Dónde vive la lógica (propuesta del stack: servicios/actions finos, nada en controladores/páginas).
   4. Validación de entrada (propuesta según stack: FormRequests / zod / class-validator).

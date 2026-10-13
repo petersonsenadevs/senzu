@@ -111,13 +111,14 @@ function Get-HooksBody {
     $hookInfo = [ordered]@{
         'session-start.mjs'        = @('SessionStart', 'Inyecta estado: si Senzu está DESACTUALIZADO (qué hacer y qué se pierde, de core/novedades.json), stack/perfil, el SIGUIENTE PASO del método que falta (/instalar, /adoptar; sin plan, saber qué se hace o preguntarlo), idioma, diario propio detectado, versiones con aviso EOL, convenciones adoptadas, git, design system, plan, devlog y protocolo de skills.')
         'prompt-router.mjs'        = @('UserPromptSubmit', 'Sugiere la skill que encaja con la petición (señales de docs/skills.md), una vez por skill y sesión.')
-        'guard.mjs'                = @('PreToolUse Bash/PowerShell', 'Mira lo que se EJECUTA, no lo citado (mensajes de commit, heredocs a un archivo, echo, grep). BLOQUEA: git push, escribir, mover, borrar o restaurar las convenciones selladas desde la terminal (sin escape para el agente), destructivos de BD/git, rm -rf, deploy a prod sin aprobación (escape `SENZU_ALLOW_DEPLOY=1`), generadores de logos con logo ya elegido (`SENZU_ALLOW_LOGO=1`), jQuery/Bootstrap (`SENZU_ALLOW_LIB=1`), devops peligroso (curl\|bash, chmod 777, dd, mkfs, docker prune, parar servicios, vaciar firewall, crontab -r); commits: rama protegida, Conventional ≤72, sin co-autores.')
+        'guard.mjs'                = @('PreToolUse Bash/PowerShell', 'Mira lo que se EJECUTA, no lo citado (mensajes de commit, heredocs a un archivo, echo, grep). BLOQUEA: git push a una rama principal, forzado o sin ver a qué rama va (a las de trabajo, sí), escribir, mover, borrar o restaurar las convenciones selladas desde la terminal (sin escape para el agente), destructivos de BD/git, rm -rf, deploy a prod sin aprobación (escape `SENZU_ALLOW_DEPLOY=1`), generadores de logos con logo ya elegido (`SENZU_ALLOW_LOGO=1`), jQuery/Bootstrap (`SENZU_ALLOW_LIB=1`), devops peligroso (curl\|bash, chmod 777, dd, mkfs, docker prune, parar servicios, vaciar firewall, crontab -r); commits: rama protegida, Conventional ≤72, sin co-autores.')
         'protect-files.mjs'        = @('PreToolUse Edit/Write', 'BLOQUEA editar: generados por Senzu, secretos (.env, *.pem, credentials), dependencias/artefactos, migraciones versionadas, conventions.md/json sellados (no se puede apagar), maestros del logo elegido (logos/final/) y `protectedPaths` del proyecto.')
         'secrets-guard.mjs'        = @('PreToolUse Edit/Write', 'BLOQUEA escribir credenciales reales (AWS, GitHub, Stripe, OpenAI/Anthropic, PEM, JWT, cadenas con password); ignora placeholders.')
         'code-hygiene.mjs'         = @('PreToolUse Edit/Write', 'BLOQUEA introducir (no en scripts de la carpeta temporal del agente): console.log/debugger/dd()/var_dump/ray, términos vetados en `gustos.md` §No, marcadores de conflicto de git, `.only`/`.skip`/xit en tests, y la lista negra anti-IA (badges de disponibilidad, numeración de secciones). Escape puntual: comentario `senzu-allow`.')
         'conventions-guard.mjs'    = @('PreToolUse Edit/Write', 'BLOQUEA código que viole las reglas ejecutables de `conventions.json` (/adoptar): la convención del proyecto gana. No se puede apagar. La ruta se normaliza (C:\, C:/, /c/ de Git Bash, relativa) antes de aplicar las reglas.')
         'arquitectura-guard.mjs'   = @('PreToolUse Edit/Write', 'Solo si el proyecto DECLARA su arquitectura (senzu/arquitectura/capas.json, de /adoptar o /plan). BLOQUEA lo que introduce: una capa que usa otra que no puede (dominio con framework u ORM, aplicación con HTTP), un contexto de DDD que usa otro por dentro y el controlador que habla con la base de datos. AVISA del array de la petición pasado en vez de un DTO y del código nuevo fuera de las carpetas declaradas. Imports reales: use + PSR-4, import + alias de tsconfig, módulos de Python. No se puede apagar.')
         'backend-guard.mjs'        = @('PreToolUse Edit/Write', 'BLOQUEA introducir: migraciones destructivas en la parte que se aplica (borrar o renombrar columnas o tablas: patrón expandir → contraer), `env()` fuera de `config/` en Laravel, datos personales en logs (request completa, cuerpos, contraseñas o tokens), migraciones sin down() honesto, asignación masiva (la request entera al modelo) y errores tragados (catch vacío, except: pass). AVISA de varias escrituras en la misma función sin transacción. Escape: `senzu-allow` con el motivo.')
+        'pool-guard.mjs'           = @('PreToolUse Edit/Write', 'AVISA (no bloquea; una vez por archivo y sesión) de lo que agota el pool de conexiones a la BD en Node/TS y Python: `new PrismaClient()` sin singleton global (en serverless abre una conexión por invocación), y crear un pool/cliente/engine dentro de código por petición (rutas, controladores, endpoints). PHP-FPM queda fuera. Receta: `code-quality/references/database-design.md` (§Conexiones y pool).')
         'back-skill-reminder.mjs'  = @('PreToolUse Edit/Write (backend)', 'Primera edición de backend en la sesión: recuerda la receta del stack, las convenciones selladas y la versión real del framework. No bloquea.')
         'depurar-coach.mjs'        = @('PostToolUse Bash/PowerShell', 'Si falla un test, build o verificación que se EJECUTA (no al leer un archivo de test), activa el método de la skill depurar (reproducir, test que falla, hipótesis, acotar, arreglar la causa). Como mucho una vez cada 20 minutos.')
         'front-skill-reminder.mjs' = @('PreToolUse Edit/Write (front)', 'Primera edición de UI: BLOQUEA una vez si no hay design system NI brief (obliga a preguntar); después recuerda ui-ux-pro-max, el set de iconos del MASTER y las reglas duras de UI.')
@@ -134,6 +135,7 @@ function Get-HooksBody {
         'pre-compact.mjs'          = @('PreCompact', 'Re-inyecta lo esencial (stack, versiones, design system, plan, reglas) para sobrevivir a la compactación de contexto.')
         'session-end.mjs'          = @('SessionEnd', 'Limpia los marcadores de sesión.')
         'lib.mjs'                  = $null
+        'messages.mjs'             = $null
     }
     $L.Add('| Hook | Evento | Qué hace |')
     $L.Add('|---|---|---|')
@@ -221,7 +223,7 @@ if (Test-Path $readmePath) {
     $md = Read-Utf8 $readmePath
     $nSkills = @($script:Registry.skills).Count
     $nStacks = @(Get-ChildItem (Join-Path $root 'stacks') -Directory).Count
-    $nHooks = @(Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | Where-Object { $_.Name -ne 'lib.mjs' }).Count
+    $nHooks = @(Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | Where-Object { $_.Name -ne 'lib.mjs' -and $_.Name -ne 'messages.mjs' }).Count
     $nCmds = @(Get-ChildItem (Join-Path $root 'core\commands') -Filter *.md).Count
     $nPlugins = @(Get-ChildItem (Join-Path $root 'plugins') -Directory -ErrorAction SilentlyContinue).Count
     # Misma versión que los plugins (SENZU_RELEASE o el manifiesto recién generado): el último tag aún no existe
@@ -257,6 +259,17 @@ if (Test-Path $idxPath) {
         if ($line -match '^\|\s*(\d{3})\s*\|\s*(\d{4}-\d{2}-\d{2})\s*\|\s*([^|]+?)\s*\|\s*(\w+)\s*\|') {
             $rows += [pscustomobject]@{ N = $Matches[1]; Fecha = $Matches[2]; Titulo = $Matches[3]; Tipo = $Matches[4] }
         }
+    }
+    # Lo de una rama EXPERIMENTAL (la entrada dice «rama exp/…») solo sale si esa rama ya está en el historial de
+    # HEAD (algún commit «(exp)»): un parche desde main no anuncia en el CHANGELOG público lo que no se ha publicado
+    # (el 2.19.1 se llevó las entradas 098-099 de Hemispheric; el 2.19.2 iba a llevarse de la 100 a la 129).
+    $hayExp = $false
+    try { $hayExp = [bool](& git -C $root log HEAD --grep='(exp)$' -n 1 --format='%h' 2>$null) } catch {}
+    if (-not $hayExp) {
+        $rows = @($rows | Where-Object {
+            $f = Get-ChildItem -Path (Join-Path $root "devlog\$($_.Fecha)") -Filter "$($_.N)-*.md" -ErrorAction SilentlyContinue | Select-Object -First 1
+            -not ($f -and ((Read-Utf8 $f.FullName) -match 'rama exp/'))
+        })
     }
     # El devlog es privado (no se versiona) y el CHANGELOG es público: devlog/privado.txt (también privado)
     # lista sustituciones "nombre ==> genérico" que se aplican a los títulos, para que ningún nombre de

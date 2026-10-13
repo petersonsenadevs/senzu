@@ -18,8 +18,17 @@ const lang = localeUI(root);   // idioma de la UI (en por defecto); los avisos s
 const DL = rutaRel(root, 'devlog'), PL = rutaRel(root, 'plan'), DS = rutaRel(root, 'design-system'), CV = rutaRel(root, 'conventions.md');   // rutas reales (senzu/ o antiguas)
 const sid = p && p.session_id ? String(p.session_id) : 'default';
 const plan = planStatus(root);
-let planMsg = '';
-if (plan.exists && plan.doing.length) planMsg = msg('stop.plan', lang, { pl: PL, doing: plan.doing.join('; ') });
+const dirty = gitBranch(root) ? gitDirty(root) : 0;
+// Plan y memoria van LIGADOS en el cierre: si quedan tarjetas del plan y hay código sin commitear, no se cierra a
+// ciegas (bloquea una vez, como la memoria). Si todo está committeado, o el plan está terminado, no molesta.
+let planMsg = '', planBloqueo = false;
+if (plan.exists && plan.total > 0 && plan.done < plan.total && dirty > 0) {
+    planBloqueo = true;
+    const enCurso = plan.doing.length ? msg('stop.planEnCurso', lang, { doing: plan.doing.join('; ') }) : msg('stop.planSiguiente', lang);
+    planMsg = msg('stop.planBloqueo', lang, { pl: PL, done: plan.done, total: plan.total, enCurso });
+} else if (plan.exists && plan.doing.length) {
+    planMsg = msg('stop.plan', lang, { pl: PL, doing: plan.doing.join('; ') });
+}
 // Si la sesión editó UI (marcador de front-skill-reminder), exigir la verificación con móvil primero (skill ui-verify).
 let frontMsg = '';
 if (fs.existsSync(sessionFlag(sid, 'frontedit'))) {
@@ -116,7 +125,8 @@ if (today.length) {
     const sinRegistrar = logosSinRegistrar(root);
     if (sinRegistrar.length) memMsg += msg('stop.logo', lang, { logos: sinRegistrar.map(l => l.maestro).join(', ') });
     const bloqueaLogos = sinRegistrar.length && !alreadyActive && testOnce(sid, 'stop-logos');
-    if (bloqueaUi || bloqueaMem || bloqueaLogos) {
+    const bloqueaPlan = planBloqueo && !alreadyActive && testOnce(sid, 'stop-plan');
+    if (bloqueaUi || bloqueaMem || bloqueaLogos || bloqueaPlan) {
         process.stdout.write(JSON.stringify({ decision: 'block', reason: '[senzu]' + buildMsg + frontMsg + memMsg + planMsg + extra }) + '\n');
         process.exit(0);
     }
@@ -124,8 +134,6 @@ if (today.length) {
     process.exit(0);
 }
 
-let dirty = 0;
-if (gitBranch(root)) dirty = gitDirty(root);
 const date = todayStr();
 const reason = msg('stop.noDevlog', lang, { dirty, dl: DL, date }) + buildMsg + frontMsg + planMsg;
 

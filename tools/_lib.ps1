@@ -123,7 +123,8 @@ function Copy-Tree {
 # Lista global de comandos denegados (capa simple de permisos).
 function Get-BaseDeny {
     @(
-        "Bash(git push:*)", "PowerShell(git push:*)",
+        # git push NO va aqui (D-042): settings.json se aplica antes que los hooks y bloqueaba TODO push; decide guard
+        "Bash(git push --force:*)", "Bash(git push -f:*)", "PowerShell(git push --force:*)", "PowerShell(git push -f:*)",
         "Bash(git reset --hard:*)", "PowerShell(git reset --hard:*)",
         "Bash(git clean:*)",
         "Bash(rm -rf:*)", "PowerShell(Remove-Item * -Recurse -Force:*)",
@@ -488,7 +489,7 @@ function Get-SessionSection {
 # Construye el bloque de reglas combinado (base + metodología + stack + front + skills).
 # Modo ahorro (opcional, solo en CLAUDE.md): mismo texto EXACTO que init.mjs (la suite de paridad lo compara).
 $script:AhorroDevlog = 'Documenta cada paso relevante en `senzu/devlog/<fecha>/NNN-slug.md` con la skill `devlog` (numeración global e INDEX.md al día). El hook stop-guard lo exige al cerrar la tarea.' + "`n"
-$script:AhorroGit = 'Una rama por tarea (nunca commits en main, master ni develop), Conventional Commits de 72 caracteres como máximo y sin co-autores, y nunca `git push` sin aprobación explícita. El hook guard lo hace cumplir.' + "`n"
+$script:AhorroGit = 'Una rama por tarea (nunca commits en main, master ni develop), Conventional Commits de 72 caracteres como máximo y sin co-autores, y push solo a la rama de trabajo (nunca a una principal ni forzado). El hook guard lo hace cumplir.' + "`n"
 $script:AhorroEstilo = "`n---`n`n# Modo ahorro`n`n" + 'Respuestas técnicas en estilo telegráfico: sin preámbulos ni resúmenes repetidos, frases cortas, primero el resultado y el código. Excepciones, en lenguaje normal y completo: `/brief`, `/propuestas`, `/repaso`, `/estimar` y `/entregar`, cualquier texto para el cliente y cualquier explicación que pida el usuario. Las skills cargan sus descripciones solas: abre solo la sección que necesites.' + "`n"
 
 function Get-CombinedRules {

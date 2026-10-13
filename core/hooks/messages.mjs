@@ -28,8 +28,8 @@ export const CAT = {
         es: 'Si de verdad quieres hacerlo, pídeme aprobación explícita y ejecútalo tú, o autorízalo para esta vez.',
     },
     'rule.gitPush': {
-        en: 'git push is forbidden without explicit approval. (If the user wants to allow it in this project: "permisos": { "push": true } in senzu/senzu.json; to a main branch (main, develop, staging, production, release/…), also "pushMain": true. The user decides, not the agent.)',
-        es: 'git push está prohibido sin aprobación explícita. (Si el usuario quiere permitirlo en este proyecto: "permisos": { "push": true } en senzu/senzu.json; a una rama principal (main, develop, staging, production, release/…), además "pushMain": true. Lo decide el usuario, no el agente.)',
+        en: 'This git push is not allowed: it targets a main branch (main, develop, staging, production, release/…), its target branch is not visible (inside bash -c, a heredoc, $( )…), or the project has "push": false. Work branches (feat/…, fix/…) are pushed with a plain git push. A main branch only if the user sets "pushMain": true in senzu/senzu.json (the user decides, not the agent) or pushes it themselves: ! git push …',
+        es: 'Este git push no se permite: va a una rama principal (main, develop, staging, production, release/…), no se ve a qué rama va (dentro de bash -c, un heredoc, $( )…) o el proyecto tiene "push": false. A las ramas de trabajo (feat/…, fix/…) se sube con un git push directo. A una principal, solo si el usuario pone "pushMain": true en senzu/senzu.json (lo decide el usuario, no el agente) o lo sube él: ! git push …',
     },
     'rule.gitPushForce': { en: 'git push --force is strictly forbidden.', es: 'git push --force está terminantemente prohibido.' },
     'rule.forceWithLease': { en: 'force push (--force-with-lease) forbidden.', es: 'push forzado (--force-with-lease) prohibido.' },
@@ -118,6 +118,12 @@ export const CAT = {
     'stop.plan': {
         en: ' Also there are task(s) in progress in {pl}/PLAN.md ({doing}): if you finished it, mark it done (with Verified, Meets, and the link to the devlog) and suggest /next; if not, say what is missing.',
         es: ' Ademas hay tarea(s) en curso en {pl}/PLAN.md ({doing}): si la has terminado, márcala done (con Verificado, Cumple y el enlace al devlog) y propón /siguiente; si no, di qué falta.',
+    },
+    'stop.planEnCurso': { en: 'the task in progress ({doing})', es: 'la tarea en curso ({doing})' },
+    'stop.planSiguiente': { en: 'the next card of the plan', es: 'la siguiente tarjeta del plan' },
+    'stop.planBloqueo': {
+        en: ' The plan {pl}/PLAN.md has unfinished tasks ({done}/{total}) and there is uncommitted code: close {enCurso} with its Verified, Meets and the link to the devlog, or if the work falls OUTSIDE the plan note it as an ad hoc card ("### X-Tn · <title> [S] [done]"); nothing gets done along the way without a card. If it is a trivial change, say so and close.',
+        es: ' El plan {pl}/PLAN.md tiene tareas sin terminar ({done}/{total}) y hay código sin commitear: cierra {enCurso} con su Verificado, Cumple y el enlace al devlog, o si el trabajo queda FUERA del plan apúntalo como tarjeta ad hoc («### X-Tn · <título> [S] [done]»); nada se hace por el camino sin tarjeta. Si es un cambio trivial, dilo y cierra.',
     },
     'stop.front': {
         en: " You edited UI files this session: do NOT call it done without verifying it (skill ui-verify): run 'node <skills-dir>/ui-verify/scripts/verify-ui.mjs <local-url>' (or the browser pass) STARTING WITH MOBILE 375px, fix until 0 problems and paste the result in the devlog.",

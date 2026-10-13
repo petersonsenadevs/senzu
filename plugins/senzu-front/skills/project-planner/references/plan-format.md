@@ -78,7 +78,9 @@ Formato fijo, un bloque por tarea. La primera línea es un encabezado `###` con
 
 La primera línea de cada tarjeta la parsea el hook `session-start`
 (`planStatus` en `core/hooks/lib.mjs`): **no cambies su forma**. La regex exige
-`### <id> · <título> [S|M|L] [todo|doing|blocked|done]` (el separador puede ser `·` o `-`).
+`### <id> · <título> [S|M|L] [todo|doing|blocked|done]` (el separador puede ser `·` o `-`,
+con un espacio antes). El `<id>` empieza por mayúscula y admite letras, números, `.` y `-`
+(`F1-T3a`, `X-T2` y también variantes como `A-H01`); aun así, usa el esquema de arriba.
 Un `grep '^### '` sobre el plan da el tablero completo.
 
 ## Campos de la tarjeta

@@ -25,7 +25,7 @@ if (plan.exists) L.push(`- Plan: ${PL}/PLAN.md (${plan.done}/${plan.total})` + (
 L.push(`- Siguiente numero de devlog: ${pad3(devlogNextNumber(root))}`);
 L.push(...bloqueMemoria(root, 40));
 L.push(...bloqueMemoriaUsuario(20));
-L.push('- Reglas: sin git push ni operaciones destructivas sin aprobacion; commits Conventional sin co-autor; devlog antes de cerrar.');
+L.push('- Reglas: push solo a la rama de trabajo (nunca a una principal ni forzado) y nada destructivo sin aprobacion; commits Conventional sin co-autor; devlog antes de cerrar.');
 L.push('- Skills: una por tarea, solo su seccion de lectura minima; upstream y references por secciones.');
 outHookJson('PreCompact', { additionalContext: L.join('\n') });
 process.exit(0);

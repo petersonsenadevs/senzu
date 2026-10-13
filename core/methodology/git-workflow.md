@@ -12,8 +12,9 @@
 - Cada commit debe quedar reflejado en el `senzu/devlog/` del día (hash + mensaje).
 
 ## Push
-- **PROHIBIDO** hacer `git push` sin aprobación explícita en el momento (ver prohibited-actions.md).
-- Cuando el humano apruebe el push, hacerlo solo a la rama de trabajo, nunca `--force`.
+- A la **rama de trabajo** se sube con un `git push` directo (`git push -u origin feat/…`); nunca `--force`.
+- A una **rama principal** (main, develop, staging, production, release/…), **PROHIBIDO** salvo `"pushMain": true`
+  en `senzu/senzu.json`: lo sube el humano (ver prohibited-actions.md). `"push": false` lo bloquea todo.
 
 ## Antes de commitear
 1. Correr linter + type-check + tests del stack.

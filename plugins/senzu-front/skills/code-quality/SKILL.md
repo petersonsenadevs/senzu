@@ -60,7 +60,7 @@ Completo: **`references/backend-catalog.md`** (tarea/síntoma → receta §secci
 6. **Tests que protegen comportamiento**, no implementación: happy path + errores + bordes; rápidos en dominio, integración acotada.
 7. **Seguridad por defecto**: autorización en cada acción sensible, consultas parametrizadas, secretos en entorno, dependencias auditadas.
 8. **Rendimiento medido**: sin optimizar a ciegas; N+1, índices, paginación y caché son lo primero que se revisa.
-9. **Cambios pequeños y reversibles**: PR < 400 líneas, Conventional Commits, sin co-autores, nunca `git push` sin aprobación.
+9. **Cambios pequeños y reversibles**: PR < 400 líneas, Conventional Commits, sin co-autores, push solo a la rama de trabajo (nunca a una principal ni forzado).
 10. **Verifica antes de afirmar**: lint + tests + tipos del stack (`commands` en `stack.json`) antes de decir "hecho"; pega la salida.
 
 ## Checklist de PR (bloqueante)

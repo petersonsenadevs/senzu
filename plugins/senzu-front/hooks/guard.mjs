@@ -36,6 +36,9 @@ function pushPermitido() {
     if (!permisos.push) return false;
     const pushes = c.split(/&&|\|\||;|\n/).map(s => s.trim()).filter(s => /\bgit\s+push\b/i.test(s));
     for (const s of pushes) {
+        // solo un «git push» escrito tal cual: dentro de bash -c, un heredoc, xargs o $( ) no se sabe con seguridad
+        // a qué rama va, así que no se permite (sigue bloqueado)
+        if (!/^git\s+push\b/i.test(s)) return false;
         const args = s.replace(/^.*?\bgit\s+push\b/i, '').trim().split(/\s+/).filter(Boolean);
         if (args.some(a => /^(-f|--force|--force-with-lease|--force-if-includes|--mirror|--delete|-d)(=|$)/i.test(a))) return false;
         const posicionales = args.filter(a => !a.startsWith('-'));

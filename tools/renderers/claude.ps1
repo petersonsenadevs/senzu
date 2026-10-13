@@ -9,7 +9,7 @@ function Get-HookSet {
         UserPromptSubmit = @(@{ matcher = $null; files = @('prompt-router.mjs', 'memoria-viva.mjs') })
         PreToolUse       = @(
             @{ matcher = 'Bash|PowerShell';                   files = @('guard.mjs') },
-            @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }
+            @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'pool-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }
         )
         PostToolUse      = @(@{ matcher = 'Edit|Write|MultiEdit|apply_patch'; files = @('format-on-save.mjs', 'edit-tracker.mjs') }, @{ matcher = 'Bash|PowerShell'; files = @('depurar-coach.mjs', 'feature-guard.mjs') })
         Stop             = @(@{ matcher = $null; files = @('stop-guard.mjs', 'cierre-limpio.mjs', 'feature-guard.mjs', 'estado-sesion.mjs') })
@@ -63,6 +63,8 @@ function Merge-Settings {
         if ($existing.permissions.ask)   { $ask   += @($existing.permissions.ask) }
         if ($existing.permissions.allow) { $allow += @($existing.permissions.allow) }
     }
+    # lo que puso Senzu y ya no debe estar (D-042: el push normal lo decide el hook, no settings.json)
+    $deny = @($deny | Where-Object { $_ -notin @('Bash(git push:*)', 'PowerShell(git push:*)') })
     $perm = [ordered]@{ deny = @($deny | Select-Object -Unique); ask = @($ask | Select-Object -Unique) }
     if ($allow.Count) { $perm.allow = @($allow | Select-Object -Unique) }
     $out.permissions = $perm

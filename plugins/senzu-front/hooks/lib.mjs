@@ -123,10 +123,19 @@ export function ramaProtegida(root, rama) {
     const m = getMarkerSeguro(root);
     return !!(m && Array.isArray(m.ramasProtegidas) && m.ramasProtegidas.map(x => String(x).toLowerCase()).includes(r));
 }
+// push (D-042, sustituye en parte a D-015): a las ramas de TRABAJO se sube sin configurar nada; a las principales,
+// solo con "pushMain": true. "push": false lo bloquea todo. Lo que no se entiende (marcador roto, "push": "true" en
+// texto, "permisos": true) bloquea: ante la duda, no se sube. El forzado y el borrado remoto, siempre bloqueados (guard).
 export function permisosProyecto(root) {
+    const existe = fs.existsSync(rutaMarcador(root));
     const m = getMarkerSeguro(root);
-    const p = (m && m.permisos && typeof m.permisos === 'object') ? m.permisos : {};
-    return { push: p.push === true || p.pushMain === true, pushMain: p.pushMain === true, commitEnMain: p.commitEnMain === true };
+    if (existe && !m) return { push: false, pushMain: false, commitEnMain: false };   // marcador roto
+    const tienePermisos = m && Object.prototype.hasOwnProperty.call(m, 'permisos');
+    if (tienePermisos && (!m.permisos || typeof m.permisos !== 'object' || Array.isArray(m.permisos))) return { push: false, pushMain: false, commitEnMain: false };
+    const p = tienePermisos ? m.permisos : {};
+    const pushMain = p.pushMain === true;
+    const push = pushMain || (p.push === undefined ? true : p.push === true);
+    return { push, pushMain, commitEnMain: p.commitEnMain === true };
 }
 export function hookApagado(root, nombre) {
     if (HOOKS_NO_APAGABLES.includes(nombre)) return false;
@@ -615,7 +624,10 @@ export function planStatus(root) {
     if (txt === null) return r;
     r.exists = true;
     for (const line of txt.split(/\r?\n/)) {
-        const m = /^###\s+([A-Z]+\d*-T\d+[a-z]?)\s*[·\-]\s*(.+?)\s*\[(S|M|L)\]\s*\[(todo|doing|blocked|done)\]/.exec(line);
+        // ID: letra inicial + letras/números/./- (F1-T1, F1-T3a, X-T2, pero también los que improvisa el
+        // planner: A-H01, A-H01d3b2, A-H0608). Se exige espacio ANTES del separador para no partir el guion
+        // interno del propio ID (si no, «A-H01 ·» se leería como id «A» y título «H01 · …»).
+        const m = /^###\s+([A-Z][\w.-]*?)\s+[·\-]\s*(.+?)\s*\[(S|M|L)\]\s*\[(todo|doing|blocked|done)\]/.exec(line);
         if (m && !/^(…|\.\.\.|<)/.test(m[2])) {   // las tarjetas de ejemplo de la plantilla («X-T1 …», «<Verbo + objeto>») no cuentan
             r.total++;
             const [, id, title, , st] = m;

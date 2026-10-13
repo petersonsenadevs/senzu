@@ -5,7 +5,9 @@ Se refuerzan por dos capas: (1) `permissions.deny` en settings y (2) hooks que i
 
 ## NUNCA sin que yo lo apruebe explícitamente en el momento
 
-1. **`git push`** (a cualquier remoto/rama). Preparar el commit sí; empujar NO.
+1. **`git push` a una rama principal** (main, master, develop, staging, production, release/…): solo con
+   `"pushMain": true` en `senzu/senzu.json` o lo sube el humano. A las ramas de trabajo (feat/…, fix/…) sí se sube
+   con un `git push` directo (D-042); `"push": false` en el marcador lo bloquea todo.
 2. **`git push --force` / `--force-with-lease`** — jamás, ni con aprobación casual.
 3. **Borrados/alteraciones destructivas en base de datos**:
    - `DROP DATABASE`, `DROP TABLE`, `DROP SCHEMA`, `TRUNCATE`.
