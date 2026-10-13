@@ -11,7 +11,7 @@
 
 import os from 'node:os';
 import { execFileSync } from 'node:child_process';
-import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida, convencionesSelladas, relDelProyecto, rutaNativa, sinTextoCitado } from './lib.mjs';
+import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida, convencionesSelladas, relDelProyecto, rutaNativa, sinTextoCitado, localeUI, msg } from './lib.mjs';
 
 const p = readHookInput();
 if (!p) process.exit(0);
@@ -149,10 +149,7 @@ if (/\bgit\s+commit\b/i.test(c)) {
 if (envSenzu('ALLOW_DEPLOY') !== '1') {
     const deployPat = /(netlify\s+deploy(?=.*--prod))|(\bvercel\b(?=.*--prod))|(\bfly\s+deploy\b)|(\bwrangler\s+(deploy|publish)\b(?!.*--env[= ](dev|preview)))/i;
     if (deployPat.test(c)) {
-        deny([
-            '[BLOQUEADO por Senzu] Deploy a PRODUCCION detectado. Requiere aprobacion explicita del usuario en este momento (checklist /desplegar: backup fresco verificado + plan de rollback + smoke posterior).',
-            'Con la aprobacion recibida: reintenta con SENZU_ALLOW_DEPLOY=1 y documenta la aprobacion y el resultado en el devlog. Los deploys de preview (sin --prod) pasan sin muro.',
-        ]);
+        deny(msg('deploy.block', localeUI(root)));
     }
 }
 

@@ -150,6 +150,7 @@ export function localeUI(root) {
     const marker = m && norm(m.lang);
     return marker || 'en';
 }
+export { msg } from './messages.mjs';   // catalogo de mensajes de UI por idioma (ver messages.mjs)
 
 export function readHookInput() {
     const p = leerEntradaCruda();

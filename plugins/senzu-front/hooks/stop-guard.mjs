@@ -6,13 +6,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, planStatus, sessionFlag, projectFlag, testOnce, todayDevlog, devlogIndexed, hookConfig, gitBranch, gitDirty, todayStr, memoriaProyecto, seccionMd, tieneContenido, readText, ruta, rutaRel, logosSinRegistrar,
+    readHookInput, projectRoot, planStatus, sessionFlag, projectFlag, testOnce, todayDevlog, devlogIndexed, hookConfig, gitBranch, gitDirty, todayStr, memoriaProyecto, seccionMd, tieneContenido, readText, ruta, rutaRel, logosSinRegistrar, localeUI, msg,
 } from './lib.mjs';
 
 const p = readHookInput();
 // Recordatorio sin bloquear. Codex exige JSON en la salida del Stop (el texto plano es invalido); Claude
 // muestra systemMessage al usuario. Mismo formato para los dos.
-const recordar = msg => process.stdout.write(JSON.stringify({ systemMessage: msg }) + '\n');
+const recordar = texto => process.stdout.write(JSON.stringify({ systemMessage: texto }) + '\n');
 const root = projectRoot();
 const DL = rutaRel(root, 'devlog'), PL = rutaRel(root, 'plan'), DS = rutaRel(root, 'design-system'), CV = rutaRel(root, 'conventions.md');   // rutas reales (senzu/ o antiguas)
 const sid = p && p.session_id ? String(p.session_id) : 'default';
@@ -33,7 +33,7 @@ if (fs.existsSync(ceFlag)) {
     let stale = true;
     try { stale = !fs.existsSync(vfFlag) || fs.statSync(vfFlag).mtimeMs < fs.statSync(ceFlag).mtimeMs; } catch {}
     if (stale) {
-        buildMsg = " Has editado codigo y NO hay verificacion posterior: ejecuta 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (corre lint/types/tests/build del stack y deja constancia) o los comandos del stack a mano, corrige los fallos y pega el resultado antes de cerrar.";
+        buildMsg = ' ' + msg('stop.verifyBuild', localeUI(root));
     }
 }
 // Guardia de assets: imágenes pesadas, fuentes sin woff2 y vídeos grandes añadidos en las últimas 24 h.

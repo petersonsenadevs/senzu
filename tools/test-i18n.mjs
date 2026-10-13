@@ -46,6 +46,18 @@ const valores = Object.values(mapa);
 ok(new Set(valores).size === valores.length, 'los nombres en ingles no colisionan');
 ok(valores.every(v => /^[a-z][a-z0-9-]*$/.test(v)), 'los nombres en ingles son slugs validos (minusculas, guiones)');
 
+// 4. msg(): catalogo de mensajes por idioma (piloto deploy + verify-build)
+const dep = lib.msg('deploy.block', 'es');
+ok(Array.isArray(dep) && dep.length === 2, 'deploy.block es -> array de 2 lineas');
+ok(dep[0] === '[BLOQUEADO por Senzu] Deploy a PRODUCCION detectado. Requiere aprobacion explicita del usuario en este momento (checklist /desplegar: backup fresco verificado + plan de rollback + smoke posterior).', 'deploy.block es[0] byte a byte igual al inline anterior');
+ok(dep[1] === 'Con la aprobacion recibida: reintenta con SENZU_ALLOW_DEPLOY=1 y documenta la aprobacion y el resultado en el devlog. Los deploys de preview (sin --prod) pasan sin muro.', 'deploy.block es[1] byte a byte igual al inline anterior');
+ok(/Production deploy detected/.test(lib.msg('deploy.block', 'en')[0]) && lib.msg('deploy.block', 'en')[0] !== dep[0], 'deploy.block en es ingles y distinto del es');
+ok(lib.msg('deploy.block', 'fr')[0] === lib.msg('deploy.block', 'en')[0], 'idioma desconocido cae a ingles');
+ok(lib.msg('stop.verifyBuild', 'es') === "Has editado codigo y NO hay verificacion posterior: ejecuta 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (corre lint/types/tests/build del stack y deja constancia) o los comandos del stack a mano, corrige los fallos y pega el resultado antes de cerrar.", 'stop.verifyBuild es byte a byte igual al inline anterior');
+ok(/You edited code/.test(lib.msg('stop.verifyBuild', 'en')), 'stop.verifyBuild en es ingles');
+ok(lib.msg('no.existe', 'en') === '?no.existe?', 'id inexistente -> marcador visible (no revienta)');
+ok(lib.msg('deploy.block', 'es', { x: 1 })[0] === dep[0], 'vars sin placeholders no altera el mensaje');
+
 for (const d of temporales) { try { fs.rmSync(d, { recursive: true, force: true }); } catch {} }
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
 process.exit(fallos ? 1 : 0);
