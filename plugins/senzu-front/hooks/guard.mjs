@@ -23,6 +23,7 @@ if (!cmd.trim()) process.exit(0);
 // El mensaje del commit (formato, Co-Authored-By) se valida sobre el comando original, cmd.
 const c = sinTextoCitado(cmd);
 const root = projectRoot();
+const lang = localeUI(root);   // idioma de la UI del proyecto (en por defecto); los mensajes salen por msg(id, lang)
 const permisos = permisosProyecto(root);
 // ramas principales (main, staging, production…): lista única en lib.mjs (ramaProtegida)
 function ramaActual() {
@@ -94,22 +95,21 @@ function escribeEn(cmdTxt, archivo) {
     return limpio.split(/&&|\|\||;|\n|\|/).some(s => archivo.test(s) && VERBOS_ESCRIBEN.test(s));
 }
 if (escribeEn(c, /\.dev-standards\.json|\bsenzu\.json\b/i)) {
-    deny(['[BLOQUEADO por Senzu] El marcador del proyecto (senzu/senzu.json) guarda los permisos del proyecto y solo lo cambia el usuario (o el instalador lanzado por el usuario). Léelo si lo necesitas, pero no lo escribas.']);
+    deny([msg('marker.block', lang)]);
 }
 // --- Convenciones SELLADAS (/adoptar): tampoco desde la terminal ---
 // protect-files para las ediciones; esto, para los comandos (sed -i, >, rm, mv, Set-Content, git checkout…).
 // No hay escape para el agente: si el usuario decide cambiarlas, lo hace él (o las borra y re-ejecuta /adoptar).
 if (/\bconventions\.(md|json)\b|\bcapas\.json\b/i.test(c) && convencionesSelladas(root) && escribeEn(c, /\bconventions\.(md|json)\b|\bcapas\.json\b/i)) {
-    deny(['[BLOQUEADO por Senzu] Las convenciones del proyecto están SELLADAS como inmutables (/adoptar): no se escriben, mueven, borran ni restauran desde el agente, por ningún camino.',
-        'Léelas y escribe el código como dicen. Si el usuario quiere cambiarlas, que lo haga él: borra conventions.md y conventions.json y re-ejecuta /adoptar.']);
+    deny(msg('conventions.block', lang));
 }
 if (/\b(SENZU|DEV_STANDARDS)_ALLOW_CONVENCIONES\b/i.test(c)) {
-    deny(['[BLOQUEADO por Senzu] SENZU_ALLOW_CONVENCIONES es la llave del usuario para commitear un cambio de las convenciones selladas: no la usa el agente.']);
+    deny([msg('conventions.allowKey', lang)]);
 }
 // El menú del instalador es para el usuario: el agente no le pasa respuestas por tubería ni redirección
 // (dentro de la MISMA orden: sin cruzar saltos de línea; el «-i» de un sed en la línea siguiente no es el menú)
 if (/\|\s*(node|npx)\b[^|;&\n]*\binit\.mjs\b|\b(node|npx)\s[^|;&\n]*\binit\.mjs\b[^|;&\n]*<\s*\S|\b(node|npx)\s[^|;&\n]*\binit\.mjs\b[^|;&\n]*\s(-i|--interactivo)\b/i.test(c)) {
-    deny(['[BLOQUEADO por Senzu] El menú del instalador lo responde el usuario (ahí se dan permisos y se apagan hooks). Para instalar sin menú usa los flags de selección (--seleccion, --grupos...); el menú, que lo abra él en su terminal.']);
+    deny([msg('installer.menu', lang)]);
 }
 // Instalar en la carpeta temporal (proyectos de prueba que se tiran) con esos flags no da permisos a nadie
 const rutasDestino = [...c.matchAll(/(?:^|\s)-{1,2}path\s+("[^"]+"|'[^']+'|[^\s;&|]+)/gi)].map(m => m[1].replace(/^["']|["']$/g, ''));
@@ -117,30 +117,30 @@ const rutasDestino = [...c.matchAll(/(?:^|\s)-{1,2}path\s+("[^"]+"|'[^']+'|[^\s;
 const soloEnTemporal = rutasDestino.length > 0 && rutasDestino.every(r => !/[$%]/.test(r)
     && relDelProyecto(os.tmpdir(), rutaNativa(r, root)) !== null && relDelProyecto(root, rutaNativa(r, root)) === null);
 if (!soloEnTemporal && /(^|\s)(--permitir|-permitir|--apagar-hooks|-apagarhooks|--sin-permisos|-sinpermisos|--encender-hooks|-encenderhooks|--omitir-paso|--sin-omitir)\b/i.test(c)) {
-    deny(['[BLOQUEADO por Senzu] Dar permisos, apagar hooks u omitir pasos del método lo decide el usuario: que lo ejecute él (en Claude Code, escribiendo "!" delante del comando) o desde el menú del instalador.']);
+    deny([msg('installer.permisos', lang)]);
 }
 
 // --- Reglas de git commit: rama protegida, Conventional Commits, sin co-autores ---
 if (/\bgit\s+commit\b/i.test(c)) {
     const branch = ramaActual();
     if (ramaProtegida(root, branch) && !permisos.commitEnMain) {
-        deny([`[BLOQUEADO por Senzu] No se commitea en '${branch}'. Crea una rama (git switch -c feat/...) y commitea ahi. (Si el usuario lo quiere permitir en este proyecto: "permisos": { "commitEnMain": true } en senzu/senzu.json.)`]);
+        deny([msg('commit.protectedBranch', lang, { branch })]);
     }
     if (/co-authored-by/i.test(cmd)) {
-        deny(['[BLOQUEADO por Senzu] Los commits no llevan Co-Authored-By (regla del equipo).']);
+        deny([msg('commit.coauthor', lang)]);
     }
     // Mensaje: -m "..." o -m '...'  (se valida solo el primer -m)
-    let msg = null;
+    let mensaje = null;
     let m = /-m\s+"([^"]*)"/is.exec(cmd);
-    if (m) msg = m[1];
-    else { m = /-m\s+'([^']*)'/is.exec(cmd); if (m) msg = m[1]; }
-    if (msg) {
-        const first = msg.split(/\r?\n/)[0].trim();
+    if (m) mensaje = m[1];
+    else { m = /-m\s+'([^']*)'/is.exec(cmd); if (m) mensaje = m[1]; }
+    if (mensaje) {
+        const first = mensaje.split(/\r?\n/)[0].trim();
         if (!/^(feat|fix|refactor|docs|test|chore|perf|build|ci|style|revert)(\([\w\-\./ ]+\))?!?:\s\S/.test(first)) {
-            deny([`[BLOQUEADO por Senzu] El mensaje no sigue Conventional Commits: '${first}'. Formato: tipo(scope): descripcion  (feat|fix|refactor|docs|test|chore|perf|build|ci|style|revert).`]);
+            deny([msg('commit.conventional', lang, { first })]);
         }
         if (first.length > 72) {
-            deny([`[BLOQUEADO por Senzu] Primera linea del commit > 72 caracteres (${first.length}). Acortala y pasa el detalle al cuerpo.`]);
+            deny([msg('commit.tooLong', lang, { length: first.length })]);
         }
     }
 }
@@ -158,23 +158,19 @@ if (envSenzu('ALLOW_DEPLOY') !== '1') {
 if (envSenzu('ALLOW_LOGO') !== '1' && (/scripts[\\/](logo|icon)[\\/]generate\.py/i.test(c) || (/image-gen[\\/]scripts[\\/]generate\.mjs/i.test(c) && /\b(logo|logotipo|isotipo|s[ií]mbolo|favicon)\b/i.test(c)))) {
     const elegido = textoLogos(root);
     if (elegido) deny([
-        '[BLOQUEADO por Senzu] ' + elegido,
-        'Si el usuario ha pedido EXPLÍCITAMENTE nuevas variantes o sustituir el logo: reintenta con SENZU_ALLOW_LOGO=1 y anótalo en el devlog.',
+        msg('guard.prefix', lang) + ' ' + elegido,
+        msg('logo.retry', lang),
     ]);
 }
 
 // --- Librerias vetadas (regla dura: sin jQuery/Bootstrap ni segunda libreria de componentes sin aprobacion) ---
 if (envSenzu('ALLOW_LIB') !== '1' && /\b(npm|pnpm|yarn|bun)\s+(install|add|i)\b/i.test(c)) {
     if (/\b(jquery|bootstrap)\b/i.test(c)) {
-        deny([
-            '[BLOQUEADO por Senzu] jQuery/Bootstrap estan vetados por defecto (regla dura 12: se reutiliza lo que ya hay; nada de segundas librerias de componentes).',
-            'Si el usuario lo aprueba explicitamente: que lo ejecute el, o reintenta con SENZU_ALLOW_LIB=1 en el entorno y documenta la aprobacion en el devlog.',
-        ]);
+        deny(msg('lib.vetada', lang));
     }
 }
 
 const pushOk = pushPermitido();
-const lang = localeUI(root);
 for (const r of rules) {
     if (pushOk && r === rules[0]) continue;   // push normal permitido por el proyecto (las reglas de forzado siguen)
     if (r.p.test(c)) {

@@ -54,6 +54,64 @@ export const CAT = {
     'rule.systemctl': { en: 'Stopping/disabling system services can take down production: requires explicit approval.', es: 'Parar/deshabilitar servicios del sistema puede tumbar producción: requiere aprobación explícita.' },
     'rule.iptables': { en: 'Flushing the firewall leaves the server exposed: requires explicit approval.', es: 'Vaciar el firewall deja el servidor expuesto: requiere aprobación explícita.' },
     'rule.crontab': { en: "crontab -r deletes ALL the user's cron jobs (no undo): requires approval.", es: 'crontab -r borra TODOS los cron del usuario (sin deshacer): requiere aprobación.' },
+
+    // --- guard: deny sueltos (marcador, convenciones, instalador, commit, logo, librerias) ---
+    'marker.block': {
+        en: '[BLOCKED by Senzu] The project marker (senzu/senzu.json) stores the project permissions and only the user changes it (or the installer launched by the user). Read it if you need to, but do not write it.',
+        es: '[BLOQUEADO por Senzu] El marcador del proyecto (senzu/senzu.json) guarda los permisos del proyecto y solo lo cambia el usuario (o el instalador lanzado por el usuario). Léelo si lo necesitas, pero no lo escribas.',
+    },
+    'conventions.block': {
+        en: [
+            '[BLOCKED by Senzu] The project conventions are SEALED as immutable (/adopt): they are not written, moved, deleted or restored from the agent, by any path.',
+            'Read them and write the code as they say. If the user wants to change them, let them do it: delete conventions.md and conventions.json and re-run /adopt.',
+        ],
+        es: [
+            '[BLOQUEADO por Senzu] Las convenciones del proyecto están SELLADAS como inmutables (/adoptar): no se escriben, mueven, borran ni restauran desde el agente, por ningún camino.',
+            'Léelas y escribe el código como dicen. Si el usuario quiere cambiarlas, que lo haga él: borra conventions.md y conventions.json y re-ejecuta /adoptar.',
+        ],
+    },
+    'conventions.allowKey': {
+        en: '[BLOCKED by Senzu] SENZU_ALLOW_CONVENCIONES is the user\'s key to commit a change to the sealed conventions: the agent does not use it.',
+        es: '[BLOQUEADO por Senzu] SENZU_ALLOW_CONVENCIONES es la llave del usuario para commitear un cambio de las convenciones selladas: no la usa el agente.',
+    },
+    'installer.menu': {
+        en: '[BLOCKED by Senzu] The installer menu is answered by the user (that is where permissions are granted and hooks turned off). To install without the menu use the selection flags (--seleccion, --grupos...); the menu, let them open it in their terminal.',
+        es: '[BLOQUEADO por Senzu] El menú del instalador lo responde el usuario (ahí se dan permisos y se apagan hooks). Para instalar sin menú usa los flags de selección (--seleccion, --grupos...); el menú, que lo abra él en su terminal.',
+    },
+    'installer.permisos': {
+        en: '[BLOCKED by Senzu] Granting permissions, turning off hooks or skipping method steps is the user\'s decision: let them run it (in Claude Code, typing "!" before the command) or from the installer menu.',
+        es: '[BLOQUEADO por Senzu] Dar permisos, apagar hooks u omitir pasos del método lo decide el usuario: que lo ejecute él (en Claude Code, escribiendo "!" delante del comando) o desde el menú del instalador.',
+    },
+    'commit.protectedBranch': {
+        en: "[BLOCKED by Senzu] No committing on '{branch}'. Create a branch (git switch -c feat/...) and commit there. (If the user wants to allow it in this project: \"permisos\": { \"commitEnMain\": true } in senzu/senzu.json.)",
+        es: "[BLOQUEADO por Senzu] No se commitea en '{branch}'. Crea una rama (git switch -c feat/...) y commitea ahi. (Si el usuario lo quiere permitir en este proyecto: \"permisos\": { \"commitEnMain\": true } en senzu/senzu.json.)",
+    },
+    'commit.coauthor': {
+        en: '[BLOCKED by Senzu] Commits do not carry Co-Authored-By (team rule).',
+        es: '[BLOQUEADO por Senzu] Los commits no llevan Co-Authored-By (regla del equipo).',
+    },
+    'commit.conventional': {
+        en: "[BLOCKED by Senzu] The message does not follow Conventional Commits: '{first}'. Format: type(scope): description  (feat|fix|refactor|docs|test|chore|perf|build|ci|style|revert).",
+        es: "[BLOQUEADO por Senzu] El mensaje no sigue Conventional Commits: '{first}'. Formato: tipo(scope): descripcion  (feat|fix|refactor|docs|test|chore|perf|build|ci|style|revert).",
+    },
+    'commit.tooLong': {
+        en: '[BLOCKED by Senzu] First commit line > 72 characters ({length}). Shorten it and move the detail to the body.',
+        es: '[BLOQUEADO por Senzu] Primera linea del commit > 72 caracteres ({length}). Acortala y pasa el detalle al cuerpo.',
+    },
+    'logo.retry': {
+        en: 'If the user EXPLICITLY asked for new variants or to replace the logo: retry with SENZU_ALLOW_LOGO=1 and note it in the devlog.',
+        es: 'Si el usuario ha pedido EXPLÍCITAMENTE nuevas variantes o sustituir el logo: reintenta con SENZU_ALLOW_LOGO=1 y anótalo en el devlog.',
+    },
+    'lib.vetada': {
+        en: [
+            '[BLOCKED by Senzu] jQuery/Bootstrap are vetoed by default (hard rule 12: reuse what is already there; no second component libraries).',
+            'If the user approves it explicitly: let them run it, or retry with SENZU_ALLOW_LIB=1 in the environment and document the approval in the devlog.',
+        ],
+        es: [
+            '[BLOQUEADO por Senzu] jQuery/Bootstrap estan vetados por defecto (regla dura 12: se reutiliza lo que ya hay; nada de segundas librerias de componentes).',
+            'Si el usuario lo aprueba explicitamente: que lo ejecute el, o reintenta con SENZU_ALLOW_LIB=1 en el entorno y documenta la aprobacion en el devlog.',
+        ],
+    },
 };
 
 // Devuelve el mensaje en el idioma pedido (si falta, cae a 'en' y luego a 'es'). Mantiene el tipo guardado:
