@@ -681,7 +681,7 @@ async function seedProject(projectPath) {
 function lista(v) { return String(v || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean); }
 
 function parseArgs(argv) {
-    const a = { path: process.cwd(), tools: null, stack: null, skills: [], bundle: [], perfil: null, seleccion: null, grupos: null, soloSkills: null, hooks: null, comandos: null, interactivo: false, ahorro: null, permitir: null, apagarHooks: null, sinMigrar: false, omitirPasos: null };
+    const a = { path: process.cwd(), tools: null, stack: null, skills: [], bundle: [], perfil: null, seleccion: null, grupos: null, soloSkills: null, hooks: null, comandos: null, interactivo: false, ahorro: null, permitir: null, apagarHooks: null, sinMigrar: false, omitirPasos: null, lang: null };
     for (let i = 0; i < argv.length; i++) {
         const k = argv[i];
         const next = () => argv[++i];
@@ -703,6 +703,7 @@ function parseArgs(argv) {
         else if (k === '--sin-permisos') a.permitir = [];
         else if (k === '--apagar-hooks') a.apagarHooks = lista(next());
         else if (k === '--encender-hooks') a.apagarHooks = [];
+        else if (k === '--lang') a.lang = next();
         else if (k === '--sin-migrar') a.sinMigrar = true;
         else if (k === '--omitir-paso') a.omitirPasos = lista(next());
         else if (k === '--sin-omitir') a.omitirPasos = [];
@@ -928,6 +929,9 @@ async function main() {
     }
     if (seleccion) markerObj.seleccion = seleccion;
     if (stack.ahorro) markerObj.ahorro = true;
+    // Idioma de la UI del proyecto (muros, avisos): lo lee localeUI(root). Si no se fija, se omite (por defecto 'en').
+    const langIn = a.lang != null ? a.lang : (marker && marker.lang);
+    if (langIn != null) markerObj.lang = String(langIn).toLowerCase().startsWith('es') ? 'es' : 'en';
     // Permisos y hooks apagados: los decide el usuario; si no se pasan, se conservan los del marcador
     const permisos = a.permitir !== null ? permisosDesde(a.permitir) : ((marker && marker.permisos) || {});
     if (Object.keys(permisos).length) markerObj.permisos = permisos;

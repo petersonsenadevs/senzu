@@ -5,6 +5,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -57,6 +58,19 @@ ok(lib.msg('stop.verifyBuild', 'es') === "Has editado codigo y NO hay verificaci
 ok(/You edited code/.test(lib.msg('stop.verifyBuild', 'en')), 'stop.verifyBuild en es ingles');
 ok(lib.msg('no.existe', 'en') === '?no.existe?', 'id inexistente -> marcador visible (no revienta)');
 ok(lib.msg('deploy.block', 'es', { x: 1 })[0] === dep[0], 'vars sin placeholders no altera el mensaje');
+
+// 6. End-to-end: el idioma del MARCADOR (senzu.json "lang") decide el idioma del muro (no solo SENZU_LANG).
+//    Instalar --lang es escribe lang:es; aqui se comprueba la otra mitad: un proyecto lang:es -> muro en es.
+function corrGuard(tmp, cmd) {
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'core', 'hooks', 'guard.mjs')], {
+        input: JSON.stringify({ tool_name: 'Bash', tool_input: { command: cmd }, cwd: tmp }), encoding: 'utf8',
+        env: { ...process.env, CLAUDE_PROJECT_DIR: tmp, SENZU_LANG: '', DEV_STANDARDS_LANG: '', SENZU_ALLOW_DEPLOY: '', SENZU_TEST_ISOLATED: '1' },
+    });
+    return (r.stdout || '') + (r.stderr || '');
+}
+ok(/Deploy a PRODUCCION detectado/.test(corrGuard(raiz('es'), 'netlify deploy --prod')), 'proyecto con marcador lang=es -> muro de deploy en castellano');
+ok(/Production deploy detected/.test(corrGuard(raiz('en'), 'netlify deploy --prod')), 'proyecto con marcador lang=en -> muro de deploy en ingles');
+ok(/Production deploy detected/.test(corrGuard(raiz(), 'netlify deploy --prod')), 'proyecto sin marcador de lang -> muro en ingles (por defecto)');
 
 // 5. Integridad: los hooks copiados al plugin resuelven sus imports locales (el fallo de messages.mjs:
 //    lib.mjs importaba './messages.mjs' pero build-plugins no lo copiaba -> ERR_MODULE_NOT_FOUND en runtime).

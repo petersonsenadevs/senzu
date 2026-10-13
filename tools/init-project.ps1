@@ -30,7 +30,8 @@ param(
     [Parameter(Mandatory)][string]$Path,
     [string[]]$Tools = @('claude'),
     [string[]]$Skills = @(),
-    [string[]]$Bundle = @()
+    [string[]]$Bundle = @(),
+    [string]$Lang
 )
 
 . (Join-Path $PSScriptRoot '_lib.ps1')
@@ -87,7 +88,7 @@ if (-not (Test-Path (Join-Path $planDir 'brief.md'))) { Copy-Item (Join-Path $pl
 Write-Host "  senzu/plan/ inicializado (PLAN.md y brief.md son plantillas: rellénalos con la skill project-planner)"
 
 # 2) Delegar el render a sync.ps1
-& (Join-Path $PSScriptRoot 'sync.ps1') -Path $Path -Stack $Stack -Tools $Tools -Skills $Skills -Bundle $Bundle
+& (Join-Path $PSScriptRoot 'sync.ps1') -Path $Path -Stack $Stack -Tools $Tools -Skills $Skills -Bundle $Bundle -Lang $Lang
 
 Write-Host ""
 Write-Host "Proyecto listo. Recuerda: el systemprompt del stack es EVOLUTIVO."
