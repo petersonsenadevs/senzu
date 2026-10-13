@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HOOK = path.join(ROOT, 'core', 'hooks', 'tarjeta-guard.mjs');
+process.env.SENZU_LANG = 'es';   // este suite comprueba el CONTENIDO en castellano de tarjeta-guard; se ejerce en locale es
 let casos = 0, fallos = 0;
 const ok = (c, n, d = '') => { casos++; if (!c) { fallos++; process.stdout.write(`FAIL ${n}${d ? ' -> ' + d : ''}\n`); } };
 

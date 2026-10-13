@@ -11,7 +11,7 @@
 
 import fs from 'node:fs';
 import crypto from 'node:crypto';
-import { readHookInput, projectRoot, relDelProyecto, leerArquitectura, infraccionesArquitectura, testOnce, outHookJson, rutaArquitectura } from './lib.mjs';
+import { readHookInput, projectRoot, relDelProyecto, leerArquitectura, infraccionesArquitectura, testOnce, outHookJson, rutaArquitectura, localeUI, msg } from './lib.mjs';
 
 const p = readHookInput();
 if (!p || !['Edit', 'Write', 'MultiEdit'].includes(p.tool_name)) process.exit(0);
@@ -35,11 +35,8 @@ const inf = infraccionesArquitectura(root, arq, rel, antes, despues, { nuevo: !e
 const bloqueo = inf.find(i => i.tipo === 'bloquea');
 const ARQ = relDelProyecto(root, rutaArquitectura(root)) || 'senzu/arquitectura/capas.json';
 if (bloqueo) {
-    process.stderr.write(`[BLOQUEADO por Senzu] Arquitectura del proyecto (${arq.estilo}, ${ARQ}): ${bloqueo.msg}.\n`
-        + `Línea: '${bloqueo.linea}'\n`
-        + 'Mueve la lógica a la capa que le toca (un puerto en el dominio o la aplicación y su adaptador en infraestructura; '
-        + 'el controlador llama a un servicio o caso de uso). Si el usuario aprueba la excepción, «senzu-allow» con el motivo en esa línea, '
-        + `o que él la añada a "excepciones" en ${ARQ}.\n`);
+    const lang = localeUI(root);
+    process.stderr.write(msg('arch.block', lang, { estilo: arq.estilo, arq: ARQ, detalle: bloqueo.msg, linea: bloqueo.linea }) + '\n');
     process.exit(2);
 }
 const avisos = inf.filter(i => i.tipo === 'aviso');

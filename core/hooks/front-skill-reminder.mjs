@@ -9,7 +9,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, sessionFlag, testOnce, designSystemMaster, findFirstFile, outHookJson, ruta, rutaRel,
+    readHookInput, projectRoot, sessionFlag, testOnce, designSystemMaster, findFirstFile, outHookJson, ruta, rutaRel, localeUI, msg,
 } from './lib.mjs';
 
 const p = readHookInput();
@@ -34,8 +34,9 @@ const hasBrief = fs.existsSync(path.join(ruta(root, 'plan'), 'brief.md'))
 // MURO (una vez por sesión): primera edición de UI sin design system NI brief -> bloquear y obligar a decidir.
 if (!master && !hasBrief && testOnce(sid, 'front-block')) {
     try { fs.rmSync(sessionFlag(sid, 'front'), { force: true }); } catch {}   // el reintento recibirá el aviso contextual
-    process.stderr.write(`[BLOQUEADO por Senzu] Primera edicion de UI sin ${DS}/*/MASTER.md NI ${PL}/brief.md.\n`);
-    process.stderr.write('Antes de tocar UI: (1) pregunta al usuario (entrevista /brief: marca, referencias, objetivo) y genera el design system, O (2) si es un arreglo trivial en algo ya construido, dilo explicitamente y reintenta la edicion: este muro solo salta UNA vez por sesion.\n');
+    const lang = localeUI(root);
+    process.stderr.write(msg('front.block1', lang, { ds: DS, pl: PL }) + '\n');
+    process.stderr.write(msg('front.block2', lang) + '\n');
     process.exit(2);
 }
 const dsMsg = master

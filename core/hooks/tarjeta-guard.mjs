@@ -9,7 +9,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import { readHookInput, projectRoot, ruta, readText } from './lib.mjs';
+import { readHookInput, projectRoot, ruta, readText, localeUI, msg } from './lib.mjs';
 
 const p = readHookInput();
 if (!p || !['Edit', 'Write', 'MultiEdit'].includes(p.tool_name)) process.exit(0);
@@ -17,6 +17,7 @@ const ti = p.tool_input || {};
 const file = ti.file_path ? String(ti.file_path) : '';
 if (!file) process.exit(0);
 const root = projectRoot();
+const lang = localeUI(root);
 const plan = path.join(ruta(root, 'plan'), 'PLAN.md');
 if (path.resolve(root, file).toLowerCase() !== path.resolve(plan).toLowerCase()) process.exit(0);
 
@@ -56,23 +57,17 @@ const problemas = [];
 for (const t of Object.values(nuevas)) {
     if (t.estado !== 'done' || (previas[t.id] && previas[t.id].estado === 'done')) continue;
     const falta = [];
-    if (!campo(t, 'Verificado')) falta.push('«Verificado:» con la evidencia (comando → resultado real, o «no aplica: <motivo>»)');
+    if (!campo(t, 'Verificado')) falta.push(msg('tarjeta.faltaVerificado', lang));
     const paraQue = campo(t, 'Para qu[eé]');
-    if (paraQue && !campo(t, 'Cumple')) falta.push(`«Cumple:» que diga cómo cumple su «Para qué» (${paraQue.slice(0, 80)})`);
+    if (paraQue && !campo(t, 'Cumple')) falta.push(msg('tarjeta.faltaCumple', lang, { paraQue: paraQue.slice(0, 80) }));
     const devlog = campo(t, 'Devlog');
-    if (!devlog) falta.push('«Devlog:» con la entrada de cierre');
+    if (!devlog) falta.push(msg('tarjeta.faltaDevlog', lang));
     else {
         const r = (/`?([^`\s]+\.md)`?/.exec(devlog) || [])[1];
-        if (r && !fs.existsSync(path.resolve(root, r))) falta.push(`«Devlog:» apunta a ${r}, que no existe: escribe antes la entrada`);
+        if (r && !fs.existsSync(path.resolve(root, r))) falta.push(msg('tarjeta.faltaDevlogMissing', lang, { r }));
     }
-    if (falta.length) problemas.push(`${t.id} · ${t.titulo}: falta ${falta.join('; ')}`);
+    if (falta.length) problemas.push(msg('tarjeta.problema', lang, { id: t.id, titulo: t.titulo, faltas: falta.join('; ') }));
 }
 if (!problemas.length) process.exit(0);
-process.stderr.write(`[BLOQUEADO por Senzu] Una tarjeta no pasa a [done] sin demostrar que está bien y que cumple lo que se quería.\n`
-    + problemas.map(x => `  - ${x}`).join('\n') + '\n'
-    + 'Formato (en la tarjeta, antes de marcarla):\n'
-    + '  - Verificado: php artisan test --filter=Pagos → 12 passed\n'
-    + '  - Cumple: el webhook repetido ya no crea pedidos (era el «Para qué»: H-03 de la auditoría)\n'
-    + '  - Devlog: senzu/devlog/2026-10-04/090-idempotencia-webhook.md\n'
-    + 'Si la tarea no está terminada, déjala en [doing] y di qué falta; si no se puede hacer, [blocked] con el motivo.\n');
+process.stderr.write(msg('tarjeta.block', lang, { problemas: problemas.map(x => `  - ${x}`).join('\n') }) + '\n');
 process.exit(2);

@@ -359,6 +359,68 @@ export const CAT = {
         en: 'section numbering ("02 — WORKS"): the most recognizable AI-portfolio tic',  // senzu-allow: cadena del catalogo de UI, no codigo de web
         es: 'numeracion de secciones ("02 — TRABAJOS"): el tic mas reconocible del portfolio-IA',  // senzu-allow: cadena del catalogo de UI, no codigo de web
     },
+
+    // --- arquitectura-guard: capa/contexto que no puede (bloqueo; el detalle viene de lib.mjs, queda en es) ---
+    'arch.block': {
+        en: "[BLOCKED by Senzu] Project architecture ({estilo}, {arq}): {detalle}.\nLine: '{linea}'\nMove the logic to the layer it belongs to (a port in the domain or application and its adapter in infrastructure; the controller calls a service or use case). If the user approves the exception, «senzu-allow» with the reason on that line, or let them add it to \"excepciones\" in {arq}.",
+        es: "[BLOQUEADO por Senzu] Arquitectura del proyecto ({estilo}, {arq}): {detalle}.\nLínea: '{linea}'\nMueve la lógica a la capa que le toca (un puerto en el dominio o la aplicación y su adaptador en infraestructura; el controlador llama a un servicio o caso de uso). Si el usuario aprueba la excepción, «senzu-allow» con el motivo en esa línea, o que él la añada a \"excepciones\" en {arq}.",
+    },
+
+    // --- front-skill-reminder: primera edicion de UI sin design system ni brief (el ctx es additionalContext) ---
+    'front.block1': {
+        en: '[BLOCKED by Senzu] First UI edit with no {ds}/*/MASTER.md NOR {pl}/brief.md.',
+        es: '[BLOQUEADO por Senzu] Primera edicion de UI sin {ds}/*/MASTER.md NI {pl}/brief.md.',
+    },
+    'front.block2': {
+        en: "Before touching UI: (1) ask the user (/brief interview: brand, references, goal) and generate the design system, OR (2) if it is a trivial fix on something already built, say so explicitly and retry the edit: this wall only fires ONCE per session.",
+        es: 'Antes de tocar UI: (1) pregunta al usuario (entrevista /brief: marca, referencias, objetivo) y genera el design system, O (2) si es un arreglo trivial en algo ya construido, dilo explicitamente y reintenta la edicion: este muro solo salta UNA vez por sesion.',
+    },
+
+    // --- cierre-limpio: archivos a medias al cerrar ---
+    'cierre.ajenos': {
+        en: ' Also there are {n} file(s) with changes you did NOT touch this session ({lista}): they may be from another agent (Codex or Claude in another session) or from the user. Do not commit or discard them without asking; mention them in your reply.',
+        es: ' Además hay {n} archivo(s) con cambios que NO has tocado en esta sesión ({lista}): pueden ser de otro agente (Codex o Claude en otra sesión) o del usuario. No los commitees ni los descartes sin preguntar; menciónalos en tu respuesta.',
+    },
+    'cierre.ajenosSolo': {
+        en: '[senzu] There are {n} file(s) with changes you did NOT touch this session ({lista}): they may be from another agent (Codex or Claude in another session) or from the user. Do not commit or discard them without asking; mention them in your reply.',
+        es: '[senzu] Hay {n} archivo(s) con cambios que NO has tocado en esta sesión ({lista}): pueden ser de otro agente (Codex o Claude en otra sesión) o del usuario. No los commitees ni los descartes sin preguntar; menciónalos en tu respuesta.',
+    },
+    'cierre.mine': {
+        en: '[senzu] You are leaving {n} file(s) you touched this session uncommitted: {lista}.',
+        es: '[senzu] Dejas sin commitear {n} archivo(s) que has tocado en esta sesión: {lista}.',
+    },
+    'cierre.mineBody': {
+        en: ' Do not close with half-done work: either finish the task and commit it, or commit it anyway and say in your reply WHAT IS MISSING (and note it in the devlog or the plan).',
+        es: ' No cierres con trabajo a medias: o terminas la tarea y la commiteas, o la commiteas igualmente y dices en tu respuesta QUÉ FALTA (y lo apuntas en el devlog o en el plan).',
+    },
+    'cierre.protegida': {
+        en: " You are on '{rama}': create a branch first (git switch -c feat/...).",
+        es: " Estás en '{rama}': crea antes una rama (git switch -c feat/...).",
+    },
+    'cierre.mineTail': {
+        en: ' If the user explicitly asked you not to commit, say so in your reply and close.',
+        es: ' Si el usuario te pidió expresamente no commitear, dilo en la respuesta y cierra.',
+    },
+
+    // --- tarjeta-guard: una tarjeta no pasa a done sin pruebas (los nombres de campo quedan literales: la regex los busca) ---
+    'tarjeta.faltaVerificado': {
+        en: '«Verificado:» with the evidence (command → real result, or «no aplica: <reason>»)',
+        es: '«Verificado:» con la evidencia (comando → resultado real, o «no aplica: <motivo>»)',
+    },
+    'tarjeta.faltaCumple': {
+        en: '«Cumple:» stating how it meets its «Para qué» ({paraQue})',
+        es: '«Cumple:» que diga cómo cumple su «Para qué» ({paraQue})',
+    },
+    'tarjeta.faltaDevlog': { en: '«Devlog:» with the closing entry', es: '«Devlog:» con la entrada de cierre' },
+    'tarjeta.faltaDevlogMissing': {
+        en: '«Devlog:» points to {r}, which does not exist: write the entry first',
+        es: '«Devlog:» apunta a {r}, que no existe: escribe antes la entrada',
+    },
+    'tarjeta.problema': { en: '{id} · {titulo}: missing {faltas}', es: '{id} · {titulo}: falta {faltas}' },
+    'tarjeta.block': {
+        en: '[BLOCKED by Senzu] A card does not go to [done] without proving it works and meets what was wanted.\n{problemas}\nFormat (in the card, before marking it):\n  - Verificado: php artisan test --filter=Pagos → 12 passed\n  - Cumple: the repeated webhook no longer creates orders (that was the «Para qué»: H-03 of the audit)\n  - Devlog: senzu/devlog/2026-10-04/090-idempotencia-webhook.md\nIf the task is not finished, leave it in [doing] and say what is missing; if it cannot be done, [blocked] with the reason.',
+        es: '[BLOQUEADO por Senzu] Una tarjeta no pasa a [done] sin demostrar que está bien y que cumple lo que se quería.\n{problemas}\nFormato (en la tarjeta, antes de marcarla):\n  - Verificado: php artisan test --filter=Pagos → 12 passed\n  - Cumple: el webhook repetido ya no crea pedidos (era el «Para qué»: H-03 de la auditoría)\n  - Devlog: senzu/devlog/2026-10-04/090-idempotencia-webhook.md\nSi la tarea no está terminada, déjala en [doing] y di qué falta; si no se puede hacer, [blocked] con el motivo.',
+    },
 };
 
 // Devuelve el mensaje en el idioma pedido (si falta, cae a 'en' y luego a 'es'). Mantiene el tipo guardado:
