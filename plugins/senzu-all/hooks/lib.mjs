@@ -150,7 +150,8 @@ export function localeUI(root) {
     const marker = m && norm(m.lang);
     return marker || 'en';
 }
-export { msg } from './messages.mjs';   // catalogo de mensajes de UI por idioma (ver messages.mjs)
+import { msg } from './messages.mjs';   // catalogo de mensajes de UI por idioma (ver messages.mjs)
+export { msg };
 
 export function readHookInput() {
     const p = leerEntradaCruda();
@@ -650,31 +651,32 @@ export function esArchivoDeCodigo(rel) { return EXT_CODIGO.test(String(rel || ''
 // Tres niveles: bloquea (instalar, adoptar), conversar (sin plan en proyecto nuevo: saber qué se hace o
 // preguntarlo) y anunciar (solo se dice: /siguiente, /plan en uno existente, el cierre del plan).
 export function siguientePaso(root) {
+    const lang = localeUI(root);
     const marker = getMarkerSeguro(root);
-    if (!marker) return { paso: 'instalar', comando: '/instalar', bloquea: true,
-        motivo: 'Senzu no está instalado en este proyecto: sin eso solo hay skills sueltas, no el método (perfil, plan, devlog, memoria y los muros del proyecto)' };
+    if (!marker) return { paso: 'instalar', comando: msg('step.instalar.cmd', lang), bloquea: true,
+        motivo: msg('step.instalar.motivo', lang) };
     const omitir = new Set([].concat(marker.omitirPasos || []).map(String));
     const mat = projectMaturity(root);
-    if (mat.existing && !mat.hasConventions && !omitir.has('adoptar')) return { paso: 'adoptar', comando: '/adoptar', bloquea: true,
-        motivo: 'hay código con su propio estilo y ninguna convención sellada: sin /adoptar escribirías a tu manera, no a la del proyecto' };
+    if (mat.existing && !mat.hasConventions && !omitir.has('adoptar')) return { paso: 'adoptar', comando: msg('step.adoptar.cmd', lang), bloquea: true,
+        motivo: msg('step.adoptar.motivo', lang) };
     const plan = planStatus(root);
     if (!mat.existing && !plan.total) {
         const briefTxt = readText(path.join(ruta(root, 'plan'), 'brief.md')) || '';
         const hayBrief = tieneContenido(seccionMd(briefTxt, 'Objetivo'));
         // Plan y brief NO se imponen: no todo proyecto los necesita. Lo obligatorio es saber qué se va a hacer;
         // si el usuario no lo ha dicho claro, se habla con él antes de programar (decisión del usuario, ver 091).
-        if (marker.frontProfile && !hayBrief && !omitir.has('brief') && !omitir.has('plan')) return { paso: 'brief', comando: '/brief y después /plan', bloquea: false, conversar: true,
-            motivo: 'proyecto nuevo con interfaz y sin brief ni plan' };
-        if (!omitir.has('plan')) return { paso: 'plan', comando: '/plan', bloquea: false, conversar: true,
-            motivo: 'proyecto nuevo sin plan' };
+        if (marker.frontProfile && !hayBrief && !omitir.has('brief') && !omitir.has('plan')) return { paso: 'brief', comando: msg('step.brief.cmd', lang), bloquea: false, conversar: true,
+            motivo: msg('step.briefNuevo.motivo', lang) };
+        if (!omitir.has('plan')) return { paso: 'plan', comando: msg('step.plan.cmd', lang), bloquea: false, conversar: true,
+            motivo: msg('step.planNuevo.motivo', lang) };
     }
-    if (plan.doing.length || plan.next.length) return { paso: 'siguiente', comando: '/siguiente', bloquea: false, anunciar: true,
-        motivo: plan.doing.length ? `tarea en curso: ${plan.doing[0]}` : `siguiente tarjeta: ${plan.next[0]}` };
+    if (plan.doing.length || plan.next.length) return { paso: 'siguiente', comando: msg('step.siguiente.cmd', lang), bloquea: false, anunciar: true,
+        motivo: plan.doing.length ? msg('step.siguiente.doing', lang, { x: plan.doing[0] }) : msg('step.siguiente.next', lang, { x: plan.next[0] }) };
     if (plan.total && plan.done >= plan.total) return { paso: 'cierre', bloquea: false, anunciar: true,
-        comando: marker.frontProfile ? '/verificar → /lanzar → /desplegar → /entregar' : '/verificar → /desplegar → /entregar',
-        motivo: `plan terminado (${plan.done}/${plan.total} tarjetas): toca comprobarlo todo y llevarlo a producción, con el OK del usuario en cada paso` };
-    if (mat.existing && !plan.total && !omitir.has('plan')) return { paso: 'plan', comando: '/plan', bloquea: false, anunciar: true,
-        motivo: 'proyecto con código y sin plan: para una feature de varias partes, /plan (objetivo, alcance y tarjetas); para un arreglo puntual no hace falta' };
+        comando: marker.frontProfile ? msg('step.cierre.cmdFront', lang) : msg('step.cierre.cmd', lang),
+        motivo: msg('step.cierre.motivo', lang, { done: plan.done, total: plan.total }) };
+    if (mat.existing && !plan.total && !omitir.has('plan')) return { paso: 'plan', comando: msg('step.plan.cmd', lang), bloquea: false, anunciar: true,
+        motivo: msg('step.planExistente.motivo', lang) };
     return null;
 }
 

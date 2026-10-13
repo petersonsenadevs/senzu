@@ -159,6 +159,49 @@ export const CAT = {
         en: "reminder: there's still no devlog entry for today ({date}). Document the progress in {dl}/{date}/ before closing.",
         es: 'recordatorio: aun no hay entrada de devlog para hoy ({date}). Documenta el avance en {dl}/{date}/ antes de cerrar.',
     },
+
+    // --- siguientePaso (lib.mjs): el paso del método que toca; comando (nombre localizado) y motivo ---
+    'step.instalar.cmd': { en: '/install', es: '/instalar' },
+    'step.instalar.motivo': {
+        en: 'Senzu is not installed in this project: without it there are only loose skills, not the method (profile, plan, devlog, memory and the project walls)',
+        es: 'Senzu no está instalado en este proyecto: sin eso solo hay skills sueltas, no el método (perfil, plan, devlog, memoria y los muros del proyecto)',
+    },
+    'step.adoptar.cmd': { en: '/adopt', es: '/adoptar' },
+    'step.adoptar.motivo': {
+        en: "there is code with its own style and no sealed conventions: without /adopt you'd write your way, not the project's",
+        es: 'hay código con su propio estilo y ninguna convención sellada: sin /adoptar escribirías a tu manera, no a la del proyecto',
+    },
+    'step.brief.cmd': { en: '/brief and then /plan', es: '/brief y después /plan' },
+    'step.briefNuevo.motivo': { en: 'new project with an interface and no brief or plan', es: 'proyecto nuevo con interfaz y sin brief ni plan' },
+    'step.plan.cmd': { en: '/plan', es: '/plan' },
+    'step.planNuevo.motivo': { en: 'new project without a plan', es: 'proyecto nuevo sin plan' },
+    'step.siguiente.cmd': { en: '/next', es: '/siguiente' },
+    'step.siguiente.doing': { en: 'task in progress: {x}', es: 'tarea en curso: {x}' },
+    'step.siguiente.next': { en: 'next card: {x}', es: 'siguiente tarjeta: {x}' },
+    'step.cierre.cmdFront': { en: '/verify → /launch → /deploy → /handoff', es: '/verificar → /lanzar → /desplegar → /entregar' },
+    'step.cierre.cmd': { en: '/verify → /deploy → /handoff', es: '/verificar → /desplegar → /entregar' },
+    'step.cierre.motivo': {
+        en: 'plan finished ({done}/{total} cards): time to check everything and take it to production, with the user OK at each step',
+        es: 'plan terminado ({done}/{total} tarjetas): toca comprobarlo todo y llevarlo a producción, con el OK del usuario en cada paso',
+    },
+    'step.planExistente.motivo': {
+        en: "project with code and no plan: for a multi-part feature, /plan (goal, scope and cards); for a one-off fix it's not needed",
+        es: 'proyecto con código y sin plan: para una feature de varias partes, /plan (objetivo, alcance y tarjetas); para un arreglo puntual no hace falta',
+    },
+
+    // --- arranque-guard: el método antes que el código ---
+    'arranque.conversar': {
+        en: "[senzu] You're about to write code ({rel}) in a {motivo}. You don't need a plan for everything, but you do need to know what's going to be built: if the user has clearly told you what they want and why, go ahead. If you don't know (goal, scope, what's in and out), STOP and talk it through with them before coding, in plain language and with few questions; don't assume it. Suggest {comando} only if it's something big, multi-part, or if they want it.",
+        es: '[senzu] Vas a escribir código ({rel}) en un {motivo}. No hace falta un plan para todo, pero sí saber qué se va a hacer: si el usuario te ha dicho con claridad qué quiere y para qué, sigue. Si no lo sabes (objetivo, alcance, qué entra y qué no), PARA y háblalo con él antes de programar, en llano y con pocas preguntas; no lo supongas. Propón {comando} solo si es algo grande, de varias partes, o si él lo quiere.',
+    },
+    'arranque.omitible': {
+        en: "\nIf the user doesn't want this step in this project, let them remove it: node <senzu>/tools/init.mjs --path . --omitir-paso {paso} (you can't).",
+        es: '\nSi el usuario no quiere este paso en este proyecto, que lo quite él: node <senzu>/tools/init.mjs --path . --omitir-paso {paso} (tú no puedes).',
+    },
+    'arranque.block': {
+        en: '[BLOCKED by Senzu] Before writing code ({rel}) a method step is missing: {comando}.\nWhy: {motivo}.\nWhat to do: stop, tell the user in one sentence what is missing and why, and suggest {comando}. If they tell you to go on without it, go on: this wall only stops you once per step and session.',
+        es: '[BLOQUEADO por Senzu] Antes de escribir código ({rel}) falta un paso del método: {comando}.\nPor qué: {motivo}.\nQué hacer: para, explícale al usuario en una frase qué falta y por qué, y proponle {comando}. Si te dice que sigas sin él, sigue: este muro solo te para una vez por paso y sesión.',
+    },
 };
 
 // Devuelve el mensaje en el idioma pedido (si falta, cae a 'en' y luego a 'es'). Mantiene el tipo guardado:
