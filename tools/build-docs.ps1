@@ -438,6 +438,9 @@ if (Test-Path $idxPath) {
             foreach ($s in $subs) { $par = $s -split '\s*==>\s*', 2; $r.Titulo = [regex]::Replace($r.Titulo, [regex]::Escape($par[0].Trim()), $par[1].Trim(), 'IgnoreCase') }
         }
     }
+    # Seguridad: ninguna ruta local absoluta (D:/…, C:\…) llega al CHANGELOG publico, venga de donde venga.
+    # El lookbehind evita romper URLs (la "s" de https: va precedida de letra; una unidad "D:" no).
+    foreach ($r in $rows) { $r.Titulo = ([regex]::Replace($r.Titulo, '\s*(?<![A-Za-z])[A-Za-z]:[\\/][^\s)\|]*', '')).Trim() }
     $C = New-Object System.Collections.Generic.List[string]
     $C.Add('<!-- GENERADO por tools/build-docs.ps1 desde el devlog interno del proyecto. -->')
     $C.Add(''); $C.Add('# Changelog'); $C.Add('')
