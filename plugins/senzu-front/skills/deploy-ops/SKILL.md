@@ -21,6 +21,7 @@ y si se cae, volver atrás en minutos.
 | Backups (con restore probado), uptime, Sentry, /health, incidentes | `references/backups-monitoring.md` |
 | Ejecutar un deploy concreto (checklist con evidencia) | `references/deploy-checklist.md` (comando `/desplegar`) |
 | Verificar la WEB antes de publicar (SEO, legales, medición) | `ui-verify §references/launch-checklist.md` (/lanzar) |
+| Cumplir lo legal de una web (cookies, privacidad, aviso legal, banner, RGPD a fondo, IA/AI Act) | `references/legal-web.md` |
 | Diseño de colas/jobs (el QUÉ; aquí solo el correr en prod) | `code-quality §references/jobs-and-queues.md` |
 
 ## Principios duros (aplican siempre)
@@ -36,6 +37,11 @@ y si se cae, volver atrás en minutos.
 6. Staging si el proyecto lo tiene; nunca "probar en prod" cambios de riesgo (migraciones destructivas,
    pagos, auth).
 7. Cambios de infra se documentan en el devlog como cualquier código (qué, por qué, cómo se revierte).
+8. **Web pública = páginas legales sí o sí**: aviso legal, privacidad y cookies accesibles desde el footer
+   + banner de consentimiento real (botón de rechazar visible, cookies no esenciales bloqueadas hasta
+   aceptar). El guard bloquea el deploy a prod si no hay NINGUNA página legal en el repo; escape
+   `SENZU_ALLOW_SIN_LEGAL=1` solo si lo legal se gestiona fuera del repo (CMS, plantilla externa). El QUÉ
+   debe tener cada página y cómo montar el banner, en `references/legal-web.md`; el checklist, en `/lanzar`.
 
 ## Recomendaciones por defecto (agencia, sin sobre-ingeniería)
 - Web estática/Astro/SPA → **Netlify o Cloudflare Pages** (deploy por git, previews gratis, cero servidor).

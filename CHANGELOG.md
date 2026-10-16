@@ -4,6 +4,12 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-16
+
+- **feature** — Muro legal en main (bilingüe) + RGPD a fondo e IA (AI Act) (entrada 159)
+- **docs** — Guías en inglés (.en.md) y --lang documentado (entrada 158)
+- **docs** — Guías en inglés (.en.md) y --lang documentado (entrada 158)
+
 ## 2026-10-13
 
 - **fix** — fix: memoria-check.mjs no entraba al repo (.gitignore devlog muy amplio) (entrada 157)

@@ -15,6 +15,18 @@ export const CAT = {
             'Con la aprobacion recibida: reintenta con SENZU_ALLOW_DEPLOY=1 y documenta la aprobacion y el resultado en el devlog. Los deploys de preview (sin --prod) pasan sin muro.',
         ],
     },
+    'legal.block': {
+        en: [
+            '[BLOCKED by Senzu] Production deploy of a web with no legal page at all (privacy, cookies or legal notice) in the repository.',
+            'In Spain/EU it is mandatory (GDPR/LSSI): legal notice, privacy policy and cookie policy reachable from the footer, and a real consent banner (visible reject button, non-essential cookies blocked until accepted). Run /deploy (checklist, Legal section) for the detail.',
+            'If the legal side is handled outside the repo (CMS, external template) or it really does not apply, retry with SENZU_ALLOW_SIN_LEGAL=1 and leave a record in the devlog.',
+        ],
+        es: [
+            '[BLOQUEADO por Senzu] Deploy a PRODUCCION de una web sin ninguna pagina legal (privacidad, cookies o aviso legal) en el repositorio.',
+            'En Espana/UE es obligatorio (RGPD/LSSI): aviso legal, politica de privacidad y de cookies accesibles desde el footer, y un banner de consentimiento real (boton de rechazar visible, cookies no esenciales bloqueadas hasta aceptar). Pasa /lanzar (checklist, apartado Legales) para el detalle.',
+            'Si lo legal se gestiona fuera del repo (CMS, plantilla externa) o de verdad no aplica, reintenta con SENZU_ALLOW_SIN_LEGAL=1 y deja constancia en el devlog.',
+        ],
+    },
     'stop.verifyBuild': {
         en: "You edited code and there is no verification afterward: run 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (runs the stack's lint/types/tests/build and leaves a record) or the stack commands by hand, fix the failures and paste the result before closing.",
         es: "Has editado codigo y NO hay verificacion posterior: ejecuta 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (corre lint/types/tests/build del stack y deja constancia) o los comandos del stack a mano, corrige los fallos y pega el resultado antes de cerrar.",

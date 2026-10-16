@@ -10,6 +10,8 @@
 // Se usa como capa "inteligente" además de permissions.deny (capa simple) en settings.json.
 
 import os from 'node:os';
+import fs from 'node:fs';
+import path from 'node:path';
 import { execFileSync } from 'node:child_process';
 import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida, convencionesSelladas, relDelProyecto, rutaNativa, sinTextoCitado, localeUI, msg } from './lib.mjs';
 
@@ -149,11 +151,39 @@ if (/\bgit\s+commit\b/i.test(c)) {
 }
 
 // --- Deploy a produccion: NUNCA sin aprobacion explicita del usuario ---
+const deployProdPat = /(netlify\s+deploy(?=.*--prod))|(\bvercel\b(?=.*--prod))|(\bfly\s+deploy\b)|(\bwrangler\s+(deploy|publish)\b(?!.*--env[= ](dev|preview)))/i;
 if (envSenzu('ALLOW_DEPLOY') !== '1') {
-    const deployPat = /(netlify\s+deploy(?=.*--prod))|(\bvercel\b(?=.*--prod))|(\bfly\s+deploy\b)|(\bwrangler\s+(deploy|publish)\b(?!.*--env[= ](dev|preview)))/i;
-    if (deployPat.test(c)) {
+    if (deployProdPat.test(c)) {
         deny(msg('deploy.block', localeUI(root)));
     }
+}
+
+// --- Web publica sin NINGUNA pagina legal (privacidad/cookies): no se publica a produccion ---
+// Solo se llega aqui con el deploy a prod ya aprobado (ALLOW_DEPLOY=1); si no, el bloque de arriba ya corto.
+// Busca por nombre de archivo en el arbol del proyecto; con una sola pagina legal basta (el detalle lo cubre /lanzar).
+function tieneLegales(dir) {
+    const legalRe = /(privacidad|privacy|cookies?|aviso.?legal|datenschutz|rgpd|gdpr|lopd|t[eé]rminos|terms|pol[ií]tica.?(de.?)?(privacidad|cookies|datos))/i;
+    const saltar = new Set(['node_modules', 'dist', 'build', 'out', 'vendor', 'coverage', 'senzu', 'storage', 'target', 'tmp']);
+    const stack = [{ d: dir, depth: 0 }];
+    let visto = 0;
+    while (stack.length) {
+        const { d, depth } = stack.pop();
+        let ents;
+        try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch { continue; }
+        for (const e of ents) {
+            if (visto++ > 20000) return true;   // repo enorme: no bloqueamos a ciegas (lado seguro)
+            if (e.isDirectory()) {
+                if (e.name.startsWith('.') || saltar.has(e.name)) continue;
+                if (depth < 6) stack.push({ d: path.join(d, e.name), depth: depth + 1 });
+            } else if (legalRe.test(e.name)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+if (deployProdPat.test(c) && envSenzu('ALLOW_SIN_LEGAL') !== '1' && !tieneLegales(root)) {
+    deny(msg('legal.block', localeUI(root)));
 }
 
 // --- Logo ya elegido: los generadores de logos e iconos no se lanzan sin que el usuario lo pida ---

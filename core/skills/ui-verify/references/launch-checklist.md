@@ -31,9 +31,12 @@ con evidencia (comando, captura o URL), no de memoria. Veredicto final: LISTA / 
 - [ ] Search Console dada de alta (verificación + sitemap enviado); teléfono con `tel:` clicable medido.
 
 ## 5. Legales (España/UE — mínimo RGPD/LSSI)
+Cómo cumplirlo (páginas, banner, Consent Mode, RGPD a fondo, IA/AI Act, otras jurisdicciones): `deploy-ops §references/legal-web.md`.
 - [ ] Aviso legal (titular, NIF, dirección), Política de privacidad y de Cookies accesibles desde el footer.
 - [ ] Banner de consentimiento REAL (bloquea cookies no esenciales hasta aceptar; botón rechazar visible).
 - [ ] Formularios con checkbox de privacidad no premarcado + doble opt-in si hay newsletter.
+- [ ] Encargados (hosting, email, analítica, IA) con DPA; transferencias fuera del EEE con garantía (DPF/SCC).
+- [ ] Si hay IA (chatbot, contenido generado): aviso de que es IA, contenido etiquetado y proveedor de IA declarado como encargado.
 
 ## 6. Dominio, SSL y entrega
 - [ ] HTTPS forzado; www ↔ raíz con redirect 301 a UNA canónica; SSL válido (no el de preview).
