@@ -806,6 +806,8 @@ async function modoInteractivo(a) {
         a.stack = stacks[iStack - 1];
         const iTools = await elegirUno(rl, 'Herramientas:', ['Claude Code', 'Claude Code + Codex', 'Solo Codex'], 1);
         a.tools = [['claude'], ['claude', 'codex'], ['codex']][iTools - 1];
+        const iLang = await elegirUno(rl, 'Idioma de los avisos de Senzu (muros, arranque, cierre):', ['English (por defecto)', 'Castellano'], (marker && marker.lang === 'es') ? 2 : 1);
+        a.lang = iLang === 2 ? 'es' : 'en';
         const iPerfil = await elegirUno(rl, '¿Qué es el proyecto?', [
             ...PERFILES.map(p => `${p.nombre}: ${p.para}`),
             'Elegir yo: todo, por categorías o a medida',

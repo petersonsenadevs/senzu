@@ -6,6 +6,8 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-16
 
+- **feature** — /instalar pregunta el idioma y pasa --lang (2.23.0) (entrada 161)
+- **feature** — X-T17 verificado: la web bilingüe se llena de inglés con v2.22.0 (entrada 160)
 - **feature** — Muro legal en main (bilingüe) + RGPD a fondo e IA (AI Act) (entrada 159)
 - **docs** — Guías en inglés (.en.md) y --lang documentado (entrada 158)
 - **docs** — Guías en inglés (.en.md) y --lang documentado (entrada 158)
