@@ -851,6 +851,7 @@ async function main() {
         log('       [--seleccion todo|categorias|a-medida] [--grupos front,motion,3d,quality,architecture,growth,ops,design]');
         log('       [--solo-skills a,b] [--hooks guard,stop-guard,...] [--comandos plan,verificar,...] [--skills a,b] [--bundle x] [--ahorro|--sin-ahorro]');
         log('       [--permitir push,push-main,commit-main | --sin-permisos] [--apagar-hooks format-on-save,... | --encender-hooks] [--sin-migrar]');
+        log('       [--lang en|es]   (idioma de los avisos de Senzu en el proyecto; por defecto en; SENZU_LANG manda)');
         log('       [--omitir-paso adoptar,plan,brief | --sin-omitir]   (pasos del método que el muro arranque-guard no exigirá en este proyecto)');
         log('Stacks: ' + fs.readdirSync(path.join(ROOT, 'stacks')).join(', '));
         return;

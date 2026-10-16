@@ -107,6 +107,23 @@ node $HOME/.senzu/tools/init.mjs --help        # todas las opciones
 - `--stack`: `laravel` · `next` · `astro` · `vue-ts` · `nuxt` · `sveltekit` · `wordpress` · `node-api` · `python-langgraph`.
 - `--tools`: `claude`, `codex`, `cursor`, `windsurf`, `antigravity` (las que uses, separadas por coma).
 - `--bundle core-3d-animation` añade el paquete de animación y 3D (Three.js, GSAP, R3F, Motion).
+- `--lang es` pone en castellano los avisos de Senzu en ese proyecto (lo que dicen los muros, el arranque y
+  el cierre). Sin él, salen en inglés. Ver [Idioma](#idioma).
+
+### Idioma
+
+Senzu habla en inglés por defecto y en castellano si se lo pides. El idioma se guarda en
+`senzu/senzu.json` (`"lang": "es"`) y se conserva al actualizar:
+```
+node $HOME/.senzu/tools/init.mjs --path ./mi-proyecto --lang es
+```
+- Afecta a los **mensajes de Senzu**: por qué bloquea un muro, el estado al empezar la sesión, los avisos de
+  cierre. La variable `SENZU_LANG=es` (o `en`) manda sobre lo guardado, para una sesión concreta.
+- Cada **comando** tiene nombre en inglés y en castellano (`/install` es `/instalar`, `/next` es
+  `/siguiente`…); la tabla de equivalencias está en [comandos](docs/comandos.md). `--lang` no los renombra.
+- El **enrutador** entiende peticiones en los dos idiomas.
+- **No cambia** el idioma en que te responde el agente (te contesta en el tuyo) ni el de las skills, que son
+  instrucciones para el agente.
 
 **Modo ahorro de tokens** (opcional; el menú lo pregunta al final): `--ahorro` deja el `CLAUDE.md`
 compacto (sin la lista de skills, que Claude ya carga por su cuenta, y con el devlog y el flujo de git en
@@ -181,6 +198,7 @@ Siguen funcionando los nombres viejos: `DEV_STANDARDS_*` (ahora `SENZU_*`) y el 
 | Dejar que el agente haga push (no a main) en este proyecto | `node $HOME/.senzu/tools/init.mjs --path <ruta> --permitir push` (`push-main` y `commit-main` para main) |
 | Apagar un muro en este proyecto | `node $HOME/.senzu/tools/init.mjs --path <ruta> --apagar-hooks format-on-save` (`--encender-hooks` los vuelve a encender) |
 | `CLAUDE.md` compacto (modo ahorro) | `node $HOME/.senzu/tools/init.mjs --path <ruta> --ahorro` |
+| Avisos de Senzu en castellano | `node $HOME/.senzu/tools/init.mjs --path <ruta> --lang es` (o `SENZU_LANG=es` para una sesión) |
 | Añadir animación y 3D después | `node $HOME/.senzu/tools/init.mjs --path <ruta> --bundle core-3d-animation` |
 | Solo las skills, sin proyecto | `irm https://raw.githubusercontent.com/petersonsenadevs/senzu/main/tools/install.ps1 \| iex` |
 | Usar tu propia copia de Senzu (para desarrollarlo) | define `SENZU_HOME` con su ruta: `/instalar` la usará en vez de `~/.senzu` |

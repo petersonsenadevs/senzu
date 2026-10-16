@@ -180,6 +180,157 @@ function Get-StacksBody {
     return $L
 }
 
+# ============================================================ EN INGLES (docs\*.en.md)
+# Las mismas tablas para la UI inglesa: nombre del comando de core/i18n/commands.json, descripcion de
+# core/i18n/command-descriptions.json y, para hooks y pistas de uso, las traducciones de aqui. Si falta una,
+# el build falla (como en castellano): al añadir o cambiar un hook o un comando, se traduce a la vez.
+$script:CmdEn = (Read-Utf8 (Join-Path $root 'core\i18n\commands.json') | ConvertFrom-Json).comandos
+$script:CmdDescEn = (Read-Utf8 (Join-Path $root 'core\i18n\command-descriptions.json') | ConvertFrom-Json).descripciones
+function Get-CmdEn([string]$es) {
+    $en = $script:CmdEn.$es
+    if (-not $en) { throw "build-docs: comando '$es' sin nombre en core/i18n/commands.json" }
+    return $en
+}
+
+function Get-CommandsBodyEn {
+    $argEn = @{
+        'adoptar'       = '[optional notes, e.g. "backend only" or "the official language is English"]'
+        'auditar'       = '[optional area, e.g. "payments", "public API" or "before production"]'
+        'brief'         = '[type of business if already known, e.g. "restaurant"]'
+        'depurar'       = '[symptom or error, e.g. "checkout returns 500 with coupons"]'
+        'design-system' = '[product/industry, e.g. "invoicing saas for freelancers"]'
+        'desplegar'     = '[environment or target, e.g. "production" or "staging"]'
+        'efecto'        = '<effect name> [where, e.g. "marquee in the logos footer"]'
+        'entregar'      = '[project or client]'
+        'estimar'       = '[what to estimate, e.g. "the restaurant website" or "phase 2"]'
+        'instalar'      = '[optional stack, e.g. "laravel"]'
+        'lanzar'        = '[preview/production url]'
+        'mapa'          = '[optional area, e.g. "payments"]'
+        'plan'          = '[description of the project or feature]'
+        'propuestas'    = '[page, e.g. "home" or "landing"]'
+        'recordar'      = '[what, e.g. "commits always without co-author"]'
+        'refactor'      = '<goal, e.g. "move the pricing logic out of OrderController">'
+        'repaso'        = '[url or page, e.g. "http://localhost:4321" or "the home page"]'
+        'retomar'       = ''
+        'revisar-ui'    = '[url or path of the view, e.g. http://localhost:5173 or Pages/Home.vue]'
+        'ronda'         = '[your opinion of the previous round, or the text the mockups panel copies]'
+        'siguiente'     = '[optional task id, e.g. F1-T3]'
+        'verificar'     = ''
+    }
+    $c = { param($es) "``/$(Get-CmdEn $es)``" }
+    $L = New-Object System.Collections.Generic.List[string]
+    $L.Add('Optional shortcuts: asking in plain words triggers the same thing through the router. ' + "$(& $c 'plan')/$(& $c 'siguiente')/$(& $c 'verificar')/$(& $c 'desplegar')/$(& $c 'adoptar')")
+    $L.Add('are ALWAYS installed; the rest only in stacks with a front profile. Each command also has a Spanish name')
+    $L.Add('(last column): the one it has in a Spanish install.')
+    $L.Add('')
+    $L.Add('| Command | Argument | What it does | In Spanish |')
+    $L.Add('|---|---|---|---|')
+    $always = @('plan', 'siguiente', 'verificar', 'desplegar', 'adoptar')
+    $cmds = Get-ChildItem (Join-Path $root 'core\commands') -Filter *.md | Sort-Object { $always.IndexOf($_.BaseName) -lt 0 }, { $always.IndexOf($_.BaseName) }, Name
+    foreach ($f in $cmds) {
+        $es = $f.BaseName
+        if (-not $argEn.ContainsKey($es)) { throw "build-docs: comando '$es' sin pista de uso en ingles (argEn)" }
+        $desc = $script:CmdDescEn.$es.en
+        if (-not $desc) { throw "build-docs: comando '$es' sin descripcion en ingles en core/i18n/command-descriptions.json" }
+        $L.Add("| $(& $c $es) | $($argEn[$es]) | $desc | ``/$es`` |")
+    }
+    $L.Add('')
+    $L.Add('### Typical flows')
+    $L.Add("- **New project with a website**: $(& $c 'brief') (plain-language interview) → $(& $c 'propuestas') (blueprint + A/B mockups) →")
+    $L.Add("  $(& $c 'design-system') → build with checkpoints → $(& $c 'revisar-ui') → $(& $c 'lanzar') → $(& $c 'desplegar').")
+    $L.Add("- **Any feature**: $(& $c 'plan') → $(& $c 'siguiente') (one card at a time) → $(& $c 'verificar') before closing.")
+    $L.Add("- **New project without a UI** (API, backend, agent): $(& $c 'plan') straight away; $(& $c 'brief') is for things with screens.")
+    $L.Add("- **Inherited project**: $(& $c 'adoptar') in the first session (it analyzes and seals its conventions), then business as usual.")
+    $L.Add("- $(& $c 'instalar') and $(& $c 'adoptar') are required by the ``arranque-guard`` wall before the first line of code; plan and brief are not imposed: if it is not clear what is being done, the agent asks.")
+    $L.Add("- **A specific effect** (`"I want a parallax/marquee/cursor`"): $(& $c 'efecto') ``<name>`` goes straight to the catalog with its recipe and mobile cost.")
+    return $L
+}
+
+function Get-HooksBodyEn {
+    $L = New-Object System.Collections.Generic.List[string]
+    $L.Add('Hooks in Node (`.mjs`, OS-agnostic: they work the same on Windows/macOS/Linux). The ones that BLOCK exit')
+    $L.Add('with code 2 and the reason; the rest only inform. Only Claude Code runs hooks: in Codex/Cursor/Windsurf the')
+    $L.Add('job is done by the activation tables of the generated rules and the githooks (`sync.ps1 -GitHooks`).')
+    $L.Add('Their messages come out in English, or in Spanish with `--lang es` (see [INSTALL](../INSTALL.en.md#language)).')
+    $L.Add('')
+    $hookInfoEn = [ordered]@{
+        'session-start.mjs'        = @('SessionStart', 'Injects the state: whether Senzu is OUTDATED (what to do and what you lose, from core/novedades.json), stack/profile, the NEXT STEP of the method that is missing (/install, /adopt; without a plan, knowing what is being done or asking about it), language, own diary detected, versions with an EOL warning, adopted conventions, git, design system, plan, devlog and the skills protocol.')
+        'prompt-router.mjs'        = @('UserPromptSubmit', 'Suggests the skill that fits the request, in English or Spanish (signals from docs/skills.md), once per skill and session.')
+        'guard.mjs'                = @('PreToolUse Bash/PowerShell', 'Looks at what is EXECUTED, not what is quoted (commit messages, heredocs to a file, echo, grep). BLOCKS: git push to a main branch, forced or without seeing which branch it goes to (to working branches, yes), writing, moving, deleting or restoring the sealed conventions from the terminal (no escape for the agent), destructive DB/git commands, rm -rf, deploy to prod without approval (escape `SENZU_ALLOW_DEPLOY=1`), logo generators once a logo is chosen (`SENZU_ALLOW_LOGO=1`), jQuery/Bootstrap (`SENZU_ALLOW_LIB=1`), dangerous devops (curl\|bash, chmod 777, dd, mkfs, docker prune, stopping services, flushing the firewall, crontab -r); commits: protected branch, Conventional ≤72, no co-authors.')
+        'protect-files.mjs'        = @('PreToolUse Edit/Write', 'BLOCKS editing: files generated by Senzu, secrets (.env, *.pem, credentials), dependencies/build artifacts, versioned migrations, sealed conventions.md/json (cannot be turned off), masters of the chosen logo (logos/final/) and the project''s `protectedPaths`.')
+        'secrets-guard.mjs'        = @('PreToolUse Edit/Write', 'BLOCKS writing real credentials (AWS, GitHub, Stripe, OpenAI/Anthropic, PEM, JWT, strings with a password); ignores placeholders.')
+        'code-hygiene.mjs'         = @('PreToolUse Edit/Write', 'BLOCKS introducing (except in scripts in the agent''s temp folder): console.log/debugger/dd()/var_dump/ray, terms banned in `gustos.md` §No, git conflict markers, `.only`/`.skip`/xit in tests, and the anti-AI blacklist (availability badges, numbered sections). One-off escape: a `senzu-allow` comment.')
+        'conventions-guard.mjs'    = @('PreToolUse Edit/Write', 'BLOCKS code that breaks the executable rules in `conventions.json` (/adopt): the project''s convention wins. Cannot be turned off. The path is normalized (C:\, C:/, Git Bash /c/, relative) before the rules apply.')
+        'arquitectura-guard.mjs'   = @('PreToolUse Edit/Write', 'Only if the project DECLARES its architecture (senzu/arquitectura/capas.json, from /adopt or /plan). BLOCKS what it introduces: a layer that uses one it may not (domain with framework or ORM, application with HTTP), a DDD context that reaches inside another, and the controller that talks to the database. WARNS about the request array passed instead of a DTO and new code outside the declared folders. Real imports: use + PSR-4, import + tsconfig aliases, Python modules. Cannot be turned off.')
+        'backend-guard.mjs'        = @('PreToolUse Edit/Write', 'BLOCKS introducing: destructive migrations in the part that gets applied (dropping or renaming columns or tables: expand → contract pattern), `env()` outside `config/` in Laravel, personal data in logs (whole request, bodies, passwords or tokens), migrations without an honest down(), mass assignment (the whole request into the model) and swallowed errors (empty catch, except: pass). WARNS about several writes in the same function without a transaction. Escape: `senzu-allow` with the reason.')
+        'pool-guard.mjs'           = @('PreToolUse Edit/Write', 'WARNS (does not block; once per file and session) about what exhausts the database connection pool in Node/TS and Python: `new PrismaClient()` without a global singleton (in serverless it opens one connection per invocation), and creating a pool/client/engine inside per-request code (routes, controllers, endpoints). PHP-FPM is out of scope. Recipe: `code-quality/references/database-design.md` (§Conexiones y pool).')
+        'back-skill-reminder.mjs'  = @('PreToolUse Edit/Write (backend)', 'First backend edit in the session: reminds of the stack recipe, the sealed conventions and the real framework version. Does not block.')
+        'depurar-coach.mjs'        = @('PostToolUse Bash/PowerShell', 'If a test, build or check that is EXECUTED fails (not when reading a test file), it switches on the method of the depurar skill (reproduce, failing test, hypothesis, narrow down, fix the cause). At most once every 20 minutes.')
+        'front-skill-reminder.mjs' = @('PreToolUse Edit/Write (front)', 'First UI edit: BLOCKS once if there is no design system NOR brief (it forces asking); afterwards it reminds of ui-ux-pro-max, the MASTER icon set and the hard UI rules.')
+        'format-on-save.mjs'       = @('PostToolUse', 'Formats the saved file with the stack''s tool (Pint/Prettier/ruff) if it exists. Never blocks.')
+        'edit-tracker.mjs'         = @('PostToolUse', 'Records every file the session touches (for cierre-limpio) and marks that code was edited (stop-guard then requires verification).')
+        'memoria-viva.mjs'         = @('UserPromptSubmit', 'If you state a rule or a correction ("never again…", "I told you…", "from now on…"), it asks the agent to note it in the project memory or in yours (all your projects). Keeps your last requests for /resume.')
+        'memoria-archivo.mjs'      = @('PreToolUse Edit/Write', 'The first time a file is about to be touched, it gives the agent what the memory and the devlog say about it (decisions, what did not work). Does not block.')
+        'estado-sesion.mjs'        = @('Stop · PreCompact', 'Saves where the session left off (requests, files, what was left uncommitted, task in progress) for the next session and for /resume. On close, BLOCKS once if you gave a rule or a correction and it was not noted in the memory.')
+        'arranque-guard.mjs'       = @('PreToolUse Edit/Write (code and manifests)', 'BLOCKS, once per step and session, the first code edit if Senzu is not installed or /adopt is missing (a project with code and no conventions). Without a plan it does NOT block: it reminds that you need to know what is going to be done and, if it is not clear, to talk it over with the user; /plan or /brief only if it is big. Never for senzu/, CLAUDE.md, AGENTS.md or the documentation. The user can drop a step with init.mjs --omitir-paso.')
+        'tarjeta-guard.mjs'        = @('PreToolUse Edit/Write (senzu/plan/PLAN.md)', 'BLOCKS moving a card to [done] without «Verificado:» (verified: the real evidence), «Cumple:» (meets: how it meets its «Para qué», the user''s goal or the audit finding it solves) and a «Devlog:» that exists. The same for plan cards and /audit cards.')
+        'feature-guard.mjs'        = @('Stop · PostToolUse Bash', 'Backend. BLOCKS closing (once per set of files) if the session touched backend code and no test, if it created or touched migrations without running them or without testing their rollback (it records the migrate commands that run), or if the code uses new environment variables that are not in .env.example.')
+        'cierre-limpio.mjs'        = @('Stop', 'BLOCKS closing (once) if you leave uncommitted files you touched in this session: either finish and commit (on a branch), or commit and say what is missing. Changes you did NOT touch (another agent such as Codex, another session or the user) are only reported: they are neither committed nor discarded without asking.')
+        'stop-guard.mjs'           = @('Stop', 'BLOCKS closing (once) if something is missing: the day''s devlog, verify-build after editing code, or mobile ui-verify after touching UI. It also warns about heavy assets added in the last 24 h (images over 500 KB, fonts without woff2, large videos).')
+        'pre-compact.mjs'          = @('PreCompact', 'Re-injects the essentials (stack, versions, design system, plan, rules) to survive context compaction.')
+        'session-end.mjs'          = @('SessionEnd', 'Cleans up the session markers.')
+        'lib.mjs'                  = $null
+        'messages.mjs'             = $null
+    }
+    $L.Add('| Hook | Event | What it does |')
+    $L.Add('|---|---|---|')
+    foreach ($f in (Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | Sort-Object { @($hookInfoEn.Keys).IndexOf($_.Name) })) {
+        if (-not $hookInfoEn.Contains($f.Name)) { throw "build-docs: hook '$($f.Name)' sin descripcion en ingles en hookInfoEn (añadela)" }
+        $info = $hookInfoEn[$f.Name]
+        if ($null -eq $info) { continue }   # lib.mjs, messages.mjs
+        $L.Add("| ``$($f.Name)`` | $($info[0]) | $($info[1]) |")
+    }
+    $L.Add('')
+    $L.Add('### Escapes (always with the user''s explicit approval, recorded in the devlog)')
+    $deploy = Get-CmdEn 'desplegar'
+    $L.Add("- ``SENZU_ALLOW_DEPLOY=1`` — deploy to production after the ``/$deploy`` checklist is approved.")
+    $L.Add('- `SENZU_ALLOW_LIB=1` — install a banned library (jQuery/Bootstrap) if the user asks for it.')
+    $L.Add('- A `senzu-allow` comment on the line — a one-off exception to code-hygiene (CLI script with console.log, justified test .skip, anti-AI pattern requested by name).')
+    $L.Add("- Sealed conventions: they are changed by deleting ``conventions.*`` and running ``/$(Get-CmdEn 'adoptar')`` again (the user's decision).")
+    return $L
+}
+
+function Get-StacksBodyEn {
+    # Etiquetas con texto en castellano en stack.json; el resto son nombres propios y se quedan igual
+    $labelEn = @{
+        'WordPress / PHP clásico'                                = 'WordPress / classic PHP'
+        'WordPress + theme a medida (child theme) + CSS propio' = 'WordPress + custom theme (child theme) + own CSS'
+    }
+    $tr = { param($s) if ($labelEn.ContainsKey($s)) { $labelEn[$s] } else { $s } }
+    $L = New-Object System.Collections.Generic.List[string]
+    $L.Add('Each stack defines an evolving system prompt, best practices, prohibitions, verification commands,')
+    $L.Add('formatters, permissions and (in the front ones) the profile for the design search. `init-project.ps1 -Stack <n>`.')
+    $L.Add('')
+    $L.Add('| Stack | What it is | Front profile |')
+    $L.Add('|---|---|---|')
+    foreach ($d in (Get-ChildItem (Join-Path $root 'stacks') -Directory | Sort-Object Name)) {
+        $meta = (Read-Utf8 (Join-Path $d.FullName 'stack.json')) | ConvertFrom-Json
+        $fp = if ($meta.frontProfile) { & $tr $meta.frontProfile.label } else { '— (backend)' }
+        $L.Add("| ``$($d.Name)`` | $(& $tr $meta.label) | $fp |")
+    }
+    $L.Add('')
+    $L.Add('Languages without their own stack (`code-quality` references; the router routes them all the same): **Go** (`go.md`),')
+    $L.Add('**Java/Spring** (`java.md`), **C#/.NET** (`csharp.md`).')
+    $L.Add('')
+    $bundles = Get-Bundles
+    $L.Add('### Optional bundles (`init.mjs --bundle <name>` or `sync.ps1 -Bundle <name>`)')
+    $L.Add('')
+    $L.Add('| Bundle | Skills |')
+    $L.Add('|---|---|')
+    foreach ($b in ($bundles.Keys | Sort-Object)) { $L.Add("| ``$b`` | $(@($bundles[$b]) -join ', ') |") }
+    return $L
+}
+
 # ============================================================ EMISION
 function Emit([string]$Path, [string]$Title, [string]$Intro, $Body) {
     $L = New-Object System.Collections.Generic.List[string]
@@ -200,6 +351,12 @@ Emit 'docs\skills.md' 'Skills y enrutamiento' "$volver`n`nQué skill existe, cu�
 Emit 'docs\comandos.md' 'Comandos slash' "$volver" $cmdsBody
 Emit 'docs\hooks.md' 'Muros y hooks' "$volver`n`nLo que el agente NO puede hacer aunque quiera — y lo que se le recuerda solo." $hooksBody
 Emit 'docs\stacks.md' 'Stacks y bundles' "$volver" $stacksBody
+
+# Las mismas páginas en inglés (la web las publica en /en/docs/; en GitHub, junto a las de castellano)
+$back = '[← Back to README](../README.md)'
+Emit 'docs\comandos.en.md' 'Slash commands' "$back" (Get-CommandsBodyEn)
+Emit 'docs\hooks.en.md' 'Walls and hooks' "$back`n`nWhat the agent can NOT do even if it wants to — and what it is reminded of on its own." (Get-HooksBodyEn)
+Emit 'docs\stacks.en.md' 'Stacks and bundles' "$back" (Get-StacksBodyEn)
 
 # REFERENCIA.md: todo en una pagina (para leer del tiron o imprimir)
 $R = New-Object System.Collections.Generic.List[string]
