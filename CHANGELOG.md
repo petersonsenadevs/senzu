@@ -4,6 +4,10 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-19
+
+- **feature** — Muro de cadena de suministro: anti-malware y skills maliciosas (2.24.0) (entrada 163)
+
 ## 2026-10-16
 
 - **fix** — El CHANGELOG público ya no filtra rutas locales () (entrada 162)

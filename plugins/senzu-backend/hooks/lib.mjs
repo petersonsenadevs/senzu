@@ -110,7 +110,7 @@ export const rutaMarcador = root => ruta(root, 'senzu.json');
 //   "hooksApagados": ["format-on-save", "front-skill-reminder"]
 // Solo cuenta el valor booleano true. guard, secrets-guard, protect-files y conventions-guard NO se pueden apagar: el push forzado,
 // lo destructivo, los secretos y los archivos protegidos siguen bloqueados siempre.
-export const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];   // las convenciones selladas tampoco se apagan
+export const HOOKS_NO_APAGABLES = ['guard', 'supply-guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];   // seguridad y convenciones selladas no se apagan
 // Ramas PRINCIPALES: ni commit directo ni push del agente (salvo permiso commitEnMain / pushMain del usuario).
 // Todas las de entorno, no solo main: un push a staging o production también despliega. El usuario puede añadir
 // las suyas en el marcador: "ramasProtegidas": ["demo", "cliente-x"].

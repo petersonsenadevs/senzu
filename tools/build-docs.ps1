@@ -112,6 +112,7 @@ function Get-HooksBody {
         'session-start.mjs'        = @('SessionStart', 'Inyecta estado: si Senzu está DESACTUALIZADO (qué hacer y qué se pierde, de core/novedades.json), stack/perfil, el SIGUIENTE PASO del método que falta (/instalar, /adoptar; sin plan, saber qué se hace o preguntarlo), idioma, diario propio detectado, versiones con aviso EOL, convenciones adoptadas, git, design system, plan, devlog y protocolo de skills.')
         'prompt-router.mjs'        = @('UserPromptSubmit', 'Sugiere la skill que encaja con la petición (señales de docs/skills.md), una vez por skill y sesión.')
         'guard.mjs'                = @('PreToolUse Bash/PowerShell', 'Mira lo que se EJECUTA, no lo citado (mensajes de commit, heredocs a un archivo, echo, grep). BLOQUEA: git push a una rama principal, forzado o sin ver a qué rama va (a las de trabajo, sí), escribir, mover, borrar o restaurar las convenciones selladas desde la terminal (sin escape para el agente), destructivos de BD/git, rm -rf, deploy a prod sin aprobación (escape `SENZU_ALLOW_DEPLOY=1`), generadores de logos con logo ya elegido (`SENZU_ALLOW_LOGO=1`), jQuery/Bootstrap (`SENZU_ALLOW_LIB=1`), devops peligroso (curl\|bash, chmod 777, dd, mkfs, docker prune, parar servicios, vaciar firewall, crontab -r); commits: rama protegida, Conventional ≤72, sin co-autores.')
+        'supply-guard.mjs'         = @('PreToolUse Bash/PowerShell', 'Muro de cadena de suministro. En un comando de instalación (npm/pip/composer…) mira los NOMBRES de paquete (typosquatting, denylist de malware conocido) antes de que entren; al hacer `git commit` escanea lo que entra (manifests de dependencias, archivos de skills/plugins y `.mcp.json`) buscando scripts de instalación con red/shell, inyección de prompt, exfiltración (lee secretos y abre red), ofuscación (eval/base64/hex), caracteres unicode ocultos y servidores MCP que descargan y ejecutan. BLOQUEA lo grave, AVISA del resto. «Citar no es hacer»: mira lo que se ejecuta, no el texto citado. Offline y determinista (listas en `core/hooks/data/`). No se puede apagar. Escape tras verificar: `SENZU_ALLOW_SUPPLY=1`.')
         'protect-files.mjs'        = @('PreToolUse Edit/Write', 'BLOQUEA editar: generados por Senzu, secretos (.env, *.pem, credentials), dependencias/artefactos, migraciones versionadas, conventions.md/json sellados (no se puede apagar), maestros del logo elegido (logos/final/) y `protectedPaths` del proyecto.')
         'secrets-guard.mjs'        = @('PreToolUse Edit/Write', 'BLOQUEA escribir credenciales reales (AWS, GitHub, Stripe, OpenAI/Anthropic, PEM, JWT, cadenas con password); ignora placeholders.')
         'code-hygiene.mjs'         = @('PreToolUse Edit/Write', 'BLOQUEA introducir (no en scripts de la carpeta temporal del agente): console.log/debugger/dd()/var_dump/ray, términos vetados en `gustos.md` §No, marcadores de conflicto de git, `.only`/`.skip`/xit en tests, y la lista negra anti-IA (badges de disponibilidad, numeración de secciones). Escape puntual: comentario `senzu-allow`.')
@@ -136,6 +137,7 @@ function Get-HooksBody {
         'session-end.mjs'          = @('SessionEnd', 'Limpia los marcadores de sesión.')
         'lib.mjs'                  = $null
         'messages.mjs'             = $null
+        'supply-scan.mjs'          = $null
     }
     $L.Add('| Hook | Evento | Qué hace |')
     $L.Add('|---|---|---|')
@@ -257,6 +259,7 @@ function Get-HooksBodyEn {
         'session-start.mjs'        = @('SessionStart', 'Injects the state: whether Senzu is OUTDATED (what to do and what you lose, from core/novedades.json), stack/profile, the NEXT STEP of the method that is missing (/install, /adopt; without a plan, knowing what is being done or asking about it), language, own diary detected, versions with an EOL warning, adopted conventions, git, design system, plan, devlog and the skills protocol.')
         'prompt-router.mjs'        = @('UserPromptSubmit', 'Suggests the skill that fits the request, in English or Spanish (signals from docs/skills.md), once per skill and session.')
         'guard.mjs'                = @('PreToolUse Bash/PowerShell', 'Looks at what is EXECUTED, not what is quoted (commit messages, heredocs to a file, echo, grep). BLOCKS: git push to a main branch, forced or without seeing which branch it goes to (to working branches, yes), writing, moving, deleting or restoring the sealed conventions from the terminal (no escape for the agent), destructive DB/git commands, rm -rf, deploy to prod without approval (escape `SENZU_ALLOW_DEPLOY=1`), logo generators once a logo is chosen (`SENZU_ALLOW_LOGO=1`), jQuery/Bootstrap (`SENZU_ALLOW_LIB=1`), dangerous devops (curl\|bash, chmod 777, dd, mkfs, docker prune, stopping services, flushing the firewall, crontab -r); commits: protected branch, Conventional ≤72, no co-authors.')
+        'supply-guard.mjs'         = @('PreToolUse Bash/PowerShell', 'Supply-chain wall. On an install command (npm/pip/composer…) it checks the package NAMES (typosquatting, known-malware denylist) before they land; on `git commit` it scans what is staged (dependency manifests, skill/plugin files and `.mcp.json`) for install scripts with network/shell, prompt injection, exfiltration (reads secrets and opens the network), obfuscation (eval/base64/hex), hidden unicode characters and MCP servers that download and execute. BLOCKS the serious ones, WARNS about the rest. "Quoting is not doing": it looks at what is executed, not quoted text. Offline and deterministic (lists in `core/hooks/data/`). Cannot be turned off. Escape after verifying: `SENZU_ALLOW_SUPPLY=1`.')
         'protect-files.mjs'        = @('PreToolUse Edit/Write', 'BLOCKS editing: files generated by Senzu, secrets (.env, *.pem, credentials), dependencies/build artifacts, versioned migrations, sealed conventions.md/json (cannot be turned off), masters of the chosen logo (logos/final/) and the project''s `protectedPaths`.')
         'secrets-guard.mjs'        = @('PreToolUse Edit/Write', 'BLOCKS writing real credentials (AWS, GitHub, Stripe, OpenAI/Anthropic, PEM, JWT, strings with a password); ignores placeholders.')
         'code-hygiene.mjs'         = @('PreToolUse Edit/Write', 'BLOCKS introducing (except in scripts in the agent''s temp folder): console.log/debugger/dd()/var_dump/ray, terms banned in `gustos.md` §No, git conflict markers, `.only`/`.skip`/xit in tests, and the anti-AI blacklist (availability badges, numbered sections). One-off escape: a `senzu-allow` comment.')
@@ -281,6 +284,7 @@ function Get-HooksBodyEn {
         'session-end.mjs'          = @('SessionEnd', 'Cleans up the session markers.')
         'lib.mjs'                  = $null
         'messages.mjs'             = $null
+        'supply-scan.mjs'          = $null
     }
     $L.Add('| Hook | Event | What it does |')
     $L.Add('|---|---|---|')
@@ -380,7 +384,7 @@ if (Test-Path $readmePath) {
     $md = Read-Utf8 $readmePath
     $nSkills = @($script:Registry.skills).Count
     $nStacks = @(Get-ChildItem (Join-Path $root 'stacks') -Directory).Count
-    $nHooks = @(Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | Where-Object { $_.Name -ne 'lib.mjs' -and $_.Name -ne 'messages.mjs' }).Count
+    $nHooks = @(Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | Where-Object { $_.Name -ne 'lib.mjs' -and $_.Name -ne 'messages.mjs' -and $_.Name -ne 'supply-scan.mjs' }).Count
     $nCmds = @(Get-ChildItem (Join-Path $root 'core\commands') -Filter *.md).Count
     $nPlugins = @(Get-ChildItem (Join-Path $root 'plugins') -Directory -ErrorAction SilentlyContinue).Count
     # Misma versión que los plugins (SENZU_RELEASE o el manifiesto recién generado): el último tag aún no existe

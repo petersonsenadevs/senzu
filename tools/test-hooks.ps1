@@ -158,6 +158,18 @@ OutCase 'assets pesados -> aviso al cerrar' 'stop-guard.mjs' @{} 'hero\.png \(90
 OutCase 'test en rojo -> metodo de depuracion' 'depurar-coach.mjs' @{ tool_name='Bash'; tool_input=@{ command='php artisan test' }; tool_response=@{ stdout="FAIL  Tests\Feature\PedidoTest`nTests: 1 failed, 12 passed" } } 'skill depurar'
 $null = Case 'test en verde -> silencio (exit 0)' 'depurar-coach.mjs' @{ tool_name='Bash'; tool_input=@{ command='npm test' }; tool_response=@{ stdout='Tests: 14 passed' } } 0
 
+# --- supply-guard: cadena de suministro en comandos de instalacion ---
+$null = Case 'supply denylist version -> bloquea' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='npm install event-stream@3.3.6' } } 2
+$null = Case 'supply flatmap-stream -> bloquea' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='npm install flatmap-stream' } } 2
+$null = Case 'supply pip colourama -> bloquea' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='pip install colourama' } } 2
+OutCase 'supply typosquat -> avisa' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='npm i lodahs' } } 'typosquatting'
+$null = Case 'supply typosquat no bloquea (exit 0)' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='npm i lodahs' } } 0
+$null = Case 'supply limpio -> pasa' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='npm install react express preact' } } 0
+$env:SENZU_ALLOW_SUPPLY = '1'
+$null = Case 'supply con ALLOW_SUPPLY -> pasa' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='npm install flatmap-stream' } } 0
+$env:SENZU_ALLOW_SUPPLY = ''
+$null = Case 'supply mencion en commit -> pasa (citar no es hacer)' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='git commit -m "docs: no instalar flatmap-stream"' } } 0
+
 [System.IO.Directory]::Delete($proj, $true)
 Write-Host "Casos: $i  Fallos: $fail"
 if ($fail) { exit 1 } else { exit 0 }

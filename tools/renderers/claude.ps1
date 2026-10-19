@@ -8,7 +8,7 @@ function Get-HookSet {
         SessionStart     = @(@{ matcher = $null; files = @('session-start.mjs') })
         UserPromptSubmit = @(@{ matcher = $null; files = @('prompt-router.mjs', 'memoria-viva.mjs') })
         PreToolUse       = @(
-            @{ matcher = 'Bash|PowerShell';                   files = @('guard.mjs') },
+            @{ matcher = 'Bash|PowerShell';                   files = @('guard.mjs', 'supply-guard.mjs') },
             @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'pool-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }
         )
         PostToolUse      = @(@{ matcher = 'Edit|Write|MultiEdit|apply_patch'; files = @('format-on-save.mjs', 'edit-tracker.mjs') }, @{ matcher = 'Bash|PowerShell'; files = @('depurar-coach.mjs', 'feature-guard.mjs') })
@@ -104,6 +104,9 @@ function Render-Claude {
     $hooksDst = Join-Path $ProjectPath '.claude\hooks'
     Ensure-Dir $hooksDst
     Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | ForEach-Object { Copy-Item $_.FullName (Join-Path $hooksDst $_.Name) -Force }
+    # listas de datos de supply-guard (denylist de malware, paquetes populares): sin ellas el escaner no vigila
+    $dataSrc = Join-Path $root 'core\hooks\data'
+    if (Test-Path $dataSrc) { Copy-Tree $dataSrc (Join-Path $hooksDst 'data') }
     # limpiar hooks .ps1 de versiones anteriores de Senzu (sustituidos por .mjs agnosticos)
     Get-ChildItem $hooksDst -Filter *.ps1 -ErrorAction SilentlyContinue | Where-Object { Test-Path (Join-Path $root ('core\hooks\' + ($_.BaseName + '.mjs'))) -or $_.Name -eq '_common.ps1' } | Remove-Item -Force
     Copy-Tree (Join-Path $Stack.Dir 'hooks') $hooksDst

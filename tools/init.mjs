@@ -419,7 +419,7 @@ function hookSet(hasFront) {
         SessionStart: [{ matcher: null, files: ['session-start.mjs'] }],
         UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs', 'memoria-viva.mjs'] }],
         PreToolUse: [
-            { matcher: 'Bash|PowerShell', files: ['guard.mjs'] },
+            { matcher: 'Bash|PowerShell', files: ['guard.mjs', 'supply-guard.mjs'] },
             { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'pool-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
         ],
         PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs', 'feature-guard.mjs'] }],
@@ -438,7 +438,7 @@ const PERMISOS = [
     ['push-main', 'Subir también a las ramas principales (main, develop, staging, production…)', 'pushMain'],
     ['commit-main', 'Commitear directamente en main, master o develop', 'commitEnMain'],
 ];
-const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];
+const HOOKS_NO_APAGABLES = ['guard', 'supply-guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];
 function permisosDesde(lista) {   // ['push', 'push-main'] -> { push: true, pushMain: true }
     const o = {};
     for (const [id, , clave] of PERMISOS) if (lista.includes(id)) o[clave] = true;
@@ -547,6 +547,8 @@ async function renderClaude(stack, projectPath, extra, bundles) {
     for (const f of fs.readdirSync(path.join(ROOT, 'core', 'hooks')).filter(n => n.endsWith('.mjs'))) {
         fs.copyFileSync(path.join(ROOT, 'core', 'hooks', f), path.join(hooksDst, f));
     }
+    // Listas de datos de supply-guard (denylist de malware, paquetes populares): sin ellas el escaner no vigila
+    if (exists(path.join(ROOT, 'core', 'hooks', 'data'))) copyTree(path.join(ROOT, 'core', 'hooks', 'data'), path.join(hooksDst, 'data'));
     for (const f of fs.readdirSync(hooksDst).filter(n => n.endsWith('.ps1'))) {
         if (exists(path.join(ROOT, 'core', 'hooks', f.replace(/\.ps1$/, '.mjs'))) || f === '_common.ps1') fs.rmSync(path.join(hooksDst, f), { force: true });
     }

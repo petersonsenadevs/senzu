@@ -27,6 +27,18 @@ export const CAT = {
             'Si lo legal se gestiona fuera del repo (CMS, plantilla externa) o de verdad no aplica, reintenta con SENZU_ALLOW_SIN_LEGAL=1 y deja constancia en el devlog.',
         ],
     },
+    'supply.block': {
+        en: 'Supply-chain risk in what you are about to install or commit:',
+        es: 'Riesgo en la cadena de suministro de lo que vas a instalar o commitear:',
+    },
+    'supply.retry': {
+        en: 'Check each item is the real, intended package/file (not a near-identical typosquat or a tampered skill). If it is legitimate, retry with SENZU_ALLOW_SUPPLY=1 and note it in the devlog.',
+        es: 'Comprueba que cada punto es el paquete/archivo real y buscado (no un typosquat casi identico ni una skill manipulada). Si es legitimo, reintenta con SENZU_ALLOW_SUPPLY=1 y dejalo en el devlog.',
+    },
+    'supply.warn': {
+        en: '[Senzu] Supply-chain warning (not blocking), double-check before trusting it:',
+        es: '[Senzu] Aviso de cadena de suministro (no bloquea), revisalo antes de fiarte:',
+    },
     'stop.verifyBuild': {
         en: "You edited code and there is no verification afterward: run 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (runs the stack's lint/types/tests/build and leaves a record) or the stack commands by hand, fix the failures and paste the result before closing.",
         es: "Has editado codigo y NO hay verificacion posterior: ejecuta 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (corre lint/types/tests/build del stack y deja constancia) o los comandos del stack a mano, corrige los fallos y pega el resultado antes de cerrar.",

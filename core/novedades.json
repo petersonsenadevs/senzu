@@ -1,6 +1,7 @@
 {
   "_que_es": "Novedades que session-start enseña a quien tiene una versión anterior de Senzu (las 3 más recientes; primero las importantes). Una línea por versión, en llano: qué gana el usuario al actualizar.",
   "novedades": [
+    { "version": "2.24.0", "importante": true, "texto": "al instalar un paquete o al commitear, un muro frena lo que trae malware conocido o un nombre casi calcado a uno famoso (typosquatting), y las skills de terceros con inyección de prompt o exfiltración" },
     { "version": "2.23.0", "importante": false, "texto": "al instalar (/instalar) Senzu te pregunta el idioma de sus avisos (inglés por defecto o castellano) y lo guarda; antes el idioma solo se elegía con el flag --lang o la variable SENZU_LANG" },
     { "version": "2.22.0", "importante": false, "texto": "Senzu bilingüe: la UI va en inglés por defecto (los muros, los nombres y descripciones de los comandos y el router, que entiende lo que escribes en inglés o en español); al instalar con --lang es la dejas en castellano" },
     { "version": "2.21.0", "importante": false, "texto": "al publicar una web, un muro frena el deploy a producción si el repo no tiene ninguna página legal (privacidad, cookies o aviso legal); y una guía explica cómo montar el banner de consentimiento que cumple el RGPD/LSSI" },

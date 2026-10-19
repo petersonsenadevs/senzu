@@ -65,7 +65,7 @@ function New-Plugin {
     foreach ($e in $ExtraSkillDirs) { Copy-Tree $e (Join-Path $skillsDst (Split-Path $e -Leaf)); $installed += (Split-Path $e -Leaf) }
     if ($Hooks) {
         Ensure-Dir (Join-Path $dir 'hooks')
-        foreach ($h in $HookFiles) { Copy-Item (Join-Path $root "core\hooks\$h") (Join-Path $dir "hooks\$h") -Force }
+        foreach ($h in $HookFiles) { $dstH = Join-Path $dir "hooks\$h"; Ensure-Dir (Split-Path $dstH -Parent); Copy-Item (Join-Path $root "core\hooks\$h") $dstH -Force }
         Write-Utf8 (Join-Path $dir 'hooks\hooks.json') ($Hooks | ConvertTo-Json -Depth 8)
         # config.json neutro (modo plugin: sin stack.json del proyecto)
         $cfg = [ordered]@{
@@ -115,7 +115,7 @@ $coreSkills = @('devlog', 'project-planner', 'instalar-proyecto', 'code-quality'
 $routerDir  = @((Join-Path $root 'core\skills-plugin\skill-router'))
 
 # --- core: metodologia + TODOS los hooks (menos los de front) ---
-$coreFiles = @('lib.mjs','messages.mjs','session-start.mjs','prompt-router.mjs','guard.mjs','protect-files.mjs','secrets-guard.mjs','format-on-save.mjs','edit-tracker.mjs','code-hygiene.mjs','conventions-guard.mjs','arquitectura-guard.mjs','backend-guard.mjs','pool-guard.mjs','back-skill-reminder.mjs','depurar-coach.mjs','stop-guard.mjs','cierre-limpio.mjs','feature-guard.mjs','estado-sesion.mjs','memoria-viva.mjs','memoria-archivo.mjs','tarjeta-guard.mjs','arranque-guard.mjs','pre-compact.mjs','session-end.mjs')
+$coreFiles = @('lib.mjs','messages.mjs','session-start.mjs','prompt-router.mjs','guard.mjs','supply-guard.mjs','supply-scan.mjs','data/popular-packages.json','data/malware-denylist.json','protect-files.mjs','secrets-guard.mjs','format-on-save.mjs','edit-tracker.mjs','code-hygiene.mjs','conventions-guard.mjs','arquitectura-guard.mjs','backend-guard.mjs','pool-guard.mjs','back-skill-reminder.mjs','depurar-coach.mjs','stop-guard.mjs','cierre-limpio.mjs','feature-guard.mjs','estado-sesion.mjs','memoria-viva.mjs','memoria-archivo.mjs','tarjeta-guard.mjs','arranque-guard.mjs','pre-compact.mjs','session-end.mjs')
 $coreHooks = @{ hooks = (New-HooksJson -HasFront $false -PathPrefix '${CLAUDE_PLUGIN_ROOT}/hooks/') }
 $entries += New-Plugin -Name 'senzu-core' -Description 'Metodología Senzu: skill devlog + skill-router + hooks (guard de git/BD, archivos protegidos, secretos, formateo al guardar, estado de sesión, router de prompts, cierre con devlog, pre-compact).' `
     -Skills $coreSkills -Hooks $coreHooks -HookFiles $coreFiles -ExtraSkillDirs $routerDir -Commands @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md')

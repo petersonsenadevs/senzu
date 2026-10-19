@@ -35,6 +35,11 @@
                                                            "type":  "command",
                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs\"",
                                                            "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/supply-guard.mjs\"",
+                                                           "timeout":  30
                                                        }
                                                    ]
                                      },

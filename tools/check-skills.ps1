@@ -217,7 +217,7 @@ $plugRoot = Join-Path $root 'plugins'
 if (Test-Path $plugRoot) {
     foreach ($pd in (Get-ChildItem $plugRoot -Directory | Where-Object { Test-Path (Join-Path $_.FullName 'hooks\hooks.json') })) {
         $hj = Read-Utf8 (Join-Path $pd.FullName 'hooks\hooks.json')
-        $files = @(Get-ChildItem (Join-Path $pd.FullName 'hooks') -Filter *.mjs | Where-Object { $_.Name -notin @('lib.mjs', 'messages.mjs') } | ForEach-Object Name)
+        $files = @(Get-ChildItem (Join-Path $pd.FullName 'hooks') -Filter *.mjs | Where-Object { $_.Name -notin @('lib.mjs', 'messages.mjs', 'supply-scan.mjs') } | ForEach-Object Name)
         foreach ($f in $files) { if ($hj -notmatch [regex]::Escape($f)) { Fail "plugin:$($pd.Name)" "hook muerto: $f copiado pero no registrado en hooks.json" } }
         if ($pd.Name -in @('senzu-front', 'senzu-core', 'senzu-backend', 'senzu-all') -and $hj -notmatch 'UserPromptSubmit') { Fail "plugin:$($pd.Name)" 'sin UserPromptSubmit (prompt-router)' }
     }

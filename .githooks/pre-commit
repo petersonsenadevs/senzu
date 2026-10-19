@@ -33,4 +33,10 @@ if [ -f tools/test-init-parity.ps1 ]; then
     echo "[senzu] test-init-parity.ps1 FALLA (init.ps1 vs init.mjs divergen). Detalle: tools/test-init-parity.ps1" >&2; exit 1
   fi
 fi
+if [ -f tools/test-supply.mjs ]; then
+  node tools/test-supply.mjs >/dev/null 2>&1
+  if [ $? -ne 0 ]; then
+    echo "[senzu] test-supply.mjs FALLA (supply-guard / skills vendored). Detalle: node tools/test-supply.mjs" >&2; exit 1
+  fi
+fi
 exit 0
