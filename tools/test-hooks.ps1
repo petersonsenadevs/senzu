@@ -104,6 +104,11 @@ $null = Case 'console.log ya existia -> pasa' 'code-hygiene.mjs' @{ tool_name='E
 $null = Case 'console.log con allow -> pasa' 'code-hygiene.mjs' @{ tool_name='Edit'; tool_input=@{ file_path='C:\x\src\cli.ts'; old_string='x'; new_string="console.log('hola') // senzu-allow" } } 0
 $null = Case 'Write con debugger -> bloquea' 'code-hygiene.mjs' @{ tool_name='Write'; tool_input=@{ file_path='C:\x\src\P.astro'; content="<script>`ndebugger`n</script>" } } 2
 $null = Case 'archivo de test -> pasa' 'code-hygiene.mjs' @{ tool_name='Write'; tool_input=@{ file_path='C:\x\src\app.test.ts'; content='console.log(1)' } } 0
+# X-T16: un nombre con "test"/"spec" en medio NO es un archivo de test (su console.log sigue bloqueado)
+$null = Case 'testimonials.ts con console.log -> bloquea' 'code-hygiene.mjs' @{ tool_name='Write'; tool_input=@{ file_path='C:\x\src\testimonials.ts'; content='console.log(1)' } } 2
+$null = Case 'latest.ts con console.log -> bloquea' 'code-hygiene.mjs' @{ tool_name='Write'; tool_input=@{ file_path='C:\x\src\latest.ts'; content='console.log(1)' } } 2
+$null = Case 'carpeta tests/ -> es test (pasa)' 'code-hygiene.mjs' @{ tool_name='Write'; tool_input=@{ file_path='C:\x\tests\flujo.ts'; content='console.log(1)' } } 0
+$null = Case 'foo.spec.ts -> es test (pasa)' 'code-hygiene.mjs' @{ tool_name='Write'; tool_input=@{ file_path='C:\x\src\pago.spec.ts'; content='console.log(1)' } } 0
 
 # --- code-hygiene: tests desactivados y marcadores de conflicto ---
 $null = Case 'introduce it.only -> bloquea' 'code-hygiene.mjs' @{ tool_name='Edit'; tool_input=@{ file_path='C:\x\src\app.test.ts'; old_string="it('suma', fn)"; new_string="it.only('suma', fn)" } } 2
@@ -169,6 +174,16 @@ $env:SENZU_ALLOW_SUPPLY = '1'
 $null = Case 'supply con ALLOW_SUPPLY -> pasa' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='npm install flatmap-stream' } } 0
 $env:SENZU_ALLOW_SUPPLY = ''
 $null = Case 'supply mencion en commit -> pasa (citar no es hacer)' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='git commit -m "docs: no instalar flatmap-stream"' } } 0
+
+# --- guard: no borrar tests para que pase la suite (escape SENZU_ALLOW_DELTEST=1) ---
+$null = Case 'rm de un .test.ts -> bloquea' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='rm src/pago.test.ts' } } 2
+$null = Case 'git rm de tests/ -> bloquea' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='git rm tests/flujo.ts' } } 2
+$null = Case 'Remove-Item de un *Test.php -> bloquea' 'guard.mjs' @{ tool_name='PowerShell'; tool_input=@{ command='Remove-Item src/PagoTest.php' } } 2
+$null = Case 'mv renombra un test -> pasa' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='mv src/a.test.ts src/b.test.ts' } } 0
+$null = Case 'rm de un no-test -> pasa' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='rm dist/bundle.js' } } 0
+$env:SENZU_ALLOW_DELTEST = '1'
+$null = Case 'rm test con ALLOW_DELTEST -> pasa' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='rm src/pago.test.ts' } } 0
+$env:SENZU_ALLOW_DELTEST = ''
 
 [System.IO.Directory]::Delete($proj, $true)
 Write-Host "Casos: $i  Fallos: $fail"

@@ -16,6 +16,11 @@ se instalan SIEMPRE; el resto solo en stacks con perfil de front.
 | `/adoptar` | [notas opcionales, p. ej. "solo backend" o "el idioma oficial es inglés"] | Adoptar las convenciones de un proyecto existente y sellarlas como regla inmutable |
 | `/auditar` | [área opcional, p. ej. "pagos", "API pública" o "antes de producción"] | Auditoría del backend y la arquitectura con pruebas — herramientas reales, evidencia por hallazgo, informe y plan |
 | `/brief` | [tipo de negocio si ya se sabe, p. ej. "restaurante"] | Entrevista de descubrimiento en lenguaje llano — para clientes que no saben el palabreo técnico |
+| `/dependencias` | — sin argumento, revisa todo el proyecto.
+
+Pasa el escaner de cadena de suministro de Senzu (supply-scan) sobre el proyecto y explica lo que encuentre. Es la revision a fondo A PETICION; el muro supply-guard ya vigila solo al instalar un paquete y al hacer commit.
+
+1. Localiza el escaner: en un proyecto instalado esta en | Revisa la cadena de suministro — paquetes con malware o typosquatting y skills de terceros maliciosas |
 | `/depurar` | [síntoma o error, p. ej. "el checkout devuelve 500 con cupones"] | Depuración con método — reproducir, test que falla, hipótesis, acotar, arreglar la causa y verificar |
 | `/design-system` | [producto/industria, p. ej. "saas facturación autónomos"] | Genera (o revisa) el design system del proyecto con ui-ux-pro-max |
 | `/efecto` | <nombre del efecto> [dónde, p. ej. "marquee en el footer de logos"] | Aplica un efecto pro de frontend desde el catálogo (parallax, marquee, cursor, stacking…) |

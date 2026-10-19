@@ -39,6 +39,16 @@ export const CAT = {
         en: '[Senzu] Supply-chain warning (not blocking), double-check before trusting it:',
         es: '[Senzu] Aviso de cadena de suministro (no bloquea), revisalo antes de fiarte:',
     },
+    'deltest.block': {
+        en: [
+            '[BLOCKED by Senzu] This deletes a test file or folder. A failing test is fixed by fixing the code, not by deleting the test.',
+            'If the test is genuinely obsolete (the feature was removed) and the user agrees, retry with SENZU_ALLOW_DELTEST=1 and note it in the devlog. Renaming or rewriting a test does not need this.',
+        ],
+        es: [
+            '[BLOQUEADO por Senzu] Esto borra un archivo o carpeta de test. Un test que falla se arregla arreglando el codigo, no borrando el test.',
+            'Si el test esta de verdad obsoleto (se quito la feature) y el usuario esta de acuerdo, reintenta con SENZU_ALLOW_DELTEST=1 y dejalo en el devlog. Renombrar o reescribir un test no necesita esto.',
+        ],
+    },
     'stop.verifyBuild': {
         en: "You edited code and there is no verification afterward: run 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (runs the stack's lint/types/tests/build and leaves a record) or the stack commands by hand, fix the failures and paste the result before closing.",
         es: "Has editado codigo y NO hay verificacion posterior: ejecuta 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (corre lint/types/tests/build del stack y deja constancia) o los comandos del stack a mano, corrige los fallos y pega el resultado antes de cerrar.",

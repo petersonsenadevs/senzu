@@ -23,7 +23,15 @@ if (!/\.(ts|tsx|js|jsx|mjs|cjs|vue|astro|svelte|php|html|css|blade\.php)$/i.test
 // el código de fuera del proyecto en otro sitio (un paquete hermano de un monorepo) se sigue revisando.
 if (relDelProyecto(root, file) === null && relDelProyecto(os.tmpdir(), file) !== null) process.exit(0);
 const isExcluded = /(\.config\.|vite\.config|astro\.config|tailwind\.config|[\\/](scripts?|tools|\.claude|devlog|design-system|node_modules|vendor)[\\/])/i.test(file);
-const isTest = /(test|spec)/i.test(file);
+// Un archivo es TEST por su CARPETA (tests/, __tests__/, spec/) o su NOMBRE (foo.test.ts, foo.spec.js,
+// foo_test.go, test_foo.py, FooTest.php), no por contener "test"/"spec" en cualquier parte de la ruta:
+// "testimonials", "latest", "inspector", "respec" NO son tests y su console.log debe seguir bloqueandose. X-T16.
+const relHyg = (relDelProyecto(root, file) || file).replace(/\\/g, '/');
+const isTest = /(^|\/)(__tests__|tests?|spec)\//i.test(relHyg)
+    || /\.(test|spec)\.\w+$/i.test(file)
+    || /_test\.\w+$/i.test(file)
+    || /(^|\/)test_\w[^/]*\.py$/i.test(file)
+    || /Test\.php$/i.test(file);
 
 // pares (nuevo, viejo) según la herramienta (testIntroduced compartido en lib.mjs)
 const pairs = [];

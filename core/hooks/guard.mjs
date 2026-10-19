@@ -150,6 +150,20 @@ if (/\bgit\s+commit\b/i.test(c)) {
     }
 }
 
+// --- No borrar tests para que pase la suite (escape SENZU_ALLOW_DELTEST=1 tras aprobacion del usuario) ---
+// Mira lo que se EJECUTA (c, sin texto citado). Borrado por rm/git rm/del/unlink/Remove-Item de un archivo o
+// carpeta de test. Renombrar o reescribir un test es legitimo; borrarlo para que la suite deje de fallar, no.
+function borraTest(cmd) {
+    if (!/\b(rm|unlink|del|remove-item|ri)\b/i.test(cmd) && !/\bgit\s+rm\b/i.test(cmd)) return false;
+    // Objetivo que es un test. Sin flag /i a proposito: .test./.spec./_test. y las carpetas van en minuscula
+    // (convencion), y «[A-Za-z0-9]Test.php» exige la T mayuscula de PHPUnit (FooTest.php) para no cazar
+    // latest.php ni greatest.php.
+    return /\.(test|spec)\.\w+|_test\.\w+|(^|[\s"'\\/])(tests?|__tests__|spec)[\\/]|[A-Za-z0-9]Test\.php\b/.test(cmd);
+}
+if (envSenzu('ALLOW_DELTEST') !== '1' && borraTest(c)) {
+    deny(msg('deltest.block', lang));
+}
+
 // --- Deploy a produccion: NUNCA sin aprobacion explicita del usuario ---
 const deployProdPat = /(netlify\s+deploy(?=.*--prod))|(\bvercel\b(?=.*--prod))|(\bfly\s+deploy\b)|(\bwrangler\s+(deploy|publish)\b(?!.*--env[= ](dev|preview)))/i;
 if (envSenzu('ALLOW_DEPLOY') !== '1') {
