@@ -17,7 +17,7 @@ import { execFileSync } from 'node:child_process';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));   // raíz del repo de Senzu
 const FRONT_GROUPS = ['front', 'motion', '3d', 'design'];
-const CORE_GROUPS = ['planning', 'routing', 'quality', 'architecture', 'growth', 'ops', 'docs'];
+const CORE_GROUPS = ['planning', 'routing', 'quality', 'architecture', 'security', 'growth', 'ops', 'docs'];
 
 // ---------------------------------------------------------------- helpers
 const stripBom = s => (s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s);
@@ -419,7 +419,7 @@ function hookSet(hasFront) {
         SessionStart: [{ matcher: null, files: ['session-start.mjs'] }],
         UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs', 'memoria-viva.mjs'] }],
         PreToolUse: [
-            { matcher: 'Bash|PowerShell', files: ['guard.mjs', 'supply-guard.mjs'] },
+            { matcher: 'Bash|PowerShell', files: ['guard.mjs', 'supply-guard.mjs', 'pentest-guard.mjs'] },
             { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'pool-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
         ],
         PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs', 'feature-guard.mjs'] }],
@@ -438,7 +438,7 @@ const PERMISOS = [
     ['push-main', 'Subir también a las ramas principales (main, develop, staging, production…)', 'pushMain'],
     ['commit-main', 'Commitear directamente en main, master o develop', 'commitEnMain'],
 ];
-const HOOKS_NO_APAGABLES = ['guard', 'supply-guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];
+const HOOKS_NO_APAGABLES = ['guard', 'supply-guard', 'pentest-guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];
 function permisosDesde(lista) {   // ['push', 'push-main'] -> { push: true, pushMain: true }
     const o = {};
     for (const [id, , clave] of PERMISOS) if (lista.includes(id)) o[clave] = true;
@@ -558,7 +558,7 @@ async function renderClaude(stack, projectPath, extra, bundles) {
     if (exists(cmdSrc)) {
         const cmdDst = path.join(projectPath, '.claude', 'commands');
         ensureDir(cmdDst);
-        const names = ['instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md',
+        const names = ['instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'seguridad.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md',
             ...(hasFront ? ['brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md'] : [])];
         const cmdSel = stack.selection && stack.selection.comandos ? new Set(stack.selection.comandos) : null;
         for (const n of fs.readdirSync(cmdSrc).filter(f => f.endsWith('.md'))) {

@@ -123,5 +123,41 @@ if (sinTx && testOnce(p.session_id || 'default', 'tx-' + crypto.createHash('md5'
             + '(DB::transaction, prisma.$transaction, transaction.atomic, session.begin) y lanza los eventos o correos DESPUÉS del commit. '
             + 'Si son independientes a propósito, sigue. Solo se avisa una vez por archivo y sesión.',
     });
+    process.exit(0);
+}
+
+// 8. AVISO: consulta a la base de datos dentro de un bucle (N+1). Solo se mira lo que se INTRODUCE, en codigo
+// de backend, y con senales de BD estrictas (DB::, Model::find/where, prisma.x.find, SELECT...FROM): un .find()
+// o .map() sobre un array en memoria NO es una query, asi que no cuenta. Aviso una vez por archivo y sesion.
+const nMas1 = nuevo.map(t => queryEnBucle(t)).find(Boolean);
+if (nMas1 && testOnce(p.session_id || 'default', 'np1-' + crypto.createHash('md5').update(rel.toLowerCase()).digest('hex').slice(0, 10))) {
+    outHookJson('PreToolUse', { additionalContext: msg('backend.nPlus1', lang, { rel, primera: nMas1 }) });
 }
 process.exit(0);
+
+// Primera linea del bucle que hace una query dentro, o null. Lenguajes con llaves (PHP foreach, JS/TS for/of).
+function queryEnBucle(txt) {
+    if (!txt) return null;
+    const t = soloCodigo(txt, { strings: true, almohadilla: COD.almohadilla });
+    const QUERY = /(\bDB::(table|select|statement|raw)\b|\b[A-Z]\w*::(find|findOrFail|first|firstWhere|where|all|count|value|pluck)\s*\(|->firstWhere\s*\(|->firstOrFail\s*\(|\b(prisma|db)\.[A-Za-z_]\w*\.(find\w*|count|aggregate|groupBy)\s*\(|\bawait\s+[\w.]*(repo|repository|model|service|manager|em)\b[\w.]*\.(find\w*|get\w*|load\w*|query|count)\s*\(|\bSELECT\b[\s\S]{0,160}\bFROM\b)/;
+    const loopHdr = /\b(for|foreach|while)\s*\(/g;
+    let m;
+    while ((m = loopHdr.exec(t))) {
+        let i = m.index + m[0].length, depth = 1;          // saltar el (...) de la cabecera del bucle
+        for (; i < t.length && depth > 0; i++) { if (t[i] === '(') depth++; else if (t[i] === ')') depth--; }
+        const open = t.indexOf('{', i);
+        let body;
+        if (open >= 0 && /^\s*$/.test(t.slice(i, open))) {   // cuerpo con llaves justo tras la cabecera
+            let d = 0, j = open;
+            for (; j < t.length; j++) { if (t[j] === '{') d++; else if (t[j] === '}' && --d === 0) break; }
+            body = t.slice(open + 1, j);
+        } else {
+            body = t.slice(i, i + 200);                      // bucle de una linea sin llaves
+        }
+        if (QUERY.test(body)) {
+            const linea = (t.slice(m.index).split('\n')[0] || '').trim().slice(0, 120);
+            return linea;
+        }
+    }
+    return null;
+}

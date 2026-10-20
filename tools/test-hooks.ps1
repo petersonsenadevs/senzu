@@ -185,6 +185,22 @@ $env:SENZU_ALLOW_DELTEST = '1'
 $null = Case 'rm test con ALLOW_DELTEST -> pasa' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='rm src/pago.test.ts' } } 0
 $env:SENZU_ALLOW_DELTEST = ''
 
+# --- pentest-guard: alcance de pentesting (escape SENZU_ALLOW_PENTEST=1) ---
+$null = Case 'pentest nmap -> bloquea' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='nmap -sV 10.0.0.5' } } 2
+$null = Case 'pentest sqlmap tras pipe -> bloquea' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='cat urls.txt | sqlmap -u http://x --batch' } } 2
+$null = Case 'pentest hydra -> bloquea' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='hydra -l admin -P rockyou.txt ssh://10.0.0.5' } } 2
+$null = Case 'pentest mencion en commit -> pasa (citar no es hacer)' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='git commit -m "docs: como funcionan nmap y sqlmap"' } } 0
+$null = Case 'pentest johnson no es john -> pasa' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='node johnson-report.js' } } 0
+$null = Case 'pentest defensivo semgrep -> pasa' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='semgrep --config auto' } } 0
+$env:SENZU_ALLOW_PENTEST = '1'
+$null = Case 'pentest con ALLOW_PENTEST -> pasa' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='nmap -sV 10.0.0.5' } } 0
+$env:SENZU_ALLOW_PENTEST = ''
+
+# --- backend-guard: aviso N+1 (consulta a BD dentro de un bucle); .find() de un array no cuenta ---
+OutCase 'N+1 foreach+find -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/Services/Demo.php'; content="<?php`nclass Demo { public function run(`$ids) { `$out=[]; foreach (`$ids as `$id) { `$u = User::find(`$id); `$out[]=`$u->name; } return `$out; } }" } } 'N\+1'
+$i++; $null = Invoke-Hook 'backend-guard.mjs' @{ session_id='np1fp'; tool_name='Write'; tool_input=@{ file_path='src/services/pick.ts'; content="export function pick(ids, rows) { const out=[]; for (const id of ids) { out.push(rows.find(r => r.id === id)); } return out; }" } } 'np1fp'
+if ($script:lastOut -match 'N\+1') { $fail++; Write-Host 'FAIL N+1 FP array.find           -> aviso indebido' } elseif ($ShowAll) { Write-Host 'ok   N+1 FP array.find           -> sin aviso' }
+
 [System.IO.Directory]::Delete($proj, $true)
 Write-Host "Casos: $i  Fallos: $fail"
 if ($fail) { exit 1 } else { exit 0 }

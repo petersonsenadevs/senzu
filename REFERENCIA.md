@@ -15,7 +15,7 @@ El agente decide solo, en tres capas automáticas:
 3. **Tablas de activación** (`skill-router` y `front-activation`, generadas del registro): el agente las
    consulta cuando duda; `references/decision-trees.md` tiene los árboles de decisión completos.
 
-Total: **43 skills**. Fuente única: `core/skills-registry.json` (grupo, cuándo, señales, prioridad, dependencias).
+Total: **45 skills**. Fuente única: `core/skills-registry.json` (grupo, cuándo, señales, prioridad, dependencias).
 
 ### Planificación (grupo `planning`, 1 skill)
 
@@ -51,12 +51,13 @@ Total: **43 skills**. Fuente única: `core/skills-registry.json` (grupo, cuándo
 |---|---|---|---|
 | `devlog` | 8 | Terminar un paso relevante o commitear (siempre); preguntas sobre el pasado del proyecto (memoria y buscador) | commit, commitea, cierra la tarea, documenta, devlog, memoria del proyecto, historial del proyecto, por que lo hicimos… |
 
-### Front y diseño (grupo `front`, 6 skills)
+### Front y diseño (grupo `front`, 7 skills)
 
 | Skill | Prio | Cuándo usarla | Señales que la activan (muestra) |
 |---|---|---|---|
 | **`ui-ux-pro-max`** (entrada) | 15 | Crear, maquetar o rediseñar páginas, vistas, layouts, componentes, formularios, dashboards, temas, colores, tipografía, iconos, responsive, accesibilidad; archivos .vue .tsx .jsx .astro .blade.php .html .css | landing, web, sitio, home, hero, pagina, pantalla, vista… |
 | `design-system` | 10 | Tokens de diseño (primitivos → semánticos → componente), CSS variables, validación de tokens | design tokens, tokens de diseño, tokens semanticos, primitivos, css variables, sistema de diseño |
+| `tanstack` | 10 | Estado del servidor (fetch, caché, invalidación, infinite), tablas con orden/filtro/paginación (cliente o servidor), virtualización de listas grandes; dashboards y tablas de datos (React, Vue, Svelte, Solid) | tanstack, @tanstack, react.query, vue.query, react.table, tanstack.table, useQuery, estado del servidor… |
 | `ui-styling` | 10 | Componentes shadcn/ui (React o Vue) y utilidades/tema de Tailwind | shadcn-vue, radix, reka, componentes de ui, tailwind config, cva |
 | `image-gen` | 8 | Generar imágenes IA acordes a la web: producto flotante, heros, fondos, 3D, mockups, texturas (gpt-image en Codex, Nano Banana en Antigravity, script multi-proveedor) | genera una imagen, imagenes ia, fotos de producto, producto flotando, levitando, hero image, imagen para el hero, fondo generado… |
 | `ui-verify` | 8 | Verificar una UI terminada en navegador real: responsive 375/768/1440, dark mode, consola y accesibilidad (axe); obligatoria antes de dar una vista por hecha | verifica, comprueba la ui, revisa el responsive, lighthouse, axe, capturas, screenshots, se ve bien en movil… |
@@ -115,6 +116,12 @@ Total: **43 skills**. Fuente única: `core/skills-registry.json` (grupo, cuándo
 |---|---|---|---|
 | `deploy-ops` | 8 | Desplegar y operar en producción cualquier stack: Netlify/Vercel/Forge/VPS, Docker, CI/CD con GitHub Actions, secretos por entorno, colas y cron en prod, backups con restore probado, monitorización e incidentes | deploy, despliegue, desplegar, subelo a produccion, docker, dockerfile, docker.compose, dockeriza… |
 
+### Seguridad (grupo `security`, 1 skill)
+
+| Skill | Prio | Cuándo usarla | Señales que la activan (muestra) |
+|---|---|---|---|
+| `security` | 8 | Revisar o auditar la seguridad del proyecto, blindar auth / una API / un agente de IA, hardening, pentesting autorizado, OWASP, inyección de prompt, XSS/CSRF/SSRF/IDOR, cabeceras de seguridad | seguridad, security, revision de seguridad, auditoria de seguridad, hardening, endurec, pentest, pruebas de penetracion… |
+
 ## 2. Comandos slash
 
 Atajos opcionales: hablar en llano activa lo mismo vía enrutador. `plan/siguiente/verificar/desplegar/adoptar`
@@ -129,6 +136,11 @@ se instalan SIEMPRE; el resto solo en stacks con perfil de front.
 | `/adoptar` | [notas opcionales, p. ej. "solo backend" o "el idioma oficial es inglés"] | Adoptar las convenciones de un proyecto existente y sellarlas como regla inmutable |
 | `/auditar` | [área opcional, p. ej. "pagos", "API pública" o "antes de producción"] | Auditoría del backend y la arquitectura con pruebas — herramientas reales, evidencia por hallazgo, informe y plan |
 | `/brief` | [tipo de negocio si ya se sabe, p. ej. "restaurante"] | Entrevista de descubrimiento en lenguaje llano — para clientes que no saben el palabreo técnico |
+| `/dependencias` | — sin argumento, revisa todo el proyecto.
+
+Pasa el escaner de cadena de suministro de Senzu (supply-scan) sobre el proyecto y explica lo que encuentre. Es la revision a fondo A PETICION; el muro supply-guard ya vigila solo al instalar un paquete y al hacer commit.
+
+1. Localiza el escaner: en un proyecto instalado esta en | Revisa la cadena de suministro — paquetes con malware o typosquatting y skills de terceros maliciosas |
 | `/depurar` | [síntoma o error, p. ej. "el checkout devuelve 500 con cupones"] | Depuración con método — reproducir, test que falla, hipótesis, acotar, arreglar la causa y verificar |
 | `/design-system` | [producto/industria, p. ej. "saas facturación autónomos"] | Genera (o revisa) el design system del proyecto con ui-ux-pro-max |
 | `/efecto` | <nombre del efecto> [dónde, p. ej. "marquee en el footer de logos"] | Aplica un efecto pro de frontend desde el catálogo (parallax, marquee, cursor, stacking…) |
@@ -149,6 +161,7 @@ Reconstruye dónde se quedó el trabajo SIN pedirle al usuario que lo cuente, y 
    si hace falta el detalle, | Retoma donde se quedó la sesión anterior — qué se pidió, qué se tocó, qué quedó a medias y el siguiente paso |
 | `/revisar-ui` | [url o ruta de la vista, p. ej. http://localhost:5173 o Pages/Home.vue] | Audita la UI (rúbrica + verificación en navegador si hay Chrome disponible) |
 | `/ronda` | [tu opinión de la ronda anterior, o el texto que copia el panel de las maquetas] | Nueva ronda de maquetas — fija lo que te gustó, quita lo que no y propone algo nuevo |
+| `/seguridad` | — sin argumento, revisa todo el proyecto; con una zona (p. ej. | Revisión de seguridad con evidencia — mapa de superficie, pasada OWASP, informe y plan de arreglo |
 
 ### Flujos típicos
 - **Proyecto nuevo con web**: `/brief` (entrevista en llano) → `/propuestas` (blueprint + maquetas A/B) →
@@ -171,6 +184,7 @@ trabajo lo hacen las tablas de activación de las reglas generadas y los githook
 | `prompt-router.mjs` | UserPromptSubmit | Sugiere la skill que encaja con la petición (señales de docs/skills.md), una vez por skill y sesión. |
 | `guard.mjs` | PreToolUse Bash/PowerShell | Mira lo que se EJECUTA, no lo citado (mensajes de commit, heredocs a un archivo, echo, grep). BLOQUEA: git push a una rama principal, forzado o sin ver a qué rama va (a las de trabajo, sí), escribir, mover, borrar o restaurar las convenciones selladas desde la terminal (sin escape para el agente), destructivos de BD/git, rm -rf, deploy a prod sin aprobación (escape `SENZU_ALLOW_DEPLOY=1`), generadores de logos con logo ya elegido (`SENZU_ALLOW_LOGO=1`), jQuery/Bootstrap (`SENZU_ALLOW_LIB=1`), devops peligroso (curl\|bash, chmod 777, dd, mkfs, docker prune, parar servicios, vaciar firewall, crontab -r); commits: rama protegida, Conventional ≤72, sin co-autores. |
 | `supply-guard.mjs` | PreToolUse Bash/PowerShell | Muro de cadena de suministro. En un comando de instalación (npm/pip/composer…) mira los NOMBRES de paquete (typosquatting, denylist de malware conocido) antes de que entren; al hacer `git commit` escanea lo que entra (manifests de dependencias, archivos de skills/plugins y `.mcp.json`) buscando scripts de instalación con red/shell, inyección de prompt, exfiltración (lee secretos y abre red), ofuscación (eval/base64/hex), caracteres unicode ocultos y servidores MCP que descargan y ejecutan. BLOQUEA lo grave, AVISA del resto. «Citar no es hacer»: mira lo que se ejecuta, no el texto citado. Offline y determinista (listas en `core/hooks/data/`). No se puede apagar. Escape tras verificar: `SENZU_ALLOW_SUPPLY=1`. |
+| `pentest-guard.mjs` | PreToolUse Bash/PowerShell | Muro de ALCANCE de pentesting. BLOQUEA ejecutar herramientas de seguridad ofensiva: escaneo de red (nmap, masscan, hping3), descubrimiento y fuzzing web (gobuster, ffuf, nikto, wpscan, nuclei, wfuzz), inyección y explotación (sqlmap, commix, metasploit/msfconsole/msfvenom), fuerza bruta de credenciales (hydra, medusa, ncrack), cracking (hashcat, john) y enumeración o post-explotación de red o AD (enum4linux, crackmapexec, responder, evil-winrm, wifi). «Citar no es hacer»: mira lo que se ejecuta, no el texto citado. Senzu ayuda con pentesting AUTORIZADO: con permiso por escrito y alcance documentados en el devlog, escape `SENZU_ALLOW_PENTEST=1`. No se puede apagar. |
 | `protect-files.mjs` | PreToolUse Edit/Write | BLOQUEA editar: generados por Senzu, secretos (.env, *.pem, credentials), dependencias/artefactos, migraciones versionadas, conventions.md/json sellados (no se puede apagar), maestros del logo elegido (logos/final/) y `protectedPaths` del proyecto. |
 | `secrets-guard.mjs` | PreToolUse Edit/Write | BLOQUEA escribir credenciales reales (AWS, GitHub, Stripe, OpenAI/Anthropic, PEM, JWT, cadenas con password); ignora placeholders. |
 | `code-hygiene.mjs` | PreToolUse Edit/Write | BLOQUEA introducir (no en scripts de la carpeta temporal del agente): console.log/debugger/dd()/var_dump/ray, términos vetados en `gustos.md` §No, marcadores de conflicto de git, `.only`/`.skip`/xit en tests, y la lista negra anti-IA (badges de disponibilidad, numeración de secciones). Escape puntual: comentario `senzu-allow`. |
@@ -229,7 +243,7 @@ Lenguajes sin stack propio (referencias de `code-quality`, el router los enruta 
 | `animation-components` | react-spring-physics, animated-component-libraries, scroll-reveal-libraries, animejs, lottie-animations |
 | `architecture` | ddd-hexagonal, code-quality |
 | `core-3d-animation` | threejs-webgl, gsap-scrolltrigger, react-three-fiber, motion-framer, babylonjs-engine |
-| `design-extras` | ui-ux-pro-max, ui-styling, design-system, graphic-design, slides, brand, banner-design |
+| `design-extras` | ui-ux-pro-max, ui-styling, design-system, graphic-design, slides, brand, banner-design, tanstack |
 | `extended-3d-scroll` | aframe-webxr, lightweight-3d-effects, playcanvas-engine, pixijs-2d, locomotive-scroll, barba-js |
 | `motion-web` | gsap-scrolltrigger, motion-framer, scroll-reveal-libraries |
 | `web-design-meta` | web3d-integration-patterns, modern-web-design |

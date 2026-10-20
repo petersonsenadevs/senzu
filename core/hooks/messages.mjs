@@ -49,6 +49,16 @@ export const CAT = {
             'Si el test esta de verdad obsoleto (se quito la feature) y el usuario esta de acuerdo, reintenta con SENZU_ALLOW_DELTEST=1 y dejalo en el devlog. Renombrar o reescribir un test no necesita esto.',
         ],
     },
+    'pentest.block': {
+        en: [
+            '[BLOCKED by Senzu] Offensive-security tool detected ({tool}). Senzu helps with defensive security and AUTHORIZED penetration testing; running active scanning or exploitation against a system without written authorization is illegal and can take the target down.',
+            'If this is an authorized engagement (you have written permission and a defined scope / rules of engagement), note the authorization and scope in the devlog and retry with SENZU_ALLOW_PENTEST=1. Against your own local/lab machine, the same: record it and set the key.',
+        ],
+        es: [
+            '[BLOQUEADO por Senzu] Herramienta de seguridad ofensiva detectada ({tool}). Senzu ayuda con seguridad defensiva y con pentesting AUTORIZADO; lanzar escaneo activo o explotacion contra un sistema sin autorizacion por escrito es ilegal y puede tumbar el objetivo.',
+            'Si es un encargo autorizado (tienes permiso por escrito y un alcance definido / rules of engagement), anota la autorizacion y el alcance en el devlog y reintenta con SENZU_ALLOW_PENTEST=1. Contra tu propia maquina local o de laboratorio, igual: dejalo por escrito y pon la llave.',
+        ],
+    },
     'stop.verifyBuild': {
         en: "You edited code and there is no verification afterward: run 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (runs the stack's lint/types/tests/build and leaves a record) or the stack commands by hand, fix the failures and paste the result before closing.",
         es: "Has editado codigo y NO hay verificacion posterior: ejecuta 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (corre lint/types/tests/build del stack y deja constancia) o los comandos del stack a mano, corrige los fallos y pega el resultado antes de cerrar.",
@@ -336,6 +346,11 @@ export const CAT = {
     'backend.swallowed': {
         en: 'Swallowed error: an empty catch (or except/if err) hides the failure and turns it into corrupt data or an untraceable bug. Log it with context and rethrow it, turn it into a domain error or return a clear error response (code-quality references/errors-logging.md). If it really can be ignored, write why with senzu-allow.',
         es: 'Error tragado: un catch (o except/if err) vacío esconde el fallo y lo convierte en un dato corrupto o en un bug imposible de rastrear. Regístralo con contexto y relánzalo, conviértelo en un error de dominio o devuelve una respuesta de error clara (code-quality references/errors-logging.md). Si de verdad se puede ignorar, escribe por qué con senzu-allow.',
+    },
+
+    'backend.nPlus1': {
+        en: '[senzu] Backend warning in {rel}: a loop runs a database query on each iteration (N+1: starts at «{primera}»). With N rows that is N+1 queries and it collapses under load. Load the related data up front (eager loading: Eloquent with(), Prisma include/in, a JOIN or a single whereIn) and iterate in memory. If it really is a handful of fixed items, go on. Warned once per file and session.',
+        es: '[senzu] AVISO de backend en {rel}: un bucle lanza una consulta a la base de datos en cada vuelta (N+1: empieza por «{primera}»). Con N filas son N+1 consultas y se hunde con carga. Carga los datos relacionados de golpe (eager loading: with() de Eloquent, include/in de Prisma, un JOIN o un solo whereIn) e itera en memoria. Si de verdad son un puñado de elementos fijos, sigue. Se avisa una vez por archivo y sesion.',
     },
 
     // --- feature-guard: que una feature no se de por hecha a medias (Stop, decision block) ---

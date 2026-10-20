@@ -23,6 +23,7 @@
                                          "depurar",
                                          "deploy-ops",
                                          "email-html",
+                                         "security",
                                          "skill-router"
                                      ]
                     },
@@ -41,6 +42,7 @@
                                          "depurar",
                                          "deploy-ops",
                                          "email-html",
+                                         "security",
                                          "ui-ux-pro-max",
                                          "ui-verify",
                                          "marketing-seo",
@@ -65,6 +67,7 @@
                                          "depurar",
                                          "deploy-ops",
                                          "email-html",
+                                         "security",
                                          "ddd-hexagonal",
                                          "skill-router"
                                      ]
@@ -87,6 +90,8 @@
                                          "instalar-proyecto",
                                          "marketing-seo",
                                          "project-planner",
+                                         "security",
+                                         "tanstack",
                                          "ui-verify",
                                          "aframe-webxr",
                                          "animated-component-libraries",

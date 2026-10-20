@@ -22,6 +22,7 @@
     "retomar": { "es": "Retoma donde se quedó la sesión anterior — qué se pidió, qué se tocó, qué quedó a medias y el siguiente paso", "en": "Resume where the previous session left off — what was asked, what was touched, what was left half-done and the next step" },
     "revisar-ui": { "es": "Audita la UI (rúbrica + verificación en navegador si hay Chrome disponible)", "en": "Audit the UI (rubric + browser verification if Chrome is available)" },
     "ronda": { "es": "Nueva ronda de maquetas — fija lo que te gustó, quita lo que no y propone algo nuevo", "en": "New round of mockups — keep what you liked, drop what you didn't and propose something new" },
+    "seguridad": { "es": "Revisión de seguridad con evidencia — mapa de superficie, pasada OWASP, informe y plan de arreglo", "en": "Security review with evidence — surface map, OWASP pass, report and fix plan" },
     "siguiente": { "es": "Ejecuta la siguiente tarea del plan (task-protocol de project-planner)", "en": "Run the next task in the plan (project-planner task-protocol)" },
     "verificar": { "es": "Verifica el proyecto tras los cambios — build, lint, types, tests y (si hay UI) móvil", "en": "Verify the project after changes — build, lint, types, tests and (if there is UI) mobile" }
   }

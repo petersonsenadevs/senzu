@@ -15,7 +15,7 @@ skills que se activan solas, muros que bloquean de verdad y verificación obliga
 nada por hecho.
 
 <!-- GEN:resumen -->
-![Version](https://img.shields.io/badge/version-v2.24.0-black) ![Skills](https://img.shields.io/badge/skills-43-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Muros](https://img.shields.io/badge/muros-26_hooks-red) ![Comandos](https://img.shields.io/badge/comandos-22-orange) ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
+![Version](https://img.shields.io/badge/version-v2.24.0-black) ![Skills](https://img.shields.io/badge/skills-45-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Muros](https://img.shields.io/badge/muros-27_hooks-red) ![Comandos](https://img.shields.io/badge/comandos-24-orange) ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
 
 | Grupo | Skills | Entra por |
 |---|---|---|
@@ -24,12 +24,13 @@ nada por hecho.
 | **Calidad de código** (3) | backend-audit, code-quality, depurar | router |
 | **Arquitectura** (1) | ddd-hexagonal | router |
 | **Documentación** (1) | devlog | router |
-| **Front y diseño** (6) | design-system, image-gen, modern-web-design, ui-styling… | `ui-ux-pro-max` |
+| **Front y diseño** (7) | design-system, image-gen, modern-web-design, tanstack… | `ui-ux-pro-max` |
 | **Animación** (9) | animated-component-libraries, animejs, barba-js, gsap-scrolltrigger… | router |
 | **3D / WebGL** (12) | aframe-webxr, babylonjs-engine, blender-web-pipeline, lightweight-3d-effects… | router |
 | **Diseño gráfico y marca** (4) | banner-design, brand, graphic-design, slides | router |
 | **Marketing y SEO** (2) | email-html, marketing-seo | router |
 | **Operaciones y despliegue** (1) | deploy-ops | router |
+| **Seguridad** (1) | security | router |
 <!-- /GEN:resumen -->
 
 ## Instalación rápida

@@ -17,6 +17,7 @@ are ALWAYS installed; the rest only in stacks with a front profile. Each command
 | `/adopt` | [optional notes, e.g. "backend only" or "the official language is English"] | Adopt the conventions of an existing project and seal them as an immutable rule | `/adoptar` |
 | `/audit` | [optional area, e.g. "payments", "public API" or "before production"] | Backend and architecture audit with proof — real tools, evidence per finding, report and plan | `/auditar` |
 | `/brief` | [type of business if already known, e.g. "restaurant"] | Plain-language discovery interview — for clients who don't know the technical jargon | `/brief` |
+| `/dependencies` |  | Audit the supply chain — packages with malware or typosquatting and malicious third-party skills | `/dependencias` |
 | `/debug` | [symptom or error, e.g. "checkout returns 500 with coupons"] | Methodical debugging — reproduce, failing test, hypothesis, narrow down, fix the cause and verify | `/depurar` |
 | `/design-system` | [product/industry, e.g. "invoicing saas for freelancers"] | Generate (or review) the project's design system with ui-ux-pro-max | `/design-system` |
 | `/effect` | <effect name> [where, e.g. "marquee in the logos footer"] | Apply a pro frontend effect from the catalog (parallax, marquee, cursor, stacking…) | `/efecto` |
@@ -32,6 +33,7 @@ are ALWAYS installed; the rest only in stacks with a front profile. Each command
 | `/resume` |  | Resume where the previous session left off — what was asked, what was touched, what was left half-done and the next step | `/retomar` |
 | `/review-ui` | [url or path of the view, e.g. http://localhost:5173 or Pages/Home.vue] | Audit the UI (rubric + browser verification if Chrome is available) | `/revisar-ui` |
 | `/round` | [your opinion of the previous round, or the text the mockups panel copies] | New round of mockups — keep what you liked, drop what you didn't and propose something new | `/ronda` |
+| `/security` | [optional area, e.g. "auth" or "the checkout"] | Security review with evidence — surface map, OWASP pass, report and fix plan | `/seguridad` |
 
 ### Typical flows
 - **New project with a website**: `/brief` (plain-language interview) → `/proposals` (blueprint + A/B mockups) →

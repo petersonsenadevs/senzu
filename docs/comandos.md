@@ -41,6 +41,7 @@ Reconstruye dónde se quedó el trabajo SIN pedirle al usuario que lo cuente, y 
    si hace falta el detalle, | Retoma donde se quedó la sesión anterior — qué se pidió, qué se tocó, qué quedó a medias y el siguiente paso |
 | `/revisar-ui` | [url o ruta de la vista, p. ej. http://localhost:5173 o Pages/Home.vue] | Audita la UI (rúbrica + verificación en navegador si hay Chrome disponible) |
 | `/ronda` | [tu opinión de la ronda anterior, o el texto que copia el panel de las maquetas] | Nueva ronda de maquetas — fija lo que te gustó, quita lo que no y propone algo nuevo |
+| `/seguridad` | — sin argumento, revisa todo el proyecto; con una zona (p. ej. | Revisión de seguridad con evidencia — mapa de superficie, pasada OWASP, informe y plan de arreglo |
 
 ### Flujos típicos
 - **Proyecto nuevo con web**: `/brief` (entrevista en llano) → `/propuestas` (blueprint + maquetas A/B) →

@@ -111,25 +111,25 @@ Ensure-Dir $pluginsDir
 $entries = @()
 
 # Nucleo que necesita cualquier plugin para que el planner funcione (skill-map cita code-quality y devlog)
-$coreSkills = @('devlog', 'project-planner', 'instalar-proyecto', 'code-quality', 'backend-audit', 'depurar', 'deploy-ops', 'email-html')
+$coreSkills = @('devlog', 'project-planner', 'instalar-proyecto', 'code-quality', 'backend-audit', 'depurar', 'deploy-ops', 'email-html', 'security')
 $routerDir  = @((Join-Path $root 'core\skills-plugin\skill-router'))
 
 # --- core: metodologia + TODOS los hooks (menos los de front) ---
-$coreFiles = @('lib.mjs','messages.mjs','session-start.mjs','prompt-router.mjs','guard.mjs','supply-guard.mjs','supply-scan.mjs','data/popular-packages.json','data/malware-denylist.json','protect-files.mjs','secrets-guard.mjs','format-on-save.mjs','edit-tracker.mjs','code-hygiene.mjs','conventions-guard.mjs','arquitectura-guard.mjs','backend-guard.mjs','pool-guard.mjs','back-skill-reminder.mjs','depurar-coach.mjs','stop-guard.mjs','cierre-limpio.mjs','feature-guard.mjs','estado-sesion.mjs','memoria-viva.mjs','memoria-archivo.mjs','tarjeta-guard.mjs','arranque-guard.mjs','pre-compact.mjs','session-end.mjs')
+$coreFiles = @('lib.mjs','messages.mjs','session-start.mjs','prompt-router.mjs','guard.mjs','supply-guard.mjs','supply-scan.mjs','pentest-guard.mjs','data/popular-packages.json','data/malware-denylist.json','protect-files.mjs','secrets-guard.mjs','format-on-save.mjs','edit-tracker.mjs','code-hygiene.mjs','conventions-guard.mjs','arquitectura-guard.mjs','backend-guard.mjs','pool-guard.mjs','back-skill-reminder.mjs','depurar-coach.mjs','stop-guard.mjs','cierre-limpio.mjs','feature-guard.mjs','estado-sesion.mjs','memoria-viva.mjs','memoria-archivo.mjs','tarjeta-guard.mjs','arranque-guard.mjs','pre-compact.mjs','session-end.mjs')
 $coreHooks = @{ hooks = (New-HooksJson -HasFront $false -PathPrefix '${CLAUDE_PLUGIN_ROOT}/hooks/') }
 $entries += New-Plugin -Name 'senzu-core' -Description 'Metodología Senzu: skill devlog + skill-router + hooks (guard de git/BD, archivos protegidos, secretos, formateo al guardar, estado de sesión, router de prompts, cierre con devlog, pre-compact).' `
-    -Skills $coreSkills -Hooks $coreHooks -HookFiles $coreFiles -ExtraSkillDirs $routerDir -Commands @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md')
+    -Skills $coreSkills -Hooks $coreHooks -HookFiles $coreFiles -ExtraSkillDirs $routerDir -Commands @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'seguridad.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md')
 
 # --- front (todo en uno) ---
 $frontFiles = $coreFiles + @('front-skill-reminder.mjs')   # incluye prompt-router: es el unico enrutado temprano si solo se instala front (dedupe por marcador de sesion)
 $frontHooks = @{ hooks = (New-HooksJson -HasFront $true -PathPrefix '${CLAUDE_PLUGIN_ROOT}/hooks/' -Only $frontFiles) }
 $entries += New-Plugin -Name 'senzu-front' -Description 'Front y diseño todo en uno: UI UX Pro Max (design systems, 79 estilos, 192 paletas, 22 stacks) + GSAP ScrollTrigger + Three.js, con capa en español, perfiles por stack (Laravel+Inertia+Vue, Next.js, Astro, Vue 3), tabla de activación y hook recordatorio.' `
     -Skills ($coreSkills + @('ui-ux-pro-max', 'ui-verify', 'marketing-seo', 'gsap-scrolltrigger', 'threejs-webgl')) -Hooks $frontHooks -HookFiles $frontFiles `
-    -ExtraSkillDirs ($routerDir + @((Join-Path $root 'core\skills-plugin\front-activation'))) -Commands @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md', 'brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md')
+    -ExtraSkillDirs ($routerDir + @((Join-Path $root 'core\skills-plugin\front-activation'))) -Commands @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'seguridad.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md', 'brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md')
 
 # --- backend: calidad + arquitectura ---
 $entries += New-Plugin -Name 'senzu-backend' -Description 'Calidad de código y arquitectura: code-quality (buenas prácticas por stack, tests, seguridad, rendimiento, APIs, PR) + ddd-hexagonal (DDD y puertos/adaptadores para proyectos complejos) + devlog + hooks de guard.' `
-    -Skills ($coreSkills + @('ddd-hexagonal')) -Hooks $coreHooks -HookFiles $coreFiles -ExtraSkillDirs $routerDir -Commands @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md')
+    -Skills ($coreSkills + @('ddd-hexagonal')) -Hooks $coreHooks -HookFiles $coreFiles -ExtraSkillDirs $routerDir -Commands @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'seguridad.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md')
 
 # Los bundles NO se publican como plugins (duplicaban las mismas skills: 62 MB de marketplace). Se siguen
 # eligiendo al instalar en un proyecto: init.mjs --bundle <nombre> o por categorías en el menú.
@@ -139,7 +139,7 @@ Get-ChildItem $pluginsDir -Directory -Filter 'bundle-*' -ErrorAction SilentlyCon
 # --- all ---
 $all = @(Get-ChildItem (Join-Path $root 'core\skills') -Directory | ForEach-Object Name) + @(Get-ChildItem (Join-Path $root 'core\skills-vendor') -Directory | ForEach-Object Name)
 $entries += New-Plugin -Name 'senzu-all' -Description 'Todas las skills de Senzu (core + UI UX Pro Max + Claude Design Skillstack) con capa en español.' `
-    -Skills $all -Hooks (@{ hooks = (New-HooksJson -HasFront $true -PathPrefix '${CLAUDE_PLUGIN_ROOT}/hooks/') }) -HookFiles ($coreFiles + @('front-skill-reminder.mjs')) -ExtraSkillDirs ($routerDir + @((Join-Path $root 'core\skills-plugin\front-activation'))) -Commands @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md', 'brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md')
+    -Skills $all -Hooks (@{ hooks = (New-HooksJson -HasFront $true -PathPrefix '${CLAUDE_PLUGIN_ROOT}/hooks/') }) -HookFiles ($coreFiles + @('front-skill-reminder.mjs')) -ExtraSkillDirs ($routerDir + @((Join-Path $root 'core\skills-plugin\front-activation'))) -Commands @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'seguridad.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md', 'brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md')
 
 # --- marketplace ---
 $market = [ordered]@{

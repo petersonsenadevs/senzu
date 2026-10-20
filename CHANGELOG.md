@@ -4,8 +4,13 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-20
+
+- **feature** — Skill y comando /seguridad, muro de pentesting, aviso N+1 y skill TanStack (2.24.0) (entrada 165)
+
 ## 2026-10-19
 
+- **feature** — /dependencias, muro no-borrar-tests y hygiene test/spec (2.24.0) (entrada 164)
 - **feature** — Muro de cadena de suministro: anti-malware y skills maliciosas (2.24.0) (entrada 163)
 
 ## 2026-10-16

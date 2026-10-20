@@ -31,7 +31,7 @@ Languages without their own stack (`code-quality` references; the router routes 
 | `animation-components` | react-spring-physics, animated-component-libraries, scroll-reveal-libraries, animejs, lottie-animations |
 | `architecture` | ddd-hexagonal, code-quality |
 | `core-3d-animation` | threejs-webgl, gsap-scrolltrigger, react-three-fiber, motion-framer, babylonjs-engine |
-| `design-extras` | ui-ux-pro-max, ui-styling, design-system, graphic-design, slides, brand, banner-design |
+| `design-extras` | ui-ux-pro-max, ui-styling, design-system, graphic-design, slides, brand, banner-design, tanstack |
 | `extended-3d-scroll` | aframe-webxr, lightweight-3d-effects, playcanvas-engine, pixijs-2d, locomotive-scroll, barba-js |
 | `motion-web` | gsap-scrolltrigger, motion-framer, scroll-reveal-libraries |
 | `web-design-meta` | web3d-integration-patterns, modern-web-design |

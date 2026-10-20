@@ -123,12 +123,20 @@ $cases = @(
     @{ n = 'microinteracciones';    prompt = 'mejora las microinteracciones de los botones del formulario'; expect = 'front-activation' }
     @{ n = 'liquid glass';          prompt = 'haz la barra de navegación con efecto liquid glass';        expect = 'front-activation' }
     @{ n = 'composicion pagina';    prompt = 'cambia la composición de la página a una rejilla rota';     expect = 'front-activation' }
+    @{ n = 'tanstack query';        prompt = 'añade react-query para el estado del servidor de los pedidos'; skills = @('tanstack','ui-ux-pro-max','code-quality','skill-router'); expect = 'tanstack' }
+    @{ n = 'tanstack table server'; prompt = 'usa tanstack table con paginación en el servidor';           skills = @('tanstack','ui-ux-pro-max','code-quality','skill-router'); expect = 'tanstack' }
     @{ n = 'auditar backend';       prompt = 'audita el backend y encuentra la deuda técnica';             skills = @('backend-audit','code-quality','skill-router'); expect = 'backend-audit'; expectFirst = 'backend-audit' }
     @{ n = 'dependencias circulares'; prompt = 'creo que hay dependencias circulares entre los módulos';   skills = @('backend-audit','code-quality','skill-router'); expect = 'backend-audit' }
     @{ n = 'refactor seguro';       prompt = 'quiero un refactor seguro del servicio de facturas';         skills = @('backend-audit','code-quality','skill-router'); expect = 'backend-audit'; expectFirst = 'backend-audit' }
     @{ n = 'auditoria seo no back'; prompt = 'haz una auditoría seo de la web';                            skills = @('backend-audit','marketing-seo','skill-router'); expect = 'marketing-seo'; forbid = 'backend-audit' }
     @{ n = 'depurar fallo';         prompt = 'la función de calcular envío no funciona y da un error 500';  skills = @('depurar','code-quality','skill-router'); expect = 'depurar'; expectFirst = 'depurar' }
     @{ n = 'tests en rojo';         prompt = 'los tests están fallando desde el último cambio';            skills = @('depurar','code-quality','skill-router'); expect = 'depurar' }
+    # Seguridad: revisión/hardening, OWASP, agentes de IA y pentesting -> skill security (prioridad sobre code-quality)
+    @{ n = 'revisa seguridad';      prompt = 'revisa la seguridad de la aplicación y el control de acceso'; skills = @('security','code-quality','skill-router'); expect = 'security'; expectFirst = 'security' }
+    @{ n = 'owasp checkout';        prompt = 'haz una revisión owasp del checkout';                        skills = @('security','code-quality','skill-router'); expect = 'security' }
+    @{ n = 'prompt injection';      prompt = '¿el agente de ia es vulnerable a inyección de prompt?';       skills = @('security','code-quality','skill-router'); expect = 'security'; expectFirst = 'security' }
+    @{ n = 'pentest autorizado';    prompt = 'prepara un pentest autorizado del servidor de staging';      skills = @('security','code-quality','skill-router'); expect = 'security' }
+    @{ n = 'auth normal no es security'; prompt = 'añade login con google y gestión de sesión';            skills = @('security','code-quality','skill-router'); expect = 'code-quality'; forbid = 'security' }
     # Rondas de maquetas
     @{ n = 'mas maquetas';          prompt = 'hazme más maquetas con lo que me gustó de la B';             expect = 'ui-ux-pro-max'; expectFirst = 'ui-ux-pro-max' }
     @{ n = 'otra ronda';            prompt = 'otra ronda, me gustan los botones pero no el verde';         expect = 'ui-ux-pro-max'; expectFirst = 'ui-ux-pro-max' }

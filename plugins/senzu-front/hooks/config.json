@@ -29,6 +29,7 @@
                    "depurar",
                    "deploy-ops",
                    "email-html",
+                   "security",
                    "ui-ux-pro-max",
                    "ui-verify",
                    "marketing-seo",
@@ -470,6 +471,26 @@
                        "priority":  8,
                        "requires":  [
 
+                                    ]
+                   },
+                   {
+                       "name":  "tanstack",
+                       "group":  "front",
+                       "entrypoint":  false,
+                       "keywords":  "(?i)\\b(tanstack|@tanstack|react.?query|vue.?query|react.?table|tanstack.?(table|query|virtual|router|form)|use(Query|Mutation|InfiniteQuery)|estado del servidor|server.?state|tabla de datos|data.?grid|grid de datos|virtualiza\\w* (de )?(listas?|filas?|tablas?)|paginaci[oó]n (en|del|desde el) servidor|orden(aci[oó]n)? y filtrado de (la )?tabla)\\b",
+                       "priority":  10,
+                       "requires":  [
+                                        "ui-ux-pro-max"
+                                    ]
+                   },
+                   {
+                       "name":  "security",
+                       "group":  "security",
+                       "entrypoint":  false,
+                       "keywords":  "(?i)\\b(seguridad|security|revisi[oó]n de seguridad|auditor[ií]a de seguridad|hardening|endurec\\w*|pentest\\w*|pruebas? de penetraci[oó]n|penetration test\\w*|owasp|vulnerab\\w*|xss|csrf|ssrf|idor|control de acceso|broken access|inyecci[oó]n de prompt|prompt injection|jailbreak|exfiltraci[oó]n|cabeceras? de seguridad|security headers?|secure (the|my|this|it)|harden(ing)?|es seguro|is (it|this) secure|agente de ia seguro|seguridad del agente)\\b",
+                       "priority":  8,
+                       "requires":  [
+                                        "code-quality"
                                     ]
                    }
                ]
