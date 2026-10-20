@@ -316,6 +316,10 @@ export const CAT = {
         en: 'Use environment variables (.env, config) and never commit credentials. If it is an example value, use a clear placeholder (xxx, your-key, <API_KEY>).',
         es: 'Usa variables de entorno (.env, config) y nunca commitees credenciales. Si es un valor de ejemplo, usa un placeholder claro (xxx, your-key, <API_KEY>).',
     },
+    'secrets.commitBlock': {
+        en: '[BLOCKED by Senzu] You are about to commit a real credential. A secret in the repository stays in the history forever even if you delete it later: remove it from what is being committed and, if it has already leaked, rotate it now.',
+        es: '[BLOQUEADO por Senzu] Vas a commitear una credencial real. Un secreto en el repositorio queda en el historial para siempre aunque luego lo borres: quítalo de lo que entra en el commit y, si ya se ha filtrado, rótalo ya.',
+    },
 
     // --- backend-guard: muros de backend (bloqueos; la AVISO de transacciones es additionalContext, no se traduce) ---
     'backend.lineLine': { en: "Line: '{linea}'", es: "Línea: '{linea}'" },
@@ -351,6 +355,12 @@ export const CAT = {
     'backend.nPlus1': {
         en: '[senzu] Backend warning in {rel}: a loop runs a database query on each iteration (N+1: starts at «{primera}»). With N rows that is N+1 queries and it collapses under load. Load the related data up front (eager loading: Eloquent with(), Prisma include/in, a JOIN or a single whereIn) and iterate in memory. If it really is a handful of fixed items, go on. Warned once per file and session.',
         es: '[senzu] AVISO de backend en {rel}: un bucle lanza una consulta a la base de datos en cada vuelta (N+1: empieza por «{primera}»). Con N filas son N+1 consultas y se hunde con carga. Carga los datos relacionados de golpe (eager loading: with() de Eloquent, include/in de Prisma, un JOIN o un solo whereIn) e itera en memoria. Si de verdad son un puñado de elementos fijos, sigue. Se avisa una vez por archivo y sesion.',
+    },
+
+    // --- security-guard: aviso de punto de inyeccion (XSS, SQLi, inyeccion de comando) en lo introducido ---
+    'security.sink': {
+        en: '[senzu] Security warning in {rel}: a new injection sink — {tipo} (starts at «{linea}»). If the value comes from outside (user, request, DB, parameter), escape or parameterize it: for SQL use prepared statements or the query builder (never interpolate into the string); for HTML escape or sanitize it (DOMPurify; not v-html/innerHTML with user data); for a command avoid the shell and pass arguments as a list (execFile, subprocess without a shell). If the value is constant or already sanitized, go on. Method review: skill security (/security). Warned once per file and session.',
+        es: '[senzu] AVISO de seguridad en {rel}: un punto de inyección nuevo — {tipo} (empieza por «{linea}»). Si el valor viene de fuera (usuario, request, BD, parámetro), escápalo o parametrízalo: para SQL usa consultas preparadas o el query builder (nunca interpolar en la cadena); para HTML escápalo o sanéalo (DOMPurify; no v-html/innerHTML con datos del usuario); para un comando evita el shell y pasa los argumentos en lista (execFile, subprocess sin shell). Si el valor es constante o ya está saneado, sigue. Revisión con método: skill security (/seguridad). Se avisa una vez por archivo y sesión.',
     },
 
     // --- feature-guard: que una feature no se de por hecha a medias (Stop, decision block) ---

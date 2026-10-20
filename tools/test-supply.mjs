@@ -14,8 +14,9 @@ import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import {
     scanInstallCommand, maliciousScript, typosquatOf, levenshtein,
-    scanDependencies, scanSkills, scanInstallSource, summarize,
+    scanDependencies, scanSkills, scanInstallSource, scanStagedSecrets, summarize,
 } from '../core/hooks/supply-scan.mjs';
+import { scanSecrets } from '../core/hooks/secret-patterns.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SCAN = path.join(ROOT, 'core', 'hooks', 'supply-scan.mjs');
@@ -94,6 +95,19 @@ w('src-ok/.mcp.json', JSON.stringify({ mcpServers: { fs: { command: 'npx', args:
 ok(sev(scanInstallSource(path.join(proj, 'src-mal')), 'high') >= 1, 'source: servidor MCP que hace curl|sh = high');
 ok(sev(scanInstallSource(path.join(proj, 'src-url')), 'med') >= 1, 'source: servidor MCP que ejecuta una URL = med');
 ok(scanInstallSource(path.join(proj, 'src-ok')).length === 0, 'source: npx de un paquete scoped oficial no salta');
+
+// ================================================================ 5b. SECRETOS QUE ENTRAN EN EL COMMIT
+// La clave se compone en runtime: asi el literal completo no aparece en el codigo de la suite (y nuestro propio
+// secrets-guard no bloquea editar este archivo). scanStagedSecrets la ve en el fixture del disco.
+const awsKey = 'AKIA' + '1234567890ABCDEF';
+w('leak/config.php', "<?php\n$key = '" + awsKey + "';\n");
+w('leak/.env.example', 'AWS_KEY=' + awsKey + '\n');
+w('leak/service.php', "<?php\n$key = env('AWS_KEY');\n");
+ok(sev(scanStagedSecrets(proj, { files: ['leak/config.php'] }), 'high') >= 1, 'secretos: clave AWS real en un archivo del commit = high');
+ok(scanStagedSecrets(proj, { files: ['leak/.env.example'] }).length === 0, 'secretos: .env.example no cuenta (placeholder a proposito)');
+ok(scanStagedSecrets(proj, { files: ['leak/service.php'] }).length === 0, 'secretos: env() no es un secreto literal');
+ok(scanSecrets("const k = '" + awsKey + "'").length === 1, 'secretos: scanSecrets detecta la clave AWS');
+ok(scanSecrets('const k = process.env.AWS_KEY').length === 0, 'secretos: scanSecrets ignora process.env');
 
 // ================================================================ 6. FALSOS POSITIVOS: skills vendored reales
 const vendor = summarize(scanSkills(ROOT, { dirs: ['core/skills-vendor'] }));

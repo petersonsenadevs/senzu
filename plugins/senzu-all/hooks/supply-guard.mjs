@@ -8,7 +8,7 @@
 // Es de seguridad: no se puede apagar (HOOKS_NO_APAGABLES en lib.mjs).
 
 import { readHookInput, projectRoot, localeUI, msg, envSenzu, sinTextoCitado, git } from './lib.mjs';
-import { scanInstallCommand, scanDependencies, scanSkills, scanInstallSource } from './supply-scan.mjs';
+import { scanInstallCommand, scanDependencies, scanSkills, scanInstallSource, scanStagedSecrets } from './supply-scan.mjs';
 
 const p = readHookInput();
 if (!p) process.exit(0);
@@ -35,12 +35,23 @@ if (/\bgit\s+commit\b/i.test(c)) {
     if (manifests.length) findings.push(...scanDependencies(root, { files: manifests }));
     if (skillFiles.length) findings.push(...scanSkills(root, { files: skillFiles }));
     if (mcp.length) findings.push(...scanInstallSource(root, { files: mcp }));
+    // secretos en CUALQUIER archivo que entra en el commit (no solo manifests): un .env, un config, un json
+    if (staged.length) findings.push(...scanStagedSecrets(root, { files: staged }));
 }
 
 if (!findings.length) process.exit(0);
+const linea = f => `- [${f.axis}] ${f.where}: ${f.why}`;
+// Secretos: concepto aparte (no es typosquatting). Se bloquea siempre, sin el escape SENZU_ALLOW_SUPPLY: la
+// solucion es quitar la credencial y usar variables de entorno, no commitearla igual. (Como secrets-guard en edicion.)
+const secretos = findings.filter(f => f.axis === 'secreto');
+if (secretos.length) {
+    process.stderr.write(msg('secrets.commitBlock', lang) + '\n');
+    for (const f of secretos) process.stderr.write(linea(f) + '\n');
+    process.stderr.write(msg('secrets.hint', lang) + '\n');
+    process.exit(2);
+}
 const high = findings.filter(f => f.sev === 'high');
 const med = findings.filter(f => f.sev === 'med');
-const linea = f => `- [${f.axis}] ${f.where}: ${f.why}`;
 const allow = envSenzu('ALLOW_SUPPLY') === '1';
 
 if (high.length && !allow) {

@@ -201,6 +201,21 @@ OutCase 'N+1 foreach+find -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; to
 $i++; $null = Invoke-Hook 'backend-guard.mjs' @{ session_id='np1fp'; tool_name='Write'; tool_input=@{ file_path='src/services/pick.ts'; content="export function pick(ids, rows) { const out=[]; for (const id of ids) { out.push(rows.find(r => r.id === id)); } return out; }" } } 'np1fp'
 if ($script:lastOut -match 'N\+1') { $fail++; Write-Host 'FAIL N+1 FP array.find           -> aviso indebido' } elseif ($ShowAll) { Write-Host 'ok   N+1 FP array.find           -> sin aviso' }
 
+# --- security-guard: aviso de puntos de inyeccion (XSS, SQLi, inyeccion de comando) en lo introducido ---
+OutCase 'sec v-html -> avisa' 'security-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='src/components/Bio.vue'; content="<template><div v-html=`"userBio`"></div></template>" } } 'v-html'
+OutCase 'sec dangerouslySetInnerHTML -> avisa' 'security-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='src/Card.tsx'; content="export const Card = ({html}) => <div dangerouslySetInnerHTML={{ __html: html }} />;" } } 'dangerouslySetInnerHTML'
+OutCase 'sec Prisma queryRawUnsafe -> avisa' 'security-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='src/repo.ts'; content="export const q = (id) => prisma.`$queryRawUnsafe('SELECT * FROM u WHERE id=' + id);" } } 'queryRawUnsafe'
+OutCase 'sec Laravel whereRaw con var -> avisa' 'security-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/Services/Buscar.php'; content="<?php`nclass Buscar { public function run(`$age) { return User::whereRaw(`"age > `$age`")->get(); } }" } } 'raw'
+OutCase 'sec Python shell=True -> avisa' 'security-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/run.py'; content="import subprocess`ndef run(cmd):`n    return subprocess.run(cmd, shell=True)" } } 'shell=True'
+OutCase 'sec eval dinamico -> avisa' 'security-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='src/calc.js'; content="export function calc(input) { return eval(input); }" } } 'eval'
+
+$i++; $null = Invoke-Hook 'security-guard.mjs' @{ session_id='secfp1'; tool_name='Write'; tool_input=@{ file_path='app/Services/Contar.php'; content="<?php`nclass Contar { public function run() { return User::selectRaw('count(*) as total')->first(); } }" } } 'secfp1'
+if ($script:lastOut -match 'inyecci|injection') { $fail++; Write-Host 'FAIL sec FP selectRaw literal     -> aviso indebido' } elseif ($ShowAll) { Write-Host 'ok   sec FP selectRaw literal     -> sin aviso' }
+$i++; $null = Invoke-Hook 'security-guard.mjs' @{ session_id='secfp2'; tool_name='Write'; tool_input=@{ file_path='app/Services/Estado.php'; content="<?php`nclass Estado { public function run(`$status) { return User::whereRaw('status = ?', [`$status])->get(); } }" } } 'secfp2'
+if ($script:lastOut -match 'inyecci|injection') { $fail++; Write-Host 'FAIL sec FP whereRaw parametrizado -> aviso indebido' } elseif ($ShowAll) { Write-Host 'ok   sec FP whereRaw parametrizado -> sin aviso' }
+$i++; $null = Invoke-Hook 'security-guard.mjs' @{ session_id='secfp3'; tool_name='Write'; tool_input=@{ file_path='src/dom.js'; content="export function set(el) { el.innerHTML = '<b>hola</b>'; const m = /ab/.exec(el.id); return m; }" } } 'secfp3'
+if ($script:lastOut -match 'inyecci|injection') { $fail++; Write-Host 'FAIL sec FP innerHTML literal      -> aviso indebido' } elseif ($ShowAll) { Write-Host 'ok   sec FP innerHTML literal/exec -> sin aviso' }
+
 [System.IO.Directory]::Delete($proj, $true)
 Write-Host "Casos: $i  Fallos: $fail"
 if ($fail) { exit 1 } else { exit 0 }

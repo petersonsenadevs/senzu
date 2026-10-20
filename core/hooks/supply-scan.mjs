@@ -16,6 +16,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { scanSecrets } from './secret-patterns.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const CODE_EXT = /\.(m?js|cjs|ts|tsx|jsx|py|sh|bash|zsh|rb|php|ps1|psm1)$/i;
@@ -284,6 +285,22 @@ export function scanInstallSource(root, { files } = {}) {
         const why = maliciousScript(cmd);
         if (why) out.push(F('source', 'high', `.mcp.json server "${name}"`, `el servidor MCP ${why} al arrancar`));
         else if (/\bnpx\s+(-y\s+)?https?:\/\//i.test(cmd) || /\buvx?\s+https?:\/\//i.test(cmd)) out.push(F('source', 'med', `.mcp.json server "${name}"`, 'ejecuta un paquete directamente desde una URL (verifica el origen)'));
+    }
+    return out;
+}
+
+// ---------------------------------------------------------------- 3b. secretos que entran en el commit
+// secrets-guard frena un secreto al ESCRIBIRLO, pero no uno que entra por otra via (lo crea un comando, ya estaba
+// en disco, se hace git add de un .env). Al hacer git commit se escanea lo que entra (staged) con los mismos
+// patrones de secret-patterns.mjs. Los archivos de ejemplo/plantilla no cuentan (ahi va un placeholder a proposito).
+export function scanStagedSecrets(root, { files } = {}) {
+    const out = [];
+    for (const f of (files || [])) {
+        const rel = String(f).replace(/\\/g, '/');
+        if (/\.(example|sample|template|dist)$|(^|\/)\.env\.example$/i.test(rel)) continue;
+        const text = readSafe(path.join(root, rel));
+        if (text == null) continue;
+        for (const tipo of scanSecrets(text)) out.push(F('secreto', 'high', rel, `credencial real en el commit (${tipo})`));
     }
     return out;
 }
