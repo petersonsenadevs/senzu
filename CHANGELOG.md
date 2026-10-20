@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-20
 
+- **feature** — El aviso N+1 ya capta los bucles de Python (2.24.0) (entrada 167)
 - **feature** — Muro de inyección/XSS en edición y escaneo de secretos en el commit (2.24.0) (entrada 166)
 - **feature** — Skill y comando /seguridad, muro de pentesting, aviso N+1 y skill TanStack (2.24.0) (entrada 165)
 

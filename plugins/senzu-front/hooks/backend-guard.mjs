@@ -42,6 +42,7 @@ function bloquear(id, linea, vars) {
 
 // Se mira el CÓDIGO sin comentarios (citar «no usar env()» no lo usa); los strings se conservan: SQL crudo, env('X')
 const COD = { strings: false, almohadilla: /\.(php|py|rb)$/i.test(file) };
+const isPy = /\.py$/i.test(file);
 
 // 1. Migraciones destructivas (solo la parte que se aplica al migrar)
 if (esMigracion(rel) || /(database\/migrations|migrations|alembic\/versions|prisma\/migrations)\//i.test(file)) {
@@ -139,6 +140,7 @@ process.exit(0);
 function queryEnBucle(txt) {
     if (!txt) return null;
     const t = soloCodigo(txt, { strings: true, almohadilla: COD.almohadilla });
+    if (isPy) return queryEnBuclePy(t);
     const QUERY = /(\bDB::(table|select|statement|raw)\b|\b[A-Z]\w*::(find|findOrFail|first|firstWhere|where|all|count|value|pluck)\s*\(|->firstWhere\s*\(|->firstOrFail\s*\(|\b(prisma|db)\.[A-Za-z_]\w*\.(find\w*|count|aggregate|groupBy)\s*\(|\bawait\s+[\w.]*(repo|repository|model|service|manager|em)\b[\w.]*\.(find\w*|get\w*|load\w*|query|count)\s*\(|\bSELECT\b[\s\S]{0,160}\bFROM\b)/;
     const loopHdr = /\b(for|foreach|while)\s*\(/g;
     let m;
@@ -158,6 +160,31 @@ function queryEnBucle(txt) {
             const linea = (t.slice(m.index).split('\n')[0] || '').trim().slice(0, 120);
             return linea;
         }
+    }
+    return null;
+}
+
+// Igual que queryEnBucle pero para Python: los bucles no tienen paréntesis ni llaves, el cuerpo es el bloque
+// con más sangría que la cabecera «for … in …:» o «while …:» (el colon se busca al final por si hay sangría con
+// slices como rows[0:10]). Señales de BD estrictas de Python: Django (.objects.X()), SQLAlchemy (session.query/
+// execute/scalars, session.get(Model,…) con la clase en mayúscula para no confundir con session.get('clave') de
+// Flask), cursor.execute, un repositorio/repo/dao con método de lectura, o un await de find/get_/fetch/execute.
+function queryEnBuclePy(t) {
+    const QUERY_PY = /(\.objects\.(get|filter|all|first|last|count|exclude|aggregate|annotate|get_or_create|values|values_list|earliest|latest|exists)\s*\(|\b(?:db\.)?session\.(query|execute|scalar|scalars)\s*\(|\b(?:db\.)?session\.get\s*\(\s*[A-Z]\w*|\.query\s*\(\s*[\w.]+\s*\)\s*\.\s*(filter|filter_by|all|first|one|one_or_none|get|count)\b|\bcursor\.(execute|executemany)\s*\(|\b\w*(?:repository|repo|dao)\.(get|get_\w+|find\w*|fetch\w*|load\w*|list\w*|by_\w+|all|query|count)\s*\(|\bawait\s+[\w.]+\.(find\w*|get_\w+|fetch\w*|execute|scalar\w*)\s*\()/;
+    const lines = t.split('\n');
+    const hdr = /^([ \t]*)(?:async\s+)?((?:for|while)\b.*):(.*)$/;
+    for (let a = 0; a < lines.length; a++) {
+        const m = hdr.exec(lines[a]);
+        if (!m) continue;
+        const indent = m[1].length;
+        const partes = [m[3] || ''];                          // cuerpo en la misma línea (one-liner for x in xs: query())
+        for (let b = a + 1; b < lines.length; b++) {
+            const ln = lines[b];
+            if (!ln.trim()) { partes.push(ln); continue; }     // línea en blanco: sigue dentro del bloque
+            if ((ln.match(/^[ \t]*/)[0] || '').length <= indent) break;   // vuelve al nivel del bucle o menos: fin del cuerpo
+            partes.push(ln);
+        }
+        if (QUERY_PY.test(partes.join('\n'))) return lines[a].trim().slice(0, 120);
     }
     return null;
 }

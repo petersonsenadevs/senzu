@@ -353,8 +353,8 @@ export const CAT = {
     },
 
     'backend.nPlus1': {
-        en: '[senzu] Backend warning in {rel}: a loop runs a database query on each iteration (N+1: starts at «{primera}»). With N rows that is N+1 queries and it collapses under load. Load the related data up front (eager loading: Eloquent with(), Prisma include/in, a JOIN or a single whereIn) and iterate in memory. If it really is a handful of fixed items, go on. Warned once per file and session.',
-        es: '[senzu] AVISO de backend en {rel}: un bucle lanza una consulta a la base de datos en cada vuelta (N+1: empieza por «{primera}»). Con N filas son N+1 consultas y se hunde con carga. Carga los datos relacionados de golpe (eager loading: with() de Eloquent, include/in de Prisma, un JOIN o un solo whereIn) e itera en memoria. Si de verdad son un puñado de elementos fijos, sigue. Se avisa una vez por archivo y sesion.',
+        en: '[senzu] Backend warning in {rel}: a loop runs a database query on each iteration (N+1: starts at «{primera}»). With N rows that is N+1 queries and it collapses under load. Load the related data up front (eager loading: Eloquent with(), Prisma include/in, Django select_related/prefetch_related, SQLAlchemy joinedload, a JOIN or a single whereIn/IN) and iterate in memory. If it really is a handful of fixed items, go on. Warned once per file and session.',
+        es: '[senzu] AVISO de backend en {rel}: un bucle lanza una consulta a la base de datos en cada vuelta (N+1: empieza por «{primera}»). Con N filas son N+1 consultas y se hunde con carga. Carga los datos relacionados de golpe (eager loading: with() de Eloquent, include/in de Prisma, select_related/prefetch_related de Django, joinedload de SQLAlchemy, un JOIN o un solo whereIn/IN) e itera en memoria. Si de verdad son un puñado de elementos fijos, sigue. Se avisa una vez por archivo y sesion.',
     },
 
     // --- security-guard: aviso de punto de inyeccion (XSS, SQLi, inyeccion de comando) en lo introducido ---

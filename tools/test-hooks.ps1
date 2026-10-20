@@ -47,6 +47,14 @@ function Case([string]$Name, [string]$Hook, [hashtable]$Payload, [int]$Expect, [
     elseif ($ShowAll)      { Write-Host ("ok   {0,-32} -> {1}" -f $Name, $blocked) }
     return $Sid
 }
+function NoAviso([string]$Name, [string]$Hook, [hashtable]$Payload, [string]$NotMatch) {
+    # Caso de NO-aviso (falso positivo): la salida NO debe contener el patron. Sesion propia por caso.
+    $script:i++
+    $Payload.session_id = "na$($script:i)-" + [guid]::NewGuid().ToString('N').Substring(0, 4)
+    $null = Invoke-Hook $Hook $Payload $Payload.session_id
+    if ($script:lastOut -match $NotMatch) { $script:fail++; Write-Host ("FAIL {0,-32} -> aviso indebido ('{1}')" -f $Name, $NotMatch) }
+    elseif ($ShowAll) { Write-Host ("ok   {0,-32} -> sin aviso" -f $Name) }
+}
 
 # --- guard: librerias vetadas ---
 $null = Case 'npm i jquery -> bloquea' 'guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='npm install jquery' } } 2
@@ -200,6 +208,23 @@ $env:SENZU_ALLOW_PENTEST = ''
 OutCase 'N+1 foreach+find -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/Services/Demo.php'; content="<?php`nclass Demo { public function run(`$ids) { `$out=[]; foreach (`$ids as `$id) { `$u = User::find(`$id); `$out[]=`$u->name; } return `$out; } }" } } 'N\+1'
 $i++; $null = Invoke-Hook 'backend-guard.mjs' @{ session_id='np1fp'; tool_name='Write'; tool_input=@{ file_path='src/services/pick.ts'; content="export function pick(ids, rows) { const out=[]; for (const id of ids) { out.push(rows.find(r => r.id === id)); } return out; }" } } 'np1fp'
 if ($script:lastOut -match 'N\+1') { $fail++; Write-Host 'FAIL N+1 FP array.find           -> aviso indebido' } elseif ($ShowAll) { Write-Host 'ok   N+1 FP array.find           -> sin aviso' }
+
+# --- backend-guard: aviso N+1 en PYTHON (bucles por sangria, sin llaves ni parentesis) ---
+# Positivos: una consulta de BD estricta dentro del bloque sangrado del bucle -> avisa.
+OutCase 'py N+1 Django for -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/users.py'; content="def run(ids):`n    out = []`n    for pk in ids:`n        u = User.objects.get(pk=pk)`n        out.append(u.name)`n    return out" } } 'N\+1'
+OutCase 'py N+1 SQLAlchemy while -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/orders.py'; content="def drain(session, ids):`n    i = 0`n    while i < len(ids):`n        row = session.query(Order).filter(Order.id == ids[i]).first()`n        i += 1" } } 'N\+1'
+OutCase 'py N+1 one-liner inline -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='api/views.py'; content="def names(users):`n    for u in users:  profile = Profile.objects.filter(user=u).first()" } } 'N\+1'
+OutCase 'py N+1 cursor anidado -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/grid.py'; content="def grid(cursor, rows, cols):`n    for r in rows:`n        for c in cols:`n            cursor.execute('SELECT 1 FROM t')" } } 'N\+1'
+OutCase 'py N+1 session.get(Model) -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/loader.py'; content="def load(session, ids):`n    for pk in ids:`n        obj = session.get(User, pk)" } } 'N\+1'
+OutCase 'py N+1 repository.get -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/fetch.py'; content="def fetch(ids):`n    for pk in ids:`n        user = user_repository.get(pk)" } } 'N\+1'
+OutCase 'py N+1 async for + await -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/aload.py'; content="async def aload(ids):`n    async for pk in ids:`n        u = await orders_repo.find_by_id(pk)" } } 'N\+1'
+# Falsos positivos: NO debe avisar.
+NoAviso 'py FP session.get(var) Flask' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='api/handlers.py'; content="def read(keys, session):`n    vals = []`n    for k in keys:`n        vals.append(session.get(k))`n    return vals" } } 'N\+1'
+NoAviso 'py FP dict.get en bucle' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/pluck.py'; content="def pluck(rows, cfg):`n    out = []`n    for r in rows:`n        out.append(cfg.get(r))`n    return out" } } 'N\+1'
+NoAviso 'py FP query ANTES del bucle' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/report.py'; content="def report():`n    users = User.objects.filter(active=True)`n    for u in users:`n        print(u.name)" } } 'N\+1'
+NoAviso 'py FP slice en cabecera' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/head.py'; content="def head(rows):`n    for r in rows[0:10]:`n        process(r)" } } 'N\+1'
+NoAviso 'py FP query en comentario' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/commented.py'; content="def run2(ids):`n    for pk in ids:`n        # u = User.objects.get(pk=pk)`n        handle(pk)" } } 'N\+1'
+NoAviso 'py FP cache.get en bucle' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/services/warm.py'; content="def warm(keys, cache):`n    for k in keys:`n        cache.get(k)" } } 'N\+1'
 
 # --- security-guard: aviso de puntos de inyeccion (XSS, SQLi, inyeccion de comando) en lo introducido ---
 OutCase 'sec v-html -> avisa' 'security-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='src/components/Bio.vue'; content="<template><div v-html=`"userBio`"></div></template>" } } 'v-html'
