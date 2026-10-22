@@ -86,6 +86,26 @@ if (fs.existsSync(pluginHooks)) {
     ok(rotos.length === 0, `los hooks del plugin senzu-all resuelven sus imports locales (${rotos.join(', ')})`);
 }
 
+// 7. Paridad de la documentación en inglés: build-docs y build-creditos caen al castellano si falta una
+//    traducción (no rompen el pre-commit); aquí es donde falla, al añadir una skill, una novedad o un efecto.
+{
+    const leerJson = (...p) => JSON.parse(fs.readFileSync(path.join(ROOT, ...p), 'utf8').replace(/^﻿/, ''));
+    const reg = leerJson('core', 'skills-registry.json');
+    const sk = leerJson('core', 'i18n', 'skills.json');
+    const sinGrupo = Object.keys(reg.groups).filter(g => !sk.grupos?.[g]);
+    const sinWhen = reg.skills.map(s => s.name).filter(n => !sk.when?.[n]);
+    ok(!sinGrupo.length && !sinWhen.length, `core/i18n/skills.json traduce todos los grupos y skills (faltan: ${[...sinGrupo, ...sinWhen].join(', ')})`);
+    const sobran = Object.keys(sk.when || {}).filter(n => !reg.skills.some(s => s.name === n));
+    ok(!sobran.length, `core/i18n/skills.json sin skills que ya no existen (${sobran.join(', ')})`);
+    const sinEn = leerJson('core', 'novedades.json').novedades.filter(n => !n.en).map(n => n.version);
+    ok(!sinEn.length, `cada novedad de core/novedades.json tiene su "en" (faltan: ${sinEn.join(', ')})`);
+    const man = leerJson('core', 'effects-vendor', 'manifest.json').repos || [];
+    const cr = leerJson('core', 'i18n', 'creditos.json');
+    const sinCat = [...new Set(man.map(e => e.category))].filter(c => !cr.categorias?.[c]);
+    const sinPara = man.filter(e => !cr.para?.[e.repo]).map(e => e.repo);
+    ok(!sinCat.length && !sinPara.length, `core/i18n/creditos.json traduce todas las categorías y efectos (faltan: ${[...sinCat, ...sinPara].join(', ')})`);
+}
+
 for (const d of temporales) { try { fs.rmSync(d, { recursive: true, force: true }); } catch {} }
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
 process.exit(fallos ? 1 : 0);

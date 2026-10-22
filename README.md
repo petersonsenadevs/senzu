@@ -7,6 +7,8 @@
 
 # Senzu
 
+**Español** · [English](README.en.md)
+
 *Una semilla y el proyecto se recupera.* (Antes **dev-standards**.)
 
 **El estándar de trabajo de la agencia convertido en sistema ejecutable para agentes de IA.**
