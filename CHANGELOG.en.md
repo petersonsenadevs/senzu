@@ -4,6 +4,10 @@
 
 What each version brings, in plain words (newest first). The entry-by-entry log, in Spanish, is in [CHANGELOG.md](CHANGELOG.md).
 
+## v2.24.1
+
+- The whole documentation is also in English: besides the guides, every skill and every command has its translated page (the agent still reads the original)
+
 ## v2.24.0
 
 - New walls: supply chain (malware/typosquatting), secrets in commits, injection/XSS when editing and pentesting scope; /security skill (OWASP and AI agents); N+1 warning and TanStack for tables and lists

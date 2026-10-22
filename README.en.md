@@ -17,7 +17,7 @@ skills that activate on their own, walls that actually block and mandatory verif
 is considered done.
 
 <!-- GEN:resumen -->
-![Version](https://img.shields.io/badge/version-v2.24.0-black) ![Skills](https://img.shields.io/badge/skills-45-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Walls](https://img.shields.io/badge/walls-28_hooks-red) ![Commands](https://img.shields.io/badge/commands-24-orange) ![Language](https://img.shields.io/badge/language-English%20%7C%20Espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
+![Version](https://img.shields.io/badge/version-v2.24.1-black) ![Skills](https://img.shields.io/badge/skills-45-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Walls](https://img.shields.io/badge/walls-28_hooks-red) ![Commands](https://img.shields.io/badge/commands-24-orange) ![Language](https://img.shields.io/badge/language-English%20%7C%20Espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
 
 | Group | Skills | Entry point |
 |---|---|---|
