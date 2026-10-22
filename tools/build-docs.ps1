@@ -343,6 +343,69 @@ function Get-StacksBodyEn {
     return $L
 }
 
+# Grupos y «cuándo usarla» de cada skill en inglés (core/i18n/skills.json). Si falta uno, avisa y cae al
+# castellano (test-i18n exige que estén todos); el contenido de las skills no se traduce: lo lee el agente.
+$script:SkillsEn = (Read-Utf8 (Join-Path $root 'core\i18n\skills.json') | ConvertFrom-Json)
+function Get-SkillGroupEn([string]$g) {
+    $en = $script:SkillsEn.grupos.$g
+    if (-not $en) { Write-Warning "build-docs: grupo '$g' sin nombre en ingles en core/i18n/skills.json"; return $script:Registry.groups.$g }
+    return $en
+}
+function Get-SkillWhenEn($s) {
+    $en = $script:SkillsEn.when.($s.name)
+    if (-not $en) { Write-Warning "build-docs: skill '$($s.name)' sin 'when' en ingles en core/i18n/skills.json"; return $s.when }
+    return $en
+}
+
+# Señales en inglés: las del inglés van al final de la regex (keywords union, 2.22), así que la muestra se toma
+# desde el final; misma limpieza que Clean-Keywords
+function Clean-KeywordsEn([string]$k, [int]$Max = 8) {
+    if (-not $k) { return '' }
+    $s = ($k -replace '\(\?i\)', '' -replace '\\b', '').Trim()
+    if ($s.StartsWith('(') -and $s.EndsWith(')')) { $s = $s.Substring(1, $s.Length - 2) }
+    for ($i = 0; $i -lt 3; $i++) { $s = $s -replace '\(([^()|]*)\|[^()]*\)\??', '$1' }
+    $clean = @(); $parts = @($s -split '\|'); [array]::Reverse($parts)
+    foreach ($p in $parts) {
+        $t = $p -replace '\(\?[=!][^\)]*\)', '' -replace '\[([a-zA-Z0-9áéíóúñ])[^\]]*\]', '$1' -replace '\\w\*?', '' -replace '\\s\+?', ' ' -replace '\\[.d]\+?', ' ' -replace '[\\^\$\(\)\?\:\+\*\{\}]', ''
+        $t = ($t -replace '\s+', ' ').Trim(' ', ',', '.')
+        if ($t -and $t.Length -ge 3 -and $t.Length -le 28 -and $clean -notcontains $t) { $clean += $t }
+        if ($clean.Count -ge $Max) { break }
+    }
+    [array]::Reverse($clean)
+    return $(if ($parts.Count -gt $Max) { '…' } else { '' }) + ($clean -join ', ')
+}
+
+function Get-SkillsBodyEn {
+    $L = New-Object System.Collections.Generic.List[string]
+    $L.Add('The agent decides on its own, in three automatic layers:')
+    $L.Add('1. **When the session starts** (SessionStart hook): project state (stack, versions+EOL, whether it is new or')
+    $L.Add('   existing, design system, plan, devlog, conventions) + entry points: UI → `ui-ux-pro-max` ·')
+    $L.Add('   logic → `code-quality` · new project → `project-planner` · in doubt → `skill-router`.')
+    $L.Add('2. **On every request** (UserPromptSubmit hook): the *signals* in the tables below suggest the skill')
+    $L.Add('   (max. 2, once per skill and session), in English or Spanish. *Entrypoints* go first; on an equal match the higher priority wins.')
+    $L.Add('3. **Activation tables** (`skill-router` and `front-activation`, generated from the registry): the agent')
+    $L.Add('   checks them when in doubt; `references/decision-trees.md` has the full decision trees.')
+    $L.Add('')
+    $total = @($script:Registry.skills).Count
+    $L.Add(('Total: **{0} skills**. Single source: `core/skills-registry.json` (group, when, signals, priority, dependencies).' -f $total))
+    $L.Add('The skills themselves are written for the agent, which answers in your language: only this catalog is translated.')
+    $L.Add('')
+    foreach ($g in @($script:Registry.groups.PSObject.Properties.Name)) {
+        $skills = @($script:Registry.skills | Where-Object { $_.group -eq $g } | Sort-Object -Property @{Expression = { [bool]$_.entrypoint }; Descending = $true }, @{Expression = { $_.priority }; Descending = $true }, name)
+        if (-not $skills.Count) { continue }
+        $L.Add(('### {0} (group `{1}`, {2} skill{3})' -f (Get-SkillGroupEn $g), $g, $skills.Count, $(if ($skills.Count -eq 1) { '' } else { 's' })))
+        $L.Add('')
+        $L.Add('| Skill | Prio | When to use it | Signals that trigger it (sample) |')
+        $L.Add('|---|---|---|---|')
+        foreach ($s in $skills) {
+            $name = if ($s.entrypoint) { "**``$($s.name)``** (entry)" } else { "``$($s.name)``" }
+            $L.Add("| $name | $($s.priority) | $(Get-SkillWhenEn $s) | $(Clean-KeywordsEn $s.keywords) |")
+        }
+        $L.Add('')
+    }
+    return $L
+}
+
 # ============================================================ EMISION
 function Emit([string]$Path, [string]$Title, [string]$Intro, $Body) {
     $L = New-Object System.Collections.Generic.List[string]
@@ -369,6 +432,8 @@ $back = '[← Back to README](../README.md)'
 Emit 'docs\comandos.en.md' 'Slash commands' "$back" (Get-CommandsBodyEn)
 Emit 'docs\hooks.en.md' 'Walls and hooks' "$back`n`nWhat the agent can NOT do even if it wants to — and what it is reminded of on its own." (Get-HooksBodyEn)
 Emit 'docs\stacks.en.md' 'Stacks and bundles' "$back" (Get-StacksBodyEn)
+$skillsBodyEn = Get-SkillsBodyEn
+Emit 'docs\skills.en.md' 'Skills and routing' "$back`n`nWhich skills exist, when each one kicks in and on which signals. Third-party ones are vendored with Senzu's own layer on top (see [architecture](arquitectura.en.md))." $skillsBodyEn
 
 # REFERENCIA.md: todo en una pagina (para leer del tiron o imprimir)
 $R = New-Object System.Collections.Generic.List[string]
@@ -385,6 +450,22 @@ $R.Add(''); $R.Add('## 4. Stacks y bundles'); $R.Add('')
 foreach ($x in $stacksBody) { $R.Add($x) }
 Write-Utf8 (Join-Path $root 'REFERENCIA.md') ($R -join "`n")
 Write-Host "  [docs] REFERENCIA.md ($($R.Count) lineas)"
+
+# REFERENCIA.en.md: lo mismo en inglés
+$R = New-Object System.Collections.Generic.List[string]
+$R.Add($GEN); $R.Add(''); $R.Add('# Senzu full reference'); $R.Add('')
+$R.Add('The whole catalog on one page. By topic: [skills](docs/skills.en.md) · [commands](docs/comandos.en.md) · [hooks](docs/hooks.en.md) · [stacks](docs/stacks.en.md) · [architecture](docs/arquitectura.en.md). Guides: [README](README.en.md) · [INSTALL](INSTALL.en.md) · [USO](USO.en.md).')
+$R.Add('')
+$R.Add('## 1. Skills and routing'); $R.Add('')
+foreach ($x in $skillsBodyEn) { $R.Add($x) }
+$R.Add('## 2. Slash commands'); $R.Add('')
+foreach ($x in (Get-CommandsBodyEn)) { $R.Add($x) }
+$R.Add(''); $R.Add('## 3. Walls and hooks'); $R.Add('')
+foreach ($x in (Get-HooksBodyEn)) { $R.Add($x) }
+$R.Add(''); $R.Add('## 4. Stacks and bundles'); $R.Add('')
+foreach ($x in (Get-StacksBodyEn)) { $R.Add($x) }
+Write-Utf8 (Join-Path $root 'REFERENCIA.en.md') ($R -join "`n")
+Write-Host "  [docs] REFERENCIA.en.md ($($R.Count) lines)"
 
 # ============================================================ README: bloque GEN:resumen (badges + numeros vivos)
 $readmePath = Join-Path $root 'README.md'
@@ -419,6 +500,46 @@ if (Test-Path $readmePath) {
     $md2 = [regex]::Replace($md, '(?s)(<!-- GEN:resumen -->).*?(<!-- /GEN:resumen -->)', ('${1}' + "`n$block`n" + '${2}'))
     if ($md2 -ne $md) { Write-Utf8 $readmePath $md2; Write-Host '  [docs] README.md (bloque GEN:resumen)' }
 }
+
+# README.en.md: el mismo bloque en inglés (mismas cifras de arriba)
+$readmeEnPath = Join-Path $root 'README.en.md'
+if ((Test-Path $readmePath) -and (Test-Path $readmeEnPath)) {
+    $md = Read-Utf8 $readmeEnPath
+    $B = New-Object System.Collections.Generic.List[string]
+    $B.Add("$verBadge![Skills](https://img.shields.io/badge/skills-$nSkills-blue) ![Stacks](https://img.shields.io/badge/stacks-$nStacks-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-$nPlugins-purple) ![Walls](https://img.shields.io/badge/walls-${nHooks}_hooks-red) ![Commands](https://img.shields.io/badge/commands-$nCmds-orange) ![Language](https://img.shields.io/badge/language-English%20%7C%20Espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)")
+    $B.Add('')
+    $B.Add('| Group | Skills | Entry point |')
+    $B.Add('|---|---|---|')
+    foreach ($g in @($script:Registry.groups.PSObject.Properties.Name)) {
+        $skills = @($script:Registry.skills | Where-Object { $_.group -eq $g })
+        if (-not $skills.Count) { continue }
+        $entry = @($skills | Where-Object { $_.entrypoint } | ForEach-Object { "``$($_.name)``" })
+        $names = @($skills | Sort-Object name | Select-Object -First 4 | ForEach-Object { $_.name })
+        $sample = ($names -join ', ') + $(if ($skills.Count -gt 4) { '…' } else { '' })
+        $B.Add("| **$(Get-SkillGroupEn $g)** ($($skills.Count)) | $sample | $(if ($entry.Count) { $entry -join ', ' } else { 'router' }) |")
+    }
+    $block = $B -join "`n"
+    $md2 = [regex]::Replace($md, '(?s)(<!-- GEN:resumen -->).*?(<!-- /GEN:resumen -->)', ('${1}' + "`n$block`n" + '${2}'))
+    if ($md2 -ne $md) { Write-Utf8 $readmeEnPath $md2; Write-Host '  [docs] README.en.md (GEN:resumen block)' }
+}
+
+# ============================================================ CHANGELOG.en.md desde core/novedades.json
+# El CHANGELOG en castellano sale del devlog (privado, entrada a entrada); en inglés, una línea por versión en llano
+# (el campo `en` de cada novedad, que test-i18n exige).
+$nov = (Read-Utf8 (Join-Path $root 'core\novedades.json') | ConvertFrom-Json).novedades
+$C = New-Object System.Collections.Generic.List[string]
+$C.Add('<!-- GENERADO por tools/build-docs.ps1 desde core/novedades.json (campo en). NO editar a mano. -->')
+$C.Add(''); $C.Add('# Changelog'); $C.Add('')
+$C.Add('What each version brings, in plain words (newest first). The entry-by-entry log, in Spanish, is in [CHANGELOG.md](CHANGELOG.md).')
+$C.Add('')
+foreach ($n in $nov) {
+    $txt = if ($n.en) { $n.en } else { Write-Warning "build-docs: novedad $($n.version) sin 'en' en core/novedades.json"; $n.texto }
+    $C.Add("## v$($n.version)"); $C.Add('')
+    $C.Add("- $($txt.Substring(0, 1).ToUpper() + $txt.Substring(1))")
+    $C.Add('')
+}
+Write-Utf8 (Join-Path $root 'CHANGELOG.en.md') ($C -join "`n")
+Write-Host "  [docs] CHANGELOG.en.md ($(@($nov).Count) versions)"
 
 # ============================================================ CHANGELOG.md desde devlog/INDEX.md
 $idxPath = Join-Path $root 'devlog\INDEX.md'
