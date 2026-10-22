@@ -204,6 +204,7 @@ Their messages come out in English, or in Spanish with `--lang es` (see [INSTALL
 | `session-end.mjs` | SessionEnd | Cleans up the session markers. |
 
 ### Escapes (always with the user's explicit approval, recorded in the devlog)
+The `SENZU_ALLOW_*` keys go **as a prefix of the command** (`SENZU_ALLOW_PENTEST=1 nmap …`): they authorize only THAT command, not the whole session. Exporting the variable no longer opens the door.
 - `SENZU_ALLOW_DEPLOY=1` — deploy to production after the `/deploy` checklist is approved.
 - `SENZU_ALLOW_LIB=1` — install a banned library (jQuery/Bootstrap) if the user asks for it.
 - A `senzu-allow` comment on the line — a one-off exception to code-hygiene (CLI script with console.log, justified test .skip, anti-AI pattern requested by name).
