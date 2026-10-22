@@ -4,6 +4,10 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-22
+
+- **feature** — Los muros Bash miran dentro del script que se ejecuta (2.24.0) (entrada 168)
+
 ## 2026-10-20
 
 - **feature** — El aviso N+1 ya capta los bucles de Python (2.24.0) (entrada 167)

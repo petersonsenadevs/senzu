@@ -59,6 +59,10 @@ export const CAT = {
             'Si es un encargo autorizado (tienes permiso por escrito y un alcance definido / rules of engagement), anota la autorizacion y el alcance en el devlog y reintenta con SENZU_ALLOW_PENTEST=1. Contra tu propia maquina local o de laboratorio, igual: dejalo por escrito y pon la llave.',
         ],
     },
+    'pentest.enScript': {
+        en: '[BLOCKED by Senzu] The command runs a script ({rel}) that invokes an offensive-security tool inside it (the wall looks inside the script, not just at its name).',
+        es: '[BLOQUEADO por Senzu] El comando ejecuta un script ({rel}) que por dentro lanza una herramienta de seguridad ofensiva (el muro mira dentro del script, no solo su nombre).',
+    },
     'stop.verifyBuild': {
         en: "You edited code and there is no verification afterward: run 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (runs the stack's lint/types/tests/build and leaves a record) or the stack commands by hand, fix the failures and paste the result before closing.",
         es: "Has editado codigo y NO hay verificacion posterior: ejecuta 'node <skills-dir>/code-quality/scripts/verify-build.mjs' (corre lint/types/tests/build del stack y deja constancia) o los comandos del stack a mano, corrige los fallos y pega el resultado antes de cerrar.",

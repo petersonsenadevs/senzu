@@ -204,6 +204,30 @@ $env:SENZU_ALLOW_PENTEST = '1'
 $null = Case 'pentest con ALLOW_PENTEST -> pasa' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='nmap -sV 10.0.0.5' } } 0
 $env:SENZU_ALLOW_PENTEST = ''
 
+# --- muros Bash: mirar DENTRO del script que se ejecuta (no solo su nombre) ---
+# Creamos scripts reales en el proyecto sintetico y lanzamos el comando que los ejecuta.
+Set-Content -Path (Join-Path $proj 'scan.sh')       -Encoding UTF8 -Value "#!/bin/bash`necho preparando`nnmap -sV 10.0.0.5"
+Set-Content -Path (Join-Path $proj 'exploit.sh')    -Encoding UTF8 -Value "sqlmap -u http://x --batch"
+Set-Content -Path (Join-Path $proj 'recon.sh')      -Encoding UTF8 -Value "#!/bin/bash`necho recon`ngobuster dir -u http://x -w list.txt"
+Set-Content -Path (Join-Path $proj 'build.sh')      -Encoding UTF8 -Value "#!/bin/bash`nnpm run build`nrm -rf dist`necho done"
+Set-Content -Path (Join-Path $proj 'commented.sh')  -Encoding UTF8 -Value "#!/bin/bash`n# recordatorio: podriamos usar nmap aqui`necho hola"
+Set-Content -Path (Join-Path $proj 'cited.sh')      -Encoding UTF8 -Value "#!/bin/bash`necho 'lanza nmap y sqlmap manualmente'"
+Set-Content -Path (Join-Path $proj 'setup.sh')      -Encoding UTF8 -Value "#!/bin/bash`nnpm install flatmap-stream"
+Set-Content -Path (Join-Path $proj 'good-setup.sh') -Encoding UTF8 -Value "#!/bin/bash`nnpm install react"
+# pentest dentro del script -> BLOQUEA
+$null = Case 'pentest bash scan.sh (nmap dentro) -> bloquea' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='bash scan.sh' } } 2
+$null = Case 'pentest sh exploit.sh (sqlmap) -> bloquea' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='sh exploit.sh' } } 2
+$null = Case 'pentest ./recon.sh (gobuster) -> bloquea' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='./recon.sh' } } 2
+# falsos positivos de pentest
+$null = Case 'pentest bash build.sh (sin tool) -> pasa' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='bash build.sh' } } 0
+$null = Case 'pentest nmap en comentario -> pasa' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='bash commented.sh' } } 0
+$null = Case 'pentest nmap citado en echo -> pasa' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='bash cited.sh' } } 0
+$null = Case 'pentest cat scan.sh (no ejecuta) -> pasa' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='cat scan.sh' } } 0
+$null = Case 'pentest bash inexistente.sh -> pasa' 'pentest-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='bash inexistente.sh' } } 0
+# supply dentro del script -> BLOQUEA (malware en denylist) / FP (paquete legitimo)
+$null = Case 'supply bash setup.sh (flatmap-stream) -> bloquea' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='bash setup.sh' } } 2
+$null = Case 'supply bash good-setup.sh (react) -> pasa' 'supply-guard.mjs' @{ tool_name='Bash'; tool_input=@{ command='bash good-setup.sh' } } 0
+
 # --- backend-guard: aviso N+1 (consulta a BD dentro de un bucle); .find() de un array no cuenta ---
 OutCase 'N+1 foreach+find -> avisa' 'backend-guard.mjs' @{ tool_name='Write'; tool_input=@{ file_path='app/Services/Demo.php'; content="<?php`nclass Demo { public function run(`$ids) { `$out=[]; foreach (`$ids as `$id) { `$u = User::find(`$id); `$out[]=`$u->name; } return `$out; } }" } } 'N\+1'
 $i++; $null = Invoke-Hook 'backend-guard.mjs' @{ session_id='np1fp'; tool_name='Write'; tool_input=@{ file_path='src/services/pick.ts'; content="export function pick(ids, rows) { const out=[]; for (const id of ids) { out.push(rows.find(r => r.id === id)); } return out; }" } } 'np1fp'

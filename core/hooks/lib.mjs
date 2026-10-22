@@ -967,6 +967,48 @@ export function sinTextoCitado(cmd) {
     return out;
 }
 
+// --- Scripts que un comando EJECUTA: para que los muros Bash miren tambien lo que hay DENTRO del script, no
+// solo su nombre. Un `bash x.sh` o `python x.py` cuyo contenido lanza nmap o instala un paquete con malware
+// pasaba sin mirar. Recibe el comando ya SIN texto citado (sinTextoCitado) y la raiz; devuelve [{rel, contenido}]
+// de los archivos de script LOCALES que existen (un solo nivel, sin recursion). No lee binarios ni gigantes.
+const INTERP_SCRIPT = /^(?:\S*[\\/])?(bash|sh|zsh|dash|ksh|node|nodejs|deno|bun|python[0-9.]*|py|ruby|perl|php|pwsh|powershell(?:\.exe)?)$/i;
+const EXT_SCRIPT = /\.(sh|bash|zsh|ksh|mjs|cjs|js|py|rb|pl|ps1)$/i;
+const FLAG_SIN_ARCHIVO = /^(-c|-e|--command|--eval|-m|--module|-)$/i;   // bash -c "...", python -m mod: no hay archivo que leer
+export function scriptsEjecutados(c, root) {
+    const vistos = new Set(), out = [];
+    for (let trozo of String(c || '').split(/&&|\|\||;|\n|\|/)) {
+        trozo = trozo.trim();
+        if (!trozo) continue;
+        trozo = trozo.replace(/^(?:(?:\w+=\S+|sudo|doas|env|time|nohup|exec)\s+)*/i, '');   // VAR=x / sudo / env … delante
+        const tokens = trozo.split(/\s+/).filter(Boolean);
+        if (!tokens.length) continue;
+        const t0 = tokens[0], rest = tokens.slice(1), t0base = t0.replace(/^.*[\\/]/, '');
+        let cand = null;
+        if (INTERP_SCRIPT.test(t0)) {
+            if (rest.some(t => FLAG_SIN_ARCHIVO.test(t))) continue;   // codigo en linea, no un archivo
+            cand = rest.find(t => EXT_SCRIPT.test(t)) || rest.find(t => !t.startsWith('-'));
+        } else if (t0 === '.' || t0 === '&' || /^source$/i.test(t0)) {
+            cand = rest[0];                                           // source x.sh / . x.sh / & ./x.ps1
+        } else if (EXT_SCRIPT.test(t0base) && !t0.includes('=')) {
+            cand = t0;                                               // ./x.sh, scripts/x.py, x.sh
+        }
+        if (!cand) continue;
+        cand = cand.replace(/^["']|["']$/g, '');
+        if (!cand || cand.startsWith('-')) continue;
+        const abs = path.isAbsolute(cand) ? cand : path.join(root, cand.replace(/^\.[\\/]/, ''));
+        if (vistos.has(abs)) continue;
+        vistos.add(abs);
+        try {
+            const st = fs.statSync(abs);
+            if (!st.isFile() || st.size > 512 * 1024) continue;
+            const buf = fs.readFileSync(abs);
+            if (buf.includes(0)) continue;                           // binario: fuera
+            out.push({ rel: relDelProyecto(root, abs) || cand, contenido: buf.toString('utf8') });
+        } catch { /* no existe o no se puede leer: no se escanea (lado seguro: nunca un falso positivo) */ }
+    }
+    return out;
+}
+
 // Código sin comentarios (y, si se pide, sin strings) en JS/TS/PHP/CSS y parecidos, con los saltos de línea
 // intactos para que las líneas «senzu-allow» sigan cuadrando. Para buscar CÓDIGO (una llamada de depuración, un
 // «: any» que se usa), no texto que lo menciona.

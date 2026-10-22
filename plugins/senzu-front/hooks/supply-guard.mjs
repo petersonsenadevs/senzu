@@ -7,7 +7,7 @@
 // "Citar no es hacer" (D-036): se mira lo que se EJECUTA (sinTextoCitado), no el texto citado de un commit/heredoc.
 // Es de seguridad: no se puede apagar (HOOKS_NO_APAGABLES en lib.mjs).
 
-import { readHookInput, projectRoot, localeUI, msg, envSenzu, sinTextoCitado, git } from './lib.mjs';
+import { readHookInput, projectRoot, localeUI, msg, envSenzu, sinTextoCitado, git, scriptsEjecutados } from './lib.mjs';
 import { scanInstallCommand, scanDependencies, scanSkills, scanInstallSource, scanStagedSecrets } from './supply-scan.mjs';
 
 const p = readHookInput();
@@ -22,6 +22,13 @@ const lang = localeUI(root);
 const findings = [];
 // 1. comando de instalacion (cada trozo ejecutable por separado)
 for (const trozo of c.split(/&&|\|\||;|\n|\|/)) findings.push(...scanInstallCommand(trozo));
+// 1b. lo que hay DENTRO de un script que el comando ejecuta (bash x.sh con «npm install <malware>» dentro): asi no
+// se evade metiendo la instalacion en un archivo y lanzandolo. Un solo nivel, sin recursion (scriptsEjecutados).
+for (const { rel, contenido } of scriptsEjecutados(c, root)) {
+    for (const trozo of sinTextoCitado(contenido).split(/&&|\|\||;|\n|\|/)) {
+        for (const f of scanInstallCommand(trozo)) { f.why = `${f.why} [en el script ${rel}]`; findings.push(f); }
+    }
+}
 
 // 2. git commit: escanear lo que entra (staged)
 if (/\bgit\s+commit\b/i.test(c)) {
