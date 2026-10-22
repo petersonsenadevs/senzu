@@ -25,7 +25,7 @@ Antes de buscar fallos, lista lo que recibe input o expone datos:
 - **Salidas peligrosas**: render de HTML/markdown de usuario, SQL/plantillas/shell con input, URLs que pide el
   servidor (SSRF), tools de un agente de IA.
 - **Dependencias**: manifiestos y lockfiles, scripts postinstall, skills de terceros (eso lo cubre
-  `supply-guard` + la skill `dependencias`).
+  `supply-guard` + el comando `/dependencias`).
 
 ## 3. Herramientas por stack (automatizado, sin red ofensiva)
 Corre lo que aplique y pega la salida como evidencia:

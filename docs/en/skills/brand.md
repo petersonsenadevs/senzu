@@ -2,7 +2,7 @@
 name: brand
 description: "Brand identity: voice and tone, visual identity, messaging, palette, typography, logo, asset validation; syncs brand-guidelines.md to design tokens. Triggers: brand, tone, style guide, compliance. Not for UI/CSS."
 origen: core/skills-overlay/brand/SKILL.md
-huella: fadd50626f72
+huella: 59361ae04aa8
 ---
 
 # brand (Senzu index)
@@ -52,7 +52,7 @@ Full upstream documentation (English): `SKILL.upstream.md` (97 lines). **Do not 
 ## Hard rules
 - `senzu/design-system/<slug>/brand-guidelines.md` (next to MASTER.md and gustos.md) is the single source of truth; tokens are regenerated with `sync-senzu.mjs`, never by hand. A project with the guide in `docs/` (the skill's old location): it works, but move it.
 - Logo already chosen (`senzu/design-system/<slug>/logos/final/`): the guide cites it by its path; no new logos are proposed unless the user asks.
-- After editing the guide, run `sync-brand-to-tokens.cjs` and verify with `inject-brand-context.cjs --json`.
+- After editing the guide, run `sync-senzu.mjs` and verify with `inject-brand-context.cjs --json`.
 - Every new asset goes through `validate-asset.cjs` before being approved; off-palette colors are detected with `extract-colors.cjs`.
 - Any creative piece from another skill (banner, slides, social) must inject brand context before designing.
 

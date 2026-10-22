@@ -50,7 +50,7 @@ Documentación completa upstream (inglés): `SKILL.upstream.md` (97 líneas). **
 ## Reglas duras
 - `senzu/design-system/<slug>/brand-guidelines.md` (junto a MASTER.md y gustos.md) es la única fuente de verdad; los tokens se regeneran con `sync-senzu.mjs`, nunca a mano. Proyecto con la guía en `docs/` (ubicación antigua de la skill): funciona, pero muévela.
 - Logo ya elegido (`senzu/design-system/<slug>/logos/final/`): la guía lo cita por su ruta; no se proponen logos nuevos sin que el usuario lo pida.
-- Tras editar la guía, ejecutar `sync-brand-to-tokens.cjs` y verificar con `inject-brand-context.cjs --json`.
+- Tras editar la guía, ejecutar `sync-senzu.mjs` y verificar con `inject-brand-context.cjs --json`.
 - Todo asset nuevo pasa por `validate-asset.cjs` antes de aprobarse; colores fuera de paleta se detectan con `extract-colors.cjs`.
 - Cualquier pieza creativa de otra skill (banner, slides, social) debe inyectar contexto de marca antes de diseñar.
 

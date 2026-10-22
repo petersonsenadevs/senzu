@@ -19,7 +19,7 @@ el método para revisar, la política de pentesting y el blindaje de agentes de 
 | Login, sesiones, JWT, OAuth, 2FA, reset de contraseña | `code-quality §references/auth-patterns.md` |
 | Arquitectura de una app con LLM (RAG, streaming, costes, evals) | `code-quality §references/llm-apps.md` |
 | Secretos, entornos, fugas y rotación en el despliegue | `deploy-ops §references/envs-secrets.md` |
-| Cadena de suministro (paquetes/ skills con malware o typosquatting) | skill `dependencias` + muro supply-guard |
+| Cadena de suministro (paquetes/ skills con malware o typosquatting) | comando `/dependencias` + muro supply-guard |
 
 ## Principios duros (aplican siempre)
 1. **Autoriza en el servidor, en cada operación, sobre el recurso concreto.** El control de acceso es el fallo
@@ -41,6 +41,6 @@ el método para revisar, la política de pentesting y el blindaje de agentes de 
 
 ## Relación con otras skills y muros
 `code-quality` trae el detalle por vulnerabilidad (OWASP, auth, LLM) · `backend-audit` audita arquitectura y
-deuda · la skill `dependencias` + el muro `supply-guard` cubren la cadena de suministro · `deploy-ops` la
+deuda · el comando `/dependencias` + el muro `supply-guard` cubren la cadena de suministro · `deploy-ops` la
 seguridad del despliegue (secretos, accesos) · muros que ya protegen: `secrets-guard` (secretos en el código),
 `backend-guard` (mass-assignment, PII en logs), `pentest-guard` (alcance de pentesting).

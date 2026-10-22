@@ -4,6 +4,10 @@
 
 What each version brings, in plain words (newest first). The entry-by-entry log, in Spanish, is in [CHANGELOG.md](CHANGELOG.md).
 
+## v2.24.2
+
+- Documentation fixes: the brand skill always regenerates the tokens with sync-senzu.mjs, and the security review points to the /dependencies command for the supply chain
+
 ## v2.24.1
 
 - The whole documentation is also in English: besides the guides, every skill and every command has its translated page (the agent still reads the original)

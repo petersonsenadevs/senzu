@@ -2,7 +2,7 @@
 name: security
 description: "App security: review and hardening with evidence (OWASP), access control, auth, secrets and headers, security of AI/LLM agents (prompt injection, tools) and authorized-only pentesting. For auditing or hardening an API or an agent."
 origen: core/skills/security/SKILL.md
-huella: 450a2769df78
+huella: 79718745327b
 ---
 
 # security (Senzu)
@@ -21,7 +21,7 @@ the review method, the pentesting policy and the hardening of AI agents. The com
 | Login, sessions, JWT, OAuth, 2FA, password reset | `code-quality §references/auth-patterns.md` |
 | Architecture of an LLM app (RAG, streaming, costs, evals) | `code-quality §references/llm-apps.md` |
 | Secrets, environments, leaks and rotation in deployment | `deploy-ops §references/envs-secrets.md` |
-| Supply chain (packages/ skills with malware or typosquatting) | skill `dependencias` + supply-guard wall |
+| Supply chain (packages/ skills with malware or typosquatting) | `/dependencies` command + supply-guard wall |
 
 ## Hard principles (always apply)
 1. **Authorize on the server, on every operation, on the specific resource.** Access control is the number 1
@@ -43,6 +43,6 @@ the review method, the pentesting policy and the hardening of AI agents. The com
 
 ## Relationship with other skills and walls
 `code-quality` carries the per-vulnerability detail (OWASP, auth, LLM) · `backend-audit` audits architecture and
-debt · the `dependencias` skill + the `supply-guard` wall cover the supply chain · `deploy-ops` deployment
+debt · the `/dependencies` command + the `supply-guard` wall cover the supply chain · `deploy-ops` deployment
 security (secrets, access) · walls that already protect: `secrets-guard` (secrets in code),
 `backend-guard` (mass-assignment, PII in logs), `pentest-guard` (pentesting scope).
