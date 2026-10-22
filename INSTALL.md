@@ -208,3 +208,9 @@ Clona el repo donde quieras y define `SENZU_HOME` con esa ruta. Scripts de mante
 `tools/check-skills.ps1` y `tools/test-router.ps1` (el paquete está sano), `tools/vendor-effects.ps1 -Missing`
 (descarga la colección de efectos, que no va en git) y, en Windows, las versiones PowerShell del instalador
 (`tools/init-project.ps1`, `tools/sync.ps1`), que dan el mismo resultado que `init.mjs`.
+
+**Documentación en inglés**: las guías llevan su `.en.md` al lado; lo generado (comandos, muros, skills, referencia,
+novedades, créditos) sale en inglés de `tools/build-docs.ps1` con los datos de `core/i18n/`. Las skills y los comandos se
+traducen para la documentación en `docs/en/skills/` y `docs/en/comandos/` (no se instalan: el agente lee el original).
+Al cambiar uno, retradúcelo y séllalo: `node tools/traducciones.mjs --sellar <nombre>`; sin argumentos, el script dice
+cuáles faltan o se han quedado atrás, y `tools/test-i18n.mjs` falla si falta alguno.

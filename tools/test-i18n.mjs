@@ -106,6 +106,18 @@ if (fs.existsSync(pluginHooks)) {
     ok(!sinCat.length && !sinPara.length, `core/i18n/creditos.json traduce todas las categorías y efectos (faltan: ${[...sinCat, ...sinPara].join(', ')})`);
 }
 
+// 8. Skills y comandos en inglés para la documentación (docs/en/, tools/traducciones.mjs): cada uno tiene la suya.
+//    Desfasada (el original cambió después) no falla: se avisa aquí y la web lo dice en la página; se retraduce
+//    y se sella con `node tools/traducciones.mjs --sellar <nombre>`.
+{
+    const { estado } = await import(pathToFileURL(path.join(ROOT, 'tools', 'traducciones.mjs')).href);
+    const est = estado();
+    const faltan = est.filter(e => e.estado === 'falta').map(e => e.traduccion);
+    ok(!faltan.length, `cada skill y comando tiene su traducción en docs/en/ (faltan: ${faltan.join(', ')})`);
+    const desfasadas = est.filter(e => e.estado === 'desfasada').map(e => e.traduccion);
+    if (desfasadas.length) process.stdout.write(`AVISO ${desfasadas.length} traducción(es) desfasada(s) (el original cambió): ${desfasadas.join(', ')}\n`);
+}
+
 for (const d of temporales) { try { fs.rmSync(d, { recursive: true, force: true }); } catch {} }
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
 process.exit(fallos ? 1 : 0);

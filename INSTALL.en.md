@@ -208,3 +208,9 @@ Clone the repo wherever you want and set `SENZU_HOME` to that path. Maintenance 
 `tools/check-skills.ps1` and `tools/test-router.ps1` (the package is healthy), `tools/vendor-effects.ps1 -Missing`
 (downloads the effects collection, which is not in git) and, on Windows, the PowerShell versions of the installer
 (`tools/init-project.ps1`, `tools/sync.ps1`), which give the same result as `init.mjs`.
+
+**Documentation in English**: the guides have their `.en.md` next to them; the generated pages (commands, walls, skills,
+reference, changelog, credits) come out in English from `tools/build-docs.ps1` with the data in `core/i18n/`. Skills and
+commands are translated for the documentation in `docs/en/skills/` and `docs/en/comandos/` (they are not installed: the
+agent reads the original). When you change one, translate it again and seal it: `node tools/traducciones.mjs --sellar <name>`;
+with no arguments the script lists the missing or outdated ones, and `tools/test-i18n.mjs` fails if one is missing.
