@@ -7,7 +7,7 @@
 // "Citar no es hacer" (D-036): se mira lo que se EJECUTA (sinTextoCitado), no el texto citado de un commit/heredoc.
 // Es de seguridad: no se puede apagar (HOOKS_NO_APAGABLES en lib.mjs).
 
-import { readHookInput, projectRoot, localeUI, msg, envSenzu, sinTextoCitado, git, scriptsEjecutados } from './lib.mjs';
+import { readHookInput, projectRoot, localeUI, msg, escapeComando, sinTextoCitado, git, scriptsEjecutados } from './lib.mjs';
 import { scanInstallCommand, scanDependencies, scanSkills, scanInstallSource, scanStagedSecrets } from './supply-scan.mjs';
 
 const p = readHookInput();
@@ -59,7 +59,7 @@ if (secretos.length) {
 }
 const high = findings.filter(f => f.sev === 'high');
 const med = findings.filter(f => f.sev === 'med');
-const allow = envSenzu('ALLOW_SUPPLY') === '1';
+const allow = escapeComando(cmd, 'ALLOW_SUPPLY');   // por comando: SENZU_ALLOW_SUPPLY=1 npm install … (no de sesion)
 
 if (high.length && !allow) {
     process.stderr.write(msg('guard.prefix', lang) + ' ' + msg('supply.block', lang) + '\n');

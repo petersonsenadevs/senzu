@@ -967,6 +967,16 @@ export function sinTextoCitado(cmd) {
     return out;
 }
 
+// --- Escape POR COMANDO (no de sesion): la llave SENZU_ALLOW_<NAME>=1 (o DEV_STANDARDS_, compat) escrita como
+// asignacion en el PROPIO comando (`SENZU_ALLOW_PENTEST=1 nmap ...`) autoriza SOLO ese comando, no toda la
+// sesion. Cierra el hueco de exportar la variable de entorno y dejar la puerta abierta el resto de la sesion.
+// Se mira sin texto citado (D-036): un `echo "SENZU_ALLOW_X=1"` no cuenta. Acepta =1 o =true. name = 'ALLOW_PENTEST'.
+export function escapeComando(cmd, name) {
+    const txt = sinTextoCitado(String(cmd || ''));
+    const re = new RegExp('(?:^|[\\s;&|(])(?:SENZU|DEV_STANDARDS)_' + name + '=(?:1|true)(?![\\w=])', 'i');
+    return re.test(txt);
+}
+
 // --- Scripts que un comando EJECUTA: para que los muros Bash miren tambien lo que hay DENTRO del script, no
 // solo su nombre. Un `bash x.sh` o `python x.py` cuyo contenido lanza nmap o instala un paquete con malware
 // pasaba sin mirar. Recibe el comando ya SIN texto citado (sinTextoCitado) y la raiz; devuelve [{rel, contenido}]

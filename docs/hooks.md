@@ -42,6 +42,7 @@ trabajo lo hacen las tablas de activación de las reglas generadas y los githook
 | `session-end.mjs` | SessionEnd | Limpia los marcadores de sesión. |
 
 ### Escapes (siempre con aprobación explícita del usuario, documentada en el devlog)
+Las llaves `SENZU_ALLOW_*` van **como prefijo del comando** (`SENZU_ALLOW_PENTEST=1 nmap …`): autorizan solo ESE comando, no toda la sesión. Exportar la variable ya no abre la puerta.
 - `SENZU_ALLOW_DEPLOY=1` — deploy a producción tras la aprobación del checklist `/desplegar`.
 - `SENZU_ALLOW_LIB=1` — instalar una librería vetada (jQuery/Bootstrap) si el usuario lo pide.
 - Comentario `senzu-allow` en la línea — excepción puntual de code-hygiene (script CLI con console.log, test .skip justificado, patrón anti-IA pedido por su nombre).

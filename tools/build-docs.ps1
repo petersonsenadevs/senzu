@@ -152,6 +152,7 @@ function Get-HooksBody {
     }
     $L.Add('')
     $L.Add('### Escapes (siempre con aprobación explícita del usuario, documentada en el devlog)')
+    $L.Add('Las llaves `SENZU_ALLOW_*` van **como prefijo del comando** (`SENZU_ALLOW_PENTEST=1 nmap …`): autorizan solo ESE comando, no toda la sesión. Exportar la variable ya no abre la puerta.')
     $L.Add('- `SENZU_ALLOW_DEPLOY=1` — deploy a producción tras la aprobación del checklist `/desplegar`.')
     $L.Add('- `SENZU_ALLOW_LIB=1` — instalar una librería vetada (jQuery/Bootstrap) si el usuario lo pide.')
     $L.Add('- Comentario `senzu-allow` en la línea — excepción puntual de code-hygiene (script CLI con console.log, test .skip justificado, patrón anti-IA pedido por su nombre).')
@@ -304,6 +305,7 @@ function Get-HooksBodyEn {
     }
     $L.Add('')
     $L.Add('### Escapes (always with the user''s explicit approval, recorded in the devlog)')
+    $L.Add('The `SENZU_ALLOW_*` keys go **as a prefix of the command** (`SENZU_ALLOW_PENTEST=1 nmap …`): they authorize only THAT command, not the whole session. Exporting the variable no longer opens the door.')
     $deploy = Get-CmdEn 'desplegar'
     $L.Add("- ``SENZU_ALLOW_DEPLOY=1`` — deploy to production after the ``/$deploy`` checklist is approved.")
     $L.Add('- `SENZU_ALLOW_LIB=1` — install a banned library (jQuery/Bootstrap) if the user asks for it.')

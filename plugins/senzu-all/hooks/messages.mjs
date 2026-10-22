@@ -19,12 +19,12 @@ export const CAT = {
         en: [
             '[BLOCKED by Senzu] Production deploy of a web with no legal page at all (privacy, cookies or legal notice) in the repository.',
             'In Spain/EU it is mandatory (GDPR/LSSI): legal notice, privacy policy and cookie policy reachable from the footer, and a real consent banner (visible reject button, non-essential cookies blocked until accepted). Run /deploy (checklist, Legal section) for the detail.',
-            'If the legal side is handled outside the repo (CMS, external template) or it really does not apply, retry with SENZU_ALLOW_SIN_LEGAL=1 and leave a record in the devlog.',
+            'If the legal side is handled outside the repo (CMS, external template) or it really does not apply, retry with SENZU_ALLOW_SIN_LEGAL=1 as a prefix of that command (only that command, not the session) and leave a record in the devlog.',
         ],
         es: [
             '[BLOQUEADO por Senzu] Deploy a PRODUCCION de una web sin ninguna pagina legal (privacidad, cookies o aviso legal) en el repositorio.',
             'En Espana/UE es obligatorio (RGPD/LSSI): aviso legal, politica de privacidad y de cookies accesibles desde el footer, y un banner de consentimiento real (boton de rechazar visible, cookies no esenciales bloqueadas hasta aceptar). Pasa /lanzar (checklist, apartado Legales) para el detalle.',
-            'Si lo legal se gestiona fuera del repo (CMS, plantilla externa) o de verdad no aplica, reintenta con SENZU_ALLOW_SIN_LEGAL=1 y deja constancia en el devlog.',
+            'Si lo legal se gestiona fuera del repo (CMS, plantilla externa) o de verdad no aplica, reintenta con SENZU_ALLOW_SIN_LEGAL=1 como prefijo de ese comando (solo ese comando, no la sesion) y deja constancia en el devlog.',
         ],
     },
     'supply.block': {
@@ -32,8 +32,8 @@ export const CAT = {
         es: 'Riesgo en la cadena de suministro de lo que vas a instalar o commitear:',
     },
     'supply.retry': {
-        en: 'Check each item is the real, intended package/file (not a near-identical typosquat or a tampered skill). If it is legitimate, retry with SENZU_ALLOW_SUPPLY=1 and note it in the devlog.',
-        es: 'Comprueba que cada punto es el paquete/archivo real y buscado (no un typosquat casi identico ni una skill manipulada). Si es legitimo, reintenta con SENZU_ALLOW_SUPPLY=1 y dejalo en el devlog.',
+        en: 'Check each item is the real, intended package/file (not a near-identical typosquat or a tampered skill). If it is legitimate, retry with SENZU_ALLOW_SUPPLY=1 as a prefix of that command (only that command, not the session) and note it in the devlog.',
+        es: 'Comprueba que cada punto es el paquete/archivo real y buscado (no un typosquat casi identico ni una skill manipulada). Si es legitimo, reintenta con SENZU_ALLOW_SUPPLY=1 como prefijo de ese comando (solo ese comando, no la sesion) y dejalo en el devlog.',
     },
     'supply.warn': {
         en: '[Senzu] Supply-chain warning (not blocking), double-check before trusting it:',
@@ -42,21 +42,21 @@ export const CAT = {
     'deltest.block': {
         en: [
             '[BLOCKED by Senzu] This deletes a test file or folder. A failing test is fixed by fixing the code, not by deleting the test.',
-            'If the test is genuinely obsolete (the feature was removed) and the user agrees, retry with SENZU_ALLOW_DELTEST=1 and note it in the devlog. Renaming or rewriting a test does not need this.',
+            'If the test is genuinely obsolete (the feature was removed) and the user agrees, retry with SENZU_ALLOW_DELTEST=1 as a prefix of that command (only that command, not the session) and note it in the devlog. Renaming or rewriting a test does not need this.',
         ],
         es: [
             '[BLOQUEADO por Senzu] Esto borra un archivo o carpeta de test. Un test que falla se arregla arreglando el codigo, no borrando el test.',
-            'Si el test esta de verdad obsoleto (se quito la feature) y el usuario esta de acuerdo, reintenta con SENZU_ALLOW_DELTEST=1 y dejalo en el devlog. Renombrar o reescribir un test no necesita esto.',
+            'Si el test esta de verdad obsoleto (se quito la feature) y el usuario esta de acuerdo, reintenta con SENZU_ALLOW_DELTEST=1 como prefijo de ese comando (solo ese comando, no la sesion) y dejalo en el devlog. Renombrar o reescribir un test no necesita esto.',
         ],
     },
     'pentest.block': {
         en: [
             '[BLOCKED by Senzu] Offensive-security tool detected ({tool}). Senzu helps with defensive security and AUTHORIZED penetration testing; running active scanning or exploitation against a system without written authorization is illegal and can take the target down.',
-            'If this is an authorized engagement (you have written permission and a defined scope / rules of engagement), note the authorization and scope in the devlog and retry with SENZU_ALLOW_PENTEST=1. Against your own local/lab machine, the same: record it and set the key.',
+            'If this is an authorized engagement (you have written permission and a defined scope / rules of engagement), note the authorization and scope in the devlog and retry with SENZU_ALLOW_PENTEST=1 as a prefix of that command (it authorizes only that command, not the whole session). Against your own local/lab machine, the same: record it and set the key on the command.',
         ],
         es: [
             '[BLOQUEADO por Senzu] Herramienta de seguridad ofensiva detectada ({tool}). Senzu ayuda con seguridad defensiva y con pentesting AUTORIZADO; lanzar escaneo activo o explotacion contra un sistema sin autorizacion por escrito es ilegal y puede tumbar el objetivo.',
-            'Si es un encargo autorizado (tienes permiso por escrito y un alcance definido / rules of engagement), anota la autorizacion y el alcance en el devlog y reintenta con SENZU_ALLOW_PENTEST=1. Contra tu propia maquina local o de laboratorio, igual: dejalo por escrito y pon la llave.',
+            'Si es un encargo autorizado (tienes permiso por escrito y un alcance definido / rules of engagement), anota la autorizacion y el alcance en el devlog y reintenta con SENZU_ALLOW_PENTEST=1 como prefijo de ese comando (autoriza solo ese comando, no toda la sesion). Contra tu propia maquina local o de laboratorio, igual: dejalo por escrito y pon la llave en el comando.',
         ],
     },
     'pentest.enScript': {

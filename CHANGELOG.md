@@ -6,6 +6,8 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-22
 
+- **feature** — Los escapes SENZU_ALLOW_* valen por comando, no por sesión (2.24.0) (entrada 170)
+- **docs** — El resto de la documentación en inglés (skills, referencia, novedades, créditos, README) (entrada 169)
 - **feature** — Los muros Bash miran dentro del script que se ejecuta (2.24.0) (entrada 168)
 
 ## 2026-10-20

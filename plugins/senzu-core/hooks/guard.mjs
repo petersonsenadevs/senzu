@@ -13,7 +13,7 @@ import os from 'node:os';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida, convencionesSelladas, relDelProyecto, rutaNativa, sinTextoCitado, localeUI, msg } from './lib.mjs';
+import { readHookInput, projectRoot, permisosProyecto, escapeComando, textoLogos, ramaProtegida, convencionesSelladas, relDelProyecto, rutaNativa, sinTextoCitado, localeUI, msg } from './lib.mjs';
 
 const p = readHookInput();
 if (!p) process.exit(0);
@@ -160,20 +160,20 @@ function borraTest(cmd) {
     // latest.php ni greatest.php.
     return /\.(test|spec)\.\w+|_test\.\w+|(^|[\s"'\\/])(tests?|__tests__|spec)[\\/]|[A-Za-z0-9]Test\.php\b/.test(cmd);
 }
-if (envSenzu('ALLOW_DELTEST') !== '1' && borraTest(c)) {
+if (!escapeComando(c, 'ALLOW_DELTEST') && borraTest(c)) {
     deny(msg('deltest.block', lang));
 }
 
 // --- Deploy a produccion: NUNCA sin aprobacion explicita del usuario ---
 const deployProdPat = /(netlify\s+deploy(?=.*--prod))|(\bvercel\b(?=.*--prod))|(\bfly\s+deploy\b)|(\bwrangler\s+(deploy|publish)\b(?!.*--env[= ](dev|preview)))/i;
-if (envSenzu('ALLOW_DEPLOY') !== '1') {
+if (!escapeComando(c, 'ALLOW_DEPLOY')) {
     if (deployProdPat.test(c)) {
         deny(msg('deploy.block', localeUI(root)));
     }
 }
 
 // --- Web publica sin NINGUNA pagina legal (privacidad/cookies): no se publica a produccion ---
-// Solo se llega aqui con el deploy a prod ya aprobado (ALLOW_DEPLOY=1); si no, el bloque de arriba ya corto.
+// Solo se llega aqui con el deploy a prod ya aprobado (ALLOW_DEPLOY=1 en el comando); si no, el bloque de arriba ya corto.
 // Busca por nombre de archivo en el arbol del proyecto; con una sola pagina legal basta (el detalle lo cubre /lanzar).
 function tieneLegales(dir) {
     const legalRe = /(privacidad|privacy|cookies?|aviso.?legal|datenschutz|rgpd|gdpr|lopd|t[eé]rminos|terms|pol[ií]tica.?(de.?)?(privacidad|cookies|datos))/i;
@@ -196,13 +196,13 @@ function tieneLegales(dir) {
     }
     return false;
 }
-if (deployProdPat.test(c) && envSenzu('ALLOW_SIN_LEGAL') !== '1' && !tieneLegales(root)) {
+if (deployProdPat.test(c) && !escapeComando(c, 'ALLOW_SIN_LEGAL') && !tieneLegales(root)) {
     deny(msg('legal.block', localeUI(root)));
 }
 
 // --- Logo ya elegido: los generadores de logos e iconos no se lanzan sin que el usuario lo pida ---
 // (graphic-design scripts/logo|icon/generate.py, o image-gen con un prompt de logo). Escape tras pedirlo: SENZU_ALLOW_LOGO=1.
-if (envSenzu('ALLOW_LOGO') !== '1' && (/scripts[\\/](logo|icon)[\\/]generate\.py/i.test(c) || (/image-gen[\\/]scripts[\\/]generate\.mjs/i.test(c) && /\b(logo|logotipo|isotipo|s[ií]mbolo|favicon)\b/i.test(c)))) {
+if (!escapeComando(c, 'ALLOW_LOGO') && (/scripts[\\/](logo|icon)[\\/]generate\.py/i.test(c) || (/image-gen[\\/]scripts[\\/]generate\.mjs/i.test(c) && /\b(logo|logotipo|isotipo|s[ií]mbolo|favicon)\b/i.test(c)))) {
     const elegido = textoLogos(root);
     if (elegido) deny([
         msg('guard.prefix', lang) + ' ' + elegido,
@@ -211,7 +211,7 @@ if (envSenzu('ALLOW_LOGO') !== '1' && (/scripts[\\/](logo|icon)[\\/]generate\.py
 }
 
 // --- Librerias vetadas (regla dura: sin jQuery/Bootstrap ni segunda libreria de componentes sin aprobacion) ---
-if (envSenzu('ALLOW_LIB') !== '1' && /\b(npm|pnpm|yarn|bun)\s+(install|add|i)\b/i.test(c)) {
+if (!escapeComando(c, 'ALLOW_LIB') && /\b(npm|pnpm|yarn|bun)\s+(install|add|i)\b/i.test(c)) {
     if (/\b(jquery|bootstrap)\b/i.test(c)) {
         deny(msg('lib.vetada', lang));
     }
