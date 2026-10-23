@@ -12,6 +12,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import { crearBaseline } from './eval-hechos/baselines.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const args = process.argv.slice(2);
@@ -27,6 +28,8 @@ const soloCorpus = (() => { const i = args.indexOf('--corpus'); return i >= 0 ? 
 // una categoría, o todas menos una (X-T13: los saltos se miden por recall@3; su respuesta es una pareja de hechos)
 const soloCat = (() => { const i = args.indexOf('--cat'); return i >= 0 ? args[i + 1] : null; })();
 const sinCat = (() => { const i = args.indexOf('--sin-cat'); return i >= 0 ? args[i + 1] : null; })();
+// Motor a medir: el de Senzu (por defecto o --baseline motor) o un baseline léxico (grep|bm25) para el cara a cara (F8-T1)
+const baseline = (() => { const i = args.indexOf('--baseline'); const v = i >= 0 ? args[i + 1] : null; return v && v !== 'motor' ? v : null; })();
 
 // Relleno determinista (muchos hechos parecidos entre sí: ruido de verdad). La primera mitad, suministro; la segunda,
 // mantenimiento, para que no haya dos con la misma combinación y «¿quién mantiene…?» tenga competidores.
@@ -54,6 +57,8 @@ for (const corpus of corpora) {
     const ids = new Map();
     const hechos = [...corpus.hechos, ...relleno(corpus.relleno)];
     totalHechos += hechos.length;
+    // baseline (grep|bm25): índice léxico sobre los MISMOS hechos, con la MISMA tokenización del motor (justo)
+    const idx = baseline ? crearBaseline(baseline, hechos, { palabras: m.palabras, palabraConPeso: m.palabraConPeso }) : null;
     for (const h of hechos.sort((a, b) => a.t - b.t)) {
         const r = m.guardarHecho(P, { dimension: h.dimension, valor: h.valor, texto: h.texto, claves: h.claves, alcance: h.alcance, idioma: h.idioma, duda: h.duda, desde: h.desde, hasta: h.hasta, enlaces: h.enlaces },
             { ahora: new Date(T0 + h.t * 1000).toISOString() });
@@ -65,10 +70,18 @@ for (const corpus of corpora) {
         if (solo === 'reservada' && !q.reservada) continue;
         // --auto-temporal (X-T12): sin la marca del corpus; el pasado se detecta en la pregunta, como en el recuerdo vivo
         const hist = opt('--sin-historico') ? false : opt('--auto-temporal') ? (m.pistaTemporal(q.q) ? 'auto' : false) : !!q.historico;
-        const hits = m.buscarHechos(P, q.q, { historico: hist, limite: 3 }).filter(x => x.puntuacion >= UMBRAL);
-        const got = hits.map(x => ids.get(x.hecho.id));
+        let got, topTxt;
+        if (idx) {   // baseline léxico: su propia recuperación y su propio «me abstengo» (lista vacía)
+            const hits = idx.buscar(q.q, { limite: 3 });
+            got = hits.map(x => x.id);
+            topTxt = hits[0] ? `${hits[0].id} (${hits[0].score}; ${hits[0].motivo})` : '—';
+        } else {     // motor de Senzu: resultados por encima del umbral del recuerdo vivo
+            const hits = m.buscarHechos(P, q.q, { historico: hist, limite: 3 }).filter(x => x.puntuacion >= UMBRAL);
+            got = hits.map(x => ids.get(x.hecho.id));
+            topTxt = hits[0] ? `${ids.get(hits[0].hecho.id)} (${hits[0].puntuacion}; ${hits[0].motivo})` : '—';
+        }
         const conRespuesta = q.espera !== null;
-        filas.push({ ...q, corpus: corpus.nombre, got, top: hits[0] ? `${ids.get(hits[0].hecho.id)} (${hits[0].puntuacion}; ${hits[0].motivo})` : '—',
+        filas.push({ ...q, corpus: corpus.nombre, got, top: topTxt,
             r1: conRespuesta ? got[0] === q.espera : null, r3: conRespuesta ? got.includes(q.espera) : null, calla: conRespuesta ? null : got.length === 0 });
     }
 }
@@ -89,7 +102,7 @@ if (opt('--json')) { process.stdout.write(JSON.stringify(res, null, 2) + '\n'); 
 else {
     const f = x => (x === null ? '  —  ' : `${String(x).padStart(5)}%`);
     const linea = (n, x) => `  ${n.padEnd(14)} ${String(x.preguntas).padStart(3)} preg.  recall@1 ${f(x.recall1)}  recall@3 ${f(x.recall3)}  abstención ${f(x.abstencion)}`;
-    process.stdout.write(`Evaluación de la memoria de hechos (umbral ${UMBRAL}; ${totalHechos} hechos en ${Object.keys(res.porCorpus).length} proyectos)\n`);
+    process.stdout.write(`Evaluación de la memoria de hechos · ${baseline ? 'BASELINE ' + baseline : `motor (umbral ${UMBRAL})`}; ${totalHechos} hechos en ${Object.keys(res.porCorpus).length} proyectos\n`);
     process.stdout.write(linea('TOTAL', total) + '\n' + linea('desarrollo', res.desarrollo) + '\n' + linea('reservada', res.reservada) + '\n\nPor corpus:\n');
     for (const [k, v] of Object.entries(res.porCorpus)) process.stdout.write(linea(k, v) + '\n');
     process.stdout.write('\nPor categoría:\n');

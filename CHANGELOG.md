@@ -4,6 +4,63 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-22
+
+- **fix** — fix: brand con sync-senzu.mjs y /dependencias como comando (2.24.2) (entrada 172)
+- **docs** — Skills y comandos en inglés para la documentación (2.24.1) (entrada 171)
+- **feature** — Los escapes SENZU_ALLOW_* valen por comando, no por sesión (2.24.0) (entrada 170)
+- **docs** — El resto de la documentación en inglés (skills, referencia, novedades, créditos, README) (entrada 169)
+- **feature** — Los muros Bash miran dentro del script que se ejecuta (2.24.0) (entrada 168)
+
+## 2026-10-20
+
+- **feature** — El aviso N+1 ya capta los bucles de Python (2.24.0) (entrada 167)
+- **feature** — Muro de inyección/XSS en edición y escaneo de secretos en el commit (2.24.0) (entrada 166)
+- **feature** — Skill y comando /seguridad, muro de pentesting, aviso N+1 y skill TanStack (2.24.0) (entrada 165)
+
+## 2026-10-19
+
+- **feature** — /dependencias, muro no-borrar-tests y hygiene test/spec (2.24.0) (entrada 164)
+- **feature** — Muro de cadena de suministro: anti-malware y skills maliciosas (2.24.0) (entrada 163)
+
+## 2026-10-16
+
+- **fix** — El CHANGELOG público ya no filtra rutas locales (D:/…) (entrada 162)
+- **feature** — /instalar pregunta el idioma y pasa --lang (2.23.0) (entrada 161)
+- **feature** — X-T17 verificado: la web bilingüe se llena de inglés con v2.22.0 (entrada 160)
+- **feature** — Muro legal en main (bilingüe) + RGPD a fondo e IA (AI Act) (entrada 159)
+- **docs** — Guías en inglés (.en.md) y --lang documentado (entrada 158)
+- **docs** — Guías en inglés (.en.md) y --lang documentado (entrada 158)
+
+## 2026-10-13
+
+- **fix** — fix: memoria-check.mjs no entraba al repo (.gitignore devlog muy amplio) (entrada 157)
+- **feature** — i18n F1-T3: el router enruta prompts en inglés (keywords union) (entrada 156)
+- **feature** — i18n F1-T2: descripciones de comando por idioma (menú /) (entrada 155)
+- **feature** — i18n F1-T1h: últimos muros (arquitectura, front, cierre, tarjeta) (entrada 154)
+- **feature** — i18n F1-T1g: feature-guard y code-hygiene al catálogo (entrada 153)
+- **feature** — i18n F1-T1f: backend-guard al catálogo (entrada 152)
+- **feature** — i18n F1-T1e: muros de protección (protect/conventions/secrets) (entrada 151)
+- **feature** — i18n F1-T1d: arranque-guard y siguientePaso al catálogo (entrada 150)
+- **feature** — i18n F1-T1c: stop-guard (avisos de cierre) al catálogo (entrada 149)
+- **feature** — i18n F1-T1b: el resto de los deny() de guard al catálogo (entrada 148)
+- **feature** — i18n F1-T1a: el array rules de guard al catálogo de idioma (entrada 147)
+- **feature** — i18n F0-T5: instalar --lang y walking skeleton end-to-end (entrada 146)
+- **test** — i18n F0-T4: test de paridad de locales (catálogo, comandos, router) (entrada 145)
+- **feature** — i18n F0-T3: build-plugins -Lang renombra los comandos por idioma (entrada 144)
+- **feature** — i18n F0-T2: catálogo de mensajes de muro por idioma (piloto deploy + verify-build) (entrada 143)
+- **feature** — i18n F0-T1: idioma de la UI (inglés por defecto) y mapa de nombres de comando (entrada 142)
+
+## 2026-10-12
+
+- **feature** — Muro legal: no se publica una web a producción sin páginas legales (cookies/privacidad) (entrada 141)
+
+## 2026-10-10
+
+- **feature** — Idioma por ejes al adoptar: identificadores en inglés, dominio en el del negocio (entrada 140)
+- **feature** — Conexiones y pool: la skill lo explica y un hook (pool-guard) lo hace cumplir (entrada 139)
+- **fix** — El plan a medias ya no parece terminado, y el cierre liga plan y memoria (entrada 138)
+
 ## 2026-10-08
 
 - **feature** — Que se entienda solo: avisos al guardar hechos que dentro de un mes no dirán nada (X-T15) (entrada 137)
