@@ -139,6 +139,32 @@ if (opt('--tabla')) {
     process.exit(0);
 }
 
+// --- modo --comparar: cara a cara por categoría e idioma; marca dónde un baseline GANA al motor (F8-T3) ---
+if (opt('--comparar')) {
+    const MOT = ['motor', 'bm25', 'grep', 'embedding'];
+    const porMotor = {};
+    for (const n of MOT) porMotor[n] = (await evaluarMotor(n)).filas;
+    fs.rmSync(base, { recursive: true, force: true });
+    const r3 = (filasM, clave, val) => { const l = filasM.filter(f => f[clave] === val && f.espera !== null); return pct(l.filter(f => f.r3).length, l.length); };
+    const valores = clave => [...new Set(porMotor.motor.map(f => f[clave]).filter(v => v != null))].sort();
+    const ganan = [];
+    const bloque = (titulo, clave) => {
+        process.stdout.write(`\n${titulo} (recall@3; ✗ = un baseline supera al motor):\n  ${'eje'.padEnd(14)}${MOT.map(n => n.padStart(10)).join('')}\n`);
+        for (const v of valores(clave)) {
+            const vals = Object.fromEntries(MOT.map(n => [n, r3(porMotor[n], clave, v)]));
+            const pierde = MOT.slice(1).some(n => (vals[n] ?? -1) > (vals.motor ?? -1));
+            if (pierde) ganan.push({ eje: clave, valor: v, ...vals });
+            const celda = n => `${String(vals[n] ?? '—').padStart(9)}${n !== 'motor' && (vals[n] ?? -1) > (vals.motor ?? -1) ? '✗' : ' '}`;
+            process.stdout.write(`  ${String(v).padEnd(14)}${MOT.map(celda).join('')}${pierde ? '  ←' : ''}\n`);
+        }
+    };
+    process.stdout.write('Cara a cara por eje · recall@3 del motor contra los baselines (corpus propio)\n');
+    bloque('Por categoría', 'cat');
+    bloque('Por idioma', 'lang');
+    process.stdout.write(`\nDonde un baseline supera al motor en recall@3: ${ganan.length ? ganan.map(g => g.valor).join(', ') : 'ninguno'}\n`);
+    process.exit(0);
+}
+
 // --- camino normal: un solo motor (por defecto el motor, o el --baseline indicado) ---
 const r0 = await evaluarMotor(baseline || 'motor');
 const filas = r0.filas, totalHechos = r0.totalHechos;
