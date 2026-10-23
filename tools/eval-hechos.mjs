@@ -57,8 +57,10 @@ for (const corpus of corpora) {
     const ids = new Map();
     const hechos = [...corpus.hechos, ...relleno(corpus.relleno)];
     totalHechos += hechos.length;
-    // baseline (grep|bm25): índice léxico sobre los MISMOS hechos, con la MISMA tokenización del motor (justo)
-    const idx = baseline ? crearBaseline(baseline, hechos, { palabras: m.palabras, palabraConPeso: m.palabraConPeso }) : null;
+    // baseline sobre los MISMOS hechos: grep|bm25 (léxico, misma tokenización del motor) o embedding (semántico, modelo local)
+    const idx = baseline === 'embedding'
+        ? await (await import('./eval-hechos/embedding.mjs')).crearBaselineEmbedding(hechos)
+        : baseline ? crearBaseline(baseline, hechos, { palabras: m.palabras, palabraConPeso: m.palabraConPeso }) : null;
     for (const h of hechos.sort((a, b) => a.t - b.t)) {
         const r = m.guardarHecho(P, { dimension: h.dimension, valor: h.valor, texto: h.texto, claves: h.claves, alcance: h.alcance, idioma: h.idioma, duda: h.duda, desde: h.desde, hasta: h.hasta, enlaces: h.enlaces },
             { ahora: new Date(T0 + h.t * 1000).toISOString() });
@@ -71,8 +73,8 @@ for (const corpus of corpora) {
         // --auto-temporal (X-T12): sin la marca del corpus; el pasado se detecta en la pregunta, como en el recuerdo vivo
         const hist = opt('--sin-historico') ? false : opt('--auto-temporal') ? (m.pistaTemporal(q.q) ? 'auto' : false) : !!q.historico;
         let got, topTxt;
-        if (idx) {   // baseline léxico: su propia recuperación y su propio «me abstengo» (lista vacía)
-            const hits = idx.buscar(q.q, { limite: 3 });
+        if (idx) {   // baseline: su propia recuperación y su propio «me abstengo» (lista vacía). await: embedding es async
+            const hits = await idx.buscar(q.q, { limite: 3 });
             got = hits.map(x => x.id);
             topTxt = hits[0] ? `${hits[0].id} (${hits[0].score}; ${hits[0].motivo})` : '—';
         } else {     // motor de Senzu: resultados por encima del umbral del recuerdo vivo
