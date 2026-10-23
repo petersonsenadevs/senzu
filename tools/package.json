@@ -4,6 +4,7 @@
   "type": "module",
   "description": "Dependencias AISLADAS solo del arne del benchmark de memoria (F8). El plugin Senzu NO depende de esto: node_modules/ y el modelo descargado estan gitignored y se bajan una vez (luego, offline).",
   "dependencies": {
-    "@huggingface/transformers": "3.0.2"
+    "@huggingface/transformers": "3.0.2",
+    "hyparquet": "^1.31.5"
   }
 }

@@ -33,3 +33,7 @@ tools/.models/
 # Memoria de hechos del motor hemisférico para ESTE repo: notas internas de trabajo (como plan/ y el devlog).
 # Vive en el disco para que el recuerdo funcione, pero no se publica en el paquete.
 /memoria/
+
+# Datos externos del benchmark (F8): corte descargado de Answerable TyDi QA con tools/eval-externo/bajar-tydiqa.mjs.
+# Se baja una vez y se puede rebajar; lo que SÍ se versiona son los resultados (tools/eval-externo/resultados.json).
+tools/.datos/
