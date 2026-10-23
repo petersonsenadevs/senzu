@@ -139,6 +139,21 @@ if (opt('--tabla')) {
     process.exit(0);
 }
 
+// --- modo --bench: LA tabla publicable (F8-T5): los 4 motores en el corpus propio, recall@1/@3 y abstención ---
+if (opt('--bench')) {
+    const MOT = ['motor', 'embedding', 'bm25', 'grep'];
+    const fil = [];
+    for (const nombre of MOT) fil.push({ nombre, ...medir((await evaluarMotor(nombre)).filas) });
+    fs.rmSync(base, { recursive: true, force: true });
+    if (opt('--json')) { process.stdout.write(JSON.stringify(fil, null, 2) + '\n'); process.exit(0); }
+    const pad = (s, n) => String(s).padStart(n);
+    process.stdout.write(`Benchmark de la memoria de hechos · corpus propio (${corpora.reduce((s, c) => s + c.hechos.length + (c.relleno?.n || 0), 0)} hechos, ${fil[0].preguntas} preguntas, ${corpora.length} proyectos)\n\n`);
+    process.stdout.write('  motor       recall@1  recall@3  abstención\n');
+    for (const x of fil) process.stdout.write(`  ${x.nombre.padEnd(10)} ${pad(x.recall1, 7)}%  ${pad(x.recall3, 7)}%  ${pad(x.abstencion, 8)}%\n`);
+    process.stdout.write('\n  Reproducir: node tools/eval-hechos.mjs --bench · externos: tools/eval-externo.mjs (TyDi), tools/eval-nanomiracl.mjs (MIRACL)\n');
+    process.exit(0);
+}
+
 // --- modo --comparar: cara a cara por categoría e idioma; marca dónde un baseline GANA al motor (F8-T3) ---
 if (opt('--comparar')) {
     const MOT = ['motor', 'bm25', 'grep', 'embedding'];
