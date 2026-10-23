@@ -14,40 +14,40 @@
   "motores": {
     "motor": {
       "total": {
-        "preguntas": 300,
-        "recall1": 51.7,
-        "recall3": 76
+        "preguntas": 1200,
+        "recall1": 42.1,
+        "recall3": 63.7
       },
       "porIdioma": {
         "ar": {
-          "preguntas": 50,
-          "recall1": 52,
-          "recall3": 62
+          "preguntas": 200,
+          "recall1": 41.5,
+          "recall3": 55
         },
         "en": {
-          "preguntas": 50,
+          "preguntas": 200,
           "recall1": 40,
-          "recall3": 80
+          "recall3": 65.5
         },
         "es": {
-          "preguntas": 50,
-          "recall1": 82,
-          "recall3": 96
+          "preguntas": 200,
+          "recall1": 52,
+          "recall3": 75.5
         },
         "fr": {
-          "preguntas": 50,
-          "recall1": 24,
-          "recall3": 66
+          "preguntas": 200,
+          "recall1": 23,
+          "recall3": 48.5
         },
         "ja": {
-          "preguntas": 50,
-          "recall1": 48,
-          "recall3": 64
+          "preguntas": 200,
+          "recall1": 51,
+          "recall3": 67.5
         },
         "ru": {
-          "preguntas": 50,
-          "recall1": 64,
-          "recall3": 88
+          "preguntas": 200,
+          "recall1": 45,
+          "recall3": 70
         }
       }
     },
@@ -169,5 +169,5 @@
       }
     }
   },
-  "generado": "2026-10-23T16:38:56.940Z"
+  "generado": "2026-10-23T16:42:41.440Z"
 }
