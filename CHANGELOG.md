@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-23
 
+- **feature** — F8-T8: 2.º benchmark externo (NanoMIRACL); embedding gana, motor a la par de bm25, misma historia que TyDi (exp) (entrada 179)
 - **feature** — F8-T4: batería adversaria (envenenado, homónimos, cruzado, erratas, abstención, empates, 10.000 hechos); test-eval-baselines (exp) (entrada 178)
 - **feature** — F8-T3: dónde pierde el motor (parafraseo/distractor ante embedding; TyDi); modo --comparar, sin sobreajuste (exp) (entrada 177)
 - **feature** — F8-T2: ejes más allá del recall (latencia, red, determinismo, coste, tamaño); modo --tabla (exp) (entrada 176)
