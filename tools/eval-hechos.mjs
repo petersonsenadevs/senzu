@@ -6,6 +6,8 @@
 //   recall@1 / recall@3: con respuesta, el hecho esperado sale el primero / entre los 3 primeros
 //   abstención: sin respuesta (o no vigente), no sale nada por encima del umbral
 //   node tools/eval-hechos.mjs [--fallos] [--json] [--estricto] [--solo desarrollo|reservada] [--corpus base|fitlab] [--cat saltos] [--sin-cat saltos]
+//   node tools/eval-hechos.mjs --baseline grep|bm25|embedding|motor   (cara a cara con los baselines, F8-T1)
+//   node tools/eval-hechos.mjs --tabla   (ejes F8-T2: los 4 motores con latencia p50/p95, red, coste, determinismo y tamaño)
 // --estricto sale con 1 si no llega a los objetivos (recall@3 ≥ 90 % y abstención ≥ 90 %).
 
 import fs from 'node:fs';
@@ -45,49 +47,6 @@ function relleno(r) {
 
 const UMBRAL = m.UMBRAL_RECUERDO;
 const T0 = Date.UTC(2026, 9, 1, 9, 0, 0);
-const filas = [];
-let totalHechos = 0;
-for (const corpus of corpora) {
-    if (soloCorpus && corpus.nombre !== soloCorpus) continue;
-    // el proyecto, con los hechos guardados en su orden (t), como en la vida real
-    const P = path.join(base, 'proyecto-' + corpus.nombre);
-    fs.mkdirSync(path.join(P, 'senzu'), { recursive: true });
-    fs.writeFileSync(path.join(P, 'senzu', 'senzu.json'), '{}');
-    process.env.SENZU_MEMORIA_USUARIO = path.join(base, 'usuario-' + corpus.nombre, 'memoria.md');
-    const ids = new Map();
-    const hechos = [...corpus.hechos, ...relleno(corpus.relleno)];
-    totalHechos += hechos.length;
-    // baseline sobre los MISMOS hechos: grep|bm25 (léxico, misma tokenización del motor) o embedding (semántico, modelo local)
-    const idx = baseline === 'embedding'
-        ? await (await import('./eval-hechos/embedding.mjs')).crearBaselineEmbedding(hechos)
-        : baseline ? crearBaseline(baseline, hechos, { palabras: m.palabras, palabraConPeso: m.palabraConPeso }) : null;
-    for (const h of hechos.sort((a, b) => a.t - b.t)) {
-        const r = m.guardarHecho(P, { dimension: h.dimension, valor: h.valor, texto: h.texto, claves: h.claves, alcance: h.alcance, idioma: h.idioma, duda: h.duda, desde: h.desde, hasta: h.hasta, enlaces: h.enlaces },
-            { ahora: new Date(T0 + h.t * 1000).toISOString() });
-        ids.set(r.hecho.id, h.id);
-    }
-    for (const q of corpus.preguntas) {
-        if ((soloCat && q.cat !== soloCat) || (sinCat && q.cat === sinCat)) continue;
-        if (solo === 'desarrollo' && q.reservada) continue;
-        if (solo === 'reservada' && !q.reservada) continue;
-        // --auto-temporal (X-T12): sin la marca del corpus; el pasado se detecta en la pregunta, como en el recuerdo vivo
-        const hist = opt('--sin-historico') ? false : opt('--auto-temporal') ? (m.pistaTemporal(q.q) ? 'auto' : false) : !!q.historico;
-        let got, topTxt;
-        if (idx) {   // baseline: su propia recuperación y su propio «me abstengo» (lista vacía). await: embedding es async
-            const hits = await idx.buscar(q.q, { limite: 3 });
-            got = hits.map(x => x.id);
-            topTxt = hits[0] ? `${hits[0].id} (${hits[0].score}; ${hits[0].motivo})` : '—';
-        } else {     // motor de Senzu: resultados por encima del umbral del recuerdo vivo
-            const hits = m.buscarHechos(P, q.q, { historico: hist, limite: 3 }).filter(x => x.puntuacion >= UMBRAL);
-            got = hits.map(x => ids.get(x.hecho.id));
-            topTxt = hits[0] ? `${ids.get(hits[0].hecho.id)} (${hits[0].puntuacion}; ${hits[0].motivo})` : '—';
-        }
-        const conRespuesta = q.espera !== null;
-        filas.push({ ...q, corpus: corpus.nombre, got, top: topTxt,
-            r1: conRespuesta ? got[0] === q.espera : null, r3: conRespuesta ? got.includes(q.espera) : null, calla: conRespuesta ? null : got.length === 0 });
-    }
-}
-fs.rmSync(base, { recursive: true, force: true });
 
 const pct = (a, b) => (b ? Math.round((1000 * a) / b) / 10 : null);
 function medir(l) {
@@ -95,6 +54,96 @@ function medir(l) {
     return { preguntas: l.length, conRespuesta: con.length, sinRespuesta: sin.length,
         recall1: pct(con.filter(f => f.r1).length, con.length), recall3: pct(con.filter(f => f.r3).length, con.length), abstencion: pct(sin.filter(f => f.calla).length, sin.length) };
 }
+function tamDir(d) { try { return fs.readdirSync(d).reduce((s, f) => { const p = path.join(d, f), st = fs.statSync(p); return s + (st.isDirectory() ? tamDir(p) : st.size); }, 0); } catch { return 0; } }
+
+// Evalúa UN motor (motor|grep|bm25|embedding) sobre todos los corpus: filas (acierto/abstención por pregunta),
+// latencias por consulta (ms) y bytes en disco del índice (el motor persiste su memoria; los baselines viven en RAM).
+async function evaluarMotor(nombre) {
+    const esBaseline = nombre !== 'motor';
+    const filas = [], latencias = [];
+    let totalHechos = 0, discoBytes = 0;
+    for (const corpus of corpora) {
+        if (soloCorpus && corpus.nombre !== soloCorpus) continue;
+        // el proyecto, con los hechos guardados en su orden (t), como en la vida real. Directorio LIMPIO cada vez:
+        // --tabla llama a evaluarMotor 3 veces y el motor persiste en disco; sin limpiar, acumularía entre tiradas.
+        const P = path.join(base, nombre + '-' + corpus.nombre);
+        const userDir = path.join(base, nombre + '-u-' + corpus.nombre);
+        fs.rmSync(P, { recursive: true, force: true });
+        fs.rmSync(userDir, { recursive: true, force: true });
+        fs.mkdirSync(path.join(P, 'senzu'), { recursive: true });
+        fs.writeFileSync(path.join(P, 'senzu', 'senzu.json'), '{}');
+        process.env.SENZU_MEMORIA_USUARIO = path.join(userDir, 'memoria.md');
+        const ids = new Map();
+        const hechos = [...corpus.hechos, ...relleno(corpus.relleno)];
+        totalHechos += hechos.length;
+        // mismos hechos para todos: grep|bm25 (léxico, misma tokenización del motor) o embedding (semántico, modelo local)
+        const idx = nombre === 'embedding'
+            ? await (await import('./eval-hechos/embedding.mjs')).crearBaselineEmbedding(hechos)
+            : esBaseline ? crearBaseline(nombre, hechos, { palabras: m.palabras, palabraConPeso: m.palabraConPeso }) : null;
+        for (const h of hechos.sort((a, b) => a.t - b.t)) {
+            const r = m.guardarHecho(P, { dimension: h.dimension, valor: h.valor, texto: h.texto, claves: h.claves, alcance: h.alcance, idioma: h.idioma, duda: h.duda, desde: h.desde, hasta: h.hasta, enlaces: h.enlaces },
+                { ahora: new Date(T0 + h.t * 1000).toISOString() });
+            ids.set(r.hecho.id, h.id);
+        }
+        if (!esBaseline) discoBytes += tamDir(path.join(P, 'senzu', 'memoria')) + tamDir(userDir);   // índice del motor en disco (proyecto + usuario)
+        for (const q of corpus.preguntas) {
+            if ((soloCat && q.cat !== soloCat) || (sinCat && q.cat === sinCat)) continue;
+            if (solo === 'desarrollo' && q.reservada) continue;
+            if (solo === 'reservada' && !q.reservada) continue;
+            // --auto-temporal (X-T12): sin la marca del corpus; el pasado se detecta en la pregunta, como en el recuerdo vivo
+            const hist = opt('--sin-historico') ? false : opt('--auto-temporal') ? (m.pistaTemporal(q.q) ? 'auto' : false) : !!q.historico;
+            let got, topTxt;
+            const t0 = performance.now();
+            if (idx) {   // baseline: su propia recuperación y su propio «me abstengo» (lista vacía). await: embedding es async
+                const hits = await idx.buscar(q.q, { limite: 3 });
+                got = hits.map(x => x.id);
+                topTxt = hits[0] ? `${hits[0].id} (${hits[0].score}; ${hits[0].motivo})` : '—';
+            } else {     // motor de Senzu: resultados por encima del umbral del recuerdo vivo
+                const hits = m.buscarHechos(P, q.q, { historico: hist, limite: 3 }).filter(x => x.puntuacion >= UMBRAL);
+                got = hits.map(x => ids.get(x.hecho.id));
+                topTxt = hits[0] ? `${ids.get(hits[0].hecho.id)} (${hits[0].puntuacion}; ${hits[0].motivo})` : '—';
+            }
+            latencias.push(performance.now() - t0);
+            const conRespuesta = q.espera !== null;
+            filas.push({ ...q, corpus: corpus.nombre, got, top: topTxt,
+                r1: conRespuesta ? got[0] === q.espera : null, r3: conRespuesta ? got.includes(q.espera) : null, calla: conRespuesta ? null : got.length === 0 });
+        }
+    }
+    return { filas, latencias, totalHechos, discoBytes };
+}
+
+// --- modo --tabla: los cuatro motores y los ejes que NO son recall (F8-T2) ---
+if (opt('--tabla')) {
+    const crypto = await import('node:crypto');
+    const huella = r => crypto.createHash('sha1').update(r.filas.map(f => (f.got || []).join('·')).join('|')).digest('hex');
+    const DIMS = 384, N = corpora.reduce((s, c) => s + c.hechos.length + (c.relleno?.n || 0), 0);   // e5-small: 384 dims
+    const fil = [];
+    for (const nombre of ['motor', 'bm25', 'grep', 'embedding']) {
+        const corridas = [await evaluarMotor(nombre), await evaluarMotor(nombre), await evaluarMotor(nombre)];   // 3 tiradas → determinismo
+        const hs = corridas.map(huella);
+        const r = corridas[0], total = medir(r.filas), lat = r.latencias.slice().sort((a, b) => a - b);
+        const pctl = p => lat.length ? +lat[Math.min(lat.length - 1, Math.floor((p / 100) * lat.length))].toFixed(3) : null;
+        fil.push({ nombre, total, p50: pctl(50), p95: pctl(95), determinista: hs.every(h => h === hs[0]),
+            discoKB: nombre === 'embedding' ? Math.round(tamDir(path.join(ROOT, 'tools', '.models')) / 1024) : Math.round(r.discoBytes / 1024) });
+    }
+    fs.rmSync(base, { recursive: true, force: true });
+    if (opt('--json')) { process.stdout.write(JSON.stringify(fil, null, 2) + '\n'); process.exit(0); }
+    const pad = (s, n) => String(s).padStart(n);
+    const modeloMB = Math.round(tamDir(path.join(ROOT, 'tools', '.models')) / 1048576);
+    process.stdout.write(`Ejes del benchmark (F8-T2) · ${N} hechos · todas las consultas locales (0 llamadas de red, 0 €)\n\n`);
+    process.stdout.write('  motor       recall@1 recall@3 abstenc   lat.p50   lat.p95  determin.  índice disco\n');
+    for (const x of fil) process.stdout.write(`  ${x.nombre.padEnd(10)} ${pad(x.total.recall1, 6)}% ${pad(x.total.recall3, 7)}% ${pad(x.total.abstencion, 6)}% ${pad(x.p50, 8)}ms ${pad(x.p95, 8)}ms ${pad(x.determinista ? 'sí' : 'NO', 9)}  ${pad(x.discoKB, 7)} KB\n`);
+    process.stdout.write(`\n  red: 0 llamadas en todos (todo local).  coste: 0 € por consulta.\n`);
+    process.stdout.write(`  embedding: descarga única del modelo (~${modeloMB} MB en tools/.models) + ~${Math.round(N * DIMS * 4 / 1024)} KB de vectores en RAM; luego offline.\n`);
+    process.stdout.write(`  determinismo: huella sha1 de las respuestas idéntica en 3 tiradas de cada motor.\n`);
+    process.exit(0);
+}
+
+// --- camino normal: un solo motor (por defecto el motor, o el --baseline indicado) ---
+const r0 = await evaluarMotor(baseline || 'motor');
+const filas = r0.filas, totalHechos = r0.totalHechos;
+fs.rmSync(base, { recursive: true, force: true });
+
 const agrupar = clave => Object.fromEntries([...new Set(filas.map(f => f[clave]))].sort().map(k => [k, medir(filas.filter(f => f[clave] === k))]));
 const total = medir(filas);
 const res = { umbral: UMBRAL, total, desarrollo: medir(filas.filter(f => !f.reservada)), reservada: medir(filas.filter(f => f.reservada)),

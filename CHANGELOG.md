@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-23
 
+- **feature** — F8-T2: ejes más allá del recall (latencia, red, determinismo, coste, tamaño); modo --tabla (exp) (entrada 176)
 - **feature** — F8-T7: benchmark externo público (Answerable TyDi QA) con datos reales; el motor bate a bm25/grep, pierde en recall ante embeddings (exp) (entrada 175)
 - **feature** — F8-T1: baseline semántico (embedding local e5-small) y cierre del cara a cara de los cuatro (exp) (entrada 174)
 - **feature** — F8-T1: baselines grep y bm25 para el benchmark comparado de la memoria (exp) (entrada 173)
