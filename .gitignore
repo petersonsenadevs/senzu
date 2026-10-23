@@ -29,3 +29,7 @@ node_modules/
 # Modelo de embeddings del benchmark de memoria (F8): se descarga una vez con tools/eval-hechos/bajar-modelo.mjs
 # y queda en caché local; el plugin NO depende de esto (ver tools/package.json).
 tools/.models/
+
+# Memoria de hechos del motor hemisférico para ESTE repo: notas internas de trabajo (como plan/ y el devlog).
+# Vive en el disco para que el recuerdo funcione, pero no se publica en el paquete.
+/memoria/
