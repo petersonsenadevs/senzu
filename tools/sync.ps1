@@ -37,7 +37,8 @@ param(
     [switch]$SinPermisos,
     [string[]]$ApagarHooks,
     [switch]$EncenderHooks,
-    [switch]$SinMigrar
+    [switch]$SinMigrar,
+    [string]$Lang
 )
 
 . (Join-Path $PSScriptRoot '_lib.ps1')
@@ -73,7 +74,7 @@ $ahorroVal = if ($SinAhorro) { $false } elseif ($Ahorro) { $true } else { [bool]
 $stackObj | Add-Member -NotePropertyName Ahorro -NotePropertyValue $ahorroVal -Force
 # Permisos y hooks apagados (los decide el usuario). Sin parametros se conservan los del marcador.
 # guard, secrets-guard, protect-files, conventions-guard y arquitectura-guard no se pueden apagar. Mismo resultado que init.mjs.
-$hooksNoApagables = @('guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard')
+$hooksNoApagables = @('guard', 'supply-guard', 'pentest-guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard')
 $permisosVal = [ordered]@{}
 if ($SinPermisos) { }
 elseif ($PSBoundParameters.ContainsKey('Permitir')) {
@@ -155,6 +156,9 @@ $markerObj = [ordered]@{
 if ($wantGit) { $markerObj.gitHooks = $true }
 if ($selection) { $markerObj.seleccion = $selection }
 if ($ahorroVal) { $markerObj.ahorro = $true }
+# Idioma de la UI del proyecto (muros, avisos): lo lee localeUI(root). Si no se fija, se omite (por defecto 'en'). Igual que init.mjs.
+$langIn = if ($Lang) { $Lang } elseif ($marker -and $marker.lang) { $marker.lang } else { $null }
+if ($langIn) { $markerObj.lang = $(if ("$langIn".ToLower().StartsWith('es')) { 'es' } else { 'en' }) }
 if ($permisosVal.Count) { $markerObj.permisos = $permisosVal }
 if ($apagadosVal.Count) { $markerObj.hooksApagados = @($apagadosVal) }
 # Ajustes que solo pone el usuario y se conservan al reinstalar (igual que init.mjs): ramas protegidas y pasos omitidos

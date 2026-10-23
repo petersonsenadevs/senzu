@@ -10,8 +10,10 @@
 // Se usa como capa "inteligente" además de permissions.deny (capa simple) en settings.json.
 
 import os from 'node:os';
+import fs from 'node:fs';
+import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { readHookInput, projectRoot, permisosProyecto, envSenzu, textoLogos, ramaProtegida, convencionesSelladas, relDelProyecto, rutaNativa, sinTextoCitado } from './lib.mjs';
+import { readHookInput, projectRoot, permisosProyecto, escapeComando, textoLogos, ramaProtegida, convencionesSelladas, relDelProyecto, rutaNativa, sinTextoCitado, localeUI, msg } from './lib.mjs';
 
 const p = readHookInput();
 if (!p) process.exit(0);
@@ -23,6 +25,7 @@ if (!cmd.trim()) process.exit(0);
 // El mensaje del commit (formato, Co-Authored-By) se valida sobre el comando original, cmd.
 const c = sinTextoCitado(cmd);
 const root = projectRoot();
+const lang = localeUI(root);   // idioma de la UI del proyecto (en por defecto); los mensajes salen por msg(id, lang)
 const permisos = permisosProyecto(root);
 // ramas principales (main, staging, production…): lista única en lib.mjs (ramaProtegida)
 function ramaActual() {
@@ -49,33 +52,33 @@ function pushPermitido() {
     return pushes.length > 0;
 }
 
-// --- Patrones prohibidos: { p: patrón; m: motivo } ---
+// --- Patrones prohibidos: { p: patrón; id: mensaje en el catálogo (messages.mjs) } ---
 const rules = [
-    { p: /\bgit\s+push\b/i,                                   m: 'Este git push no se permite: va a una rama principal (main, develop, staging, production, release/…), no se ve a qué rama va (dentro de bash -c, un heredoc, $( )…) o el proyecto tiene "push": false. A las ramas de trabajo (feat/…, fix/…) se sube con un git push directo. A una principal, solo si el usuario pone "pushMain": true en senzu/senzu.json (lo decide el usuario, no el agente) o lo sube él: ! git push …' },
-    { p: /\bgit\s+push\s+.*--force/i,                         m: 'git push --force está terminantemente prohibido.' },
-    { p: /--force-with-lease/i,                               m: 'push forzado (--force-with-lease) prohibido.' },
-    { p: /\bdrop\s+(database|table|schema)\b/i,               m: 'DROP DATABASE/TABLE/SCHEMA en BD requiere aprobación explícita.' },
-    { p: /\btruncate\s+table\b|\btruncate\s+\w/i,             m: 'TRUNCATE en BD requiere aprobación explícita.' },
-    { p: /\bdelete\s+from\s+\w+\s*(;|$)/i,                    m: 'DELETE sin WHERE requiere aprobación explícita.' },
-    { p: /\bupdate\s+\w+\s+set\b(?!.*\bwhere\b)/i,            m: 'UPDATE sin WHERE requiere aprobación explícita.' },
-    { p: /migrate:(fresh|refresh)/i,                          m: 'migrate:fresh/refresh es destructivo: requiere aprobación.' },
-    { p: /\bdb:wipe\b/i,                                      m: 'db:wipe es destructivo: requiere aprobación.' },
-    { p: /prisma\s+migrate\s+reset/i,                         m: 'prisma migrate reset es destructivo: requiere aprobación.' },
-    { p: /drop_all\b|metadata\.drop_all/i,                    m: 'drop_all (SQLAlchemy) es destructivo: requiere aprobación.' },
-    { p: /\bgit\s+reset\s+--hard\b/i,                         m: 'git reset --hard descarta trabajo: requiere aprobación.' },
-    { p: /\bgit\s+clean\s+-\w*f/i,                            m: 'git clean -f elimina archivos no versionados: requiere aprobación.' },
-    { p: /rm\s+-\w*r\w*f|rm\s+-\w*f\w*r/i,                    m: 'rm -rf requiere revisión: puede borrar de más.' },
-    { p: /remove-item\s+.*-recurse.*-force|remove-item\s+.*-force.*-recurse/i, m: 'Remove-Item -Recurse -Force requiere revisión.' },
-    { p: /\bnpm\s+publish\b|\bcomposer\s+.*publish\b/i,       m: 'Publicar paquetes requiere aprobación explícita.' },
+    { p: /\bgit\s+push\b/i, id: 'rule.gitPush' },
+    { p: /\bgit\s+push\s+.*--force/i, id: 'rule.gitPushForce' },
+    { p: /--force-with-lease/i, id: 'rule.forceWithLease' },
+    { p: /\bdrop\s+(database|table|schema)\b/i, id: 'rule.dropDb' },
+    { p: /\btruncate\s+table\b|\btruncate\s+\w/i, id: 'rule.truncate' },
+    { p: /\bdelete\s+from\s+\w+\s*(;|$)/i, id: 'rule.deleteNoWhere' },
+    { p: /\bupdate\s+\w+\s+set\b(?!.*\bwhere\b)/i, id: 'rule.updateNoWhere' },
+    { p: /migrate:(fresh|refresh)/i, id: 'rule.migrateFresh' },
+    { p: /\bdb:wipe\b/i, id: 'rule.dbWipe' },
+    { p: /prisma\s+migrate\s+reset/i, id: 'rule.prismaReset' },
+    { p: /drop_all\b|metadata\.drop_all/i, id: 'rule.dropAll' },
+    { p: /\bgit\s+reset\s+--hard\b/i, id: 'rule.resetHard' },
+    { p: /\bgit\s+clean\s+-\w*f/i, id: 'rule.gitClean' },
+    { p: /rm\s+-\w*r\w*f|rm\s+-\w*f\w*r/i, id: 'rule.rmrf' },
+    { p: /remove-item\s+.*-recurse.*-force|remove-item\s+.*-force.*-recurse/i, id: 'rule.removeItem' },
+    { p: /\bnpm\s+publish\b|\bcomposer\s+.*publish\b/i, id: 'rule.publish' },
     // --- devops / linux peligrosos ---
-    { p: /\b(curl|wget)\b[^|;&]*\|\s*(sudo\s+)?(ba|z|da)?sh\b/i, m: 'curl|bash ejecuta código remoto sin revisarlo: descarga el script, revísalo y ejecútalo en dos pasos.' },
-    { p: /\bchmod\s+(-[a-z]+\s+)*0?777\b/i,                   m: 'chmod 777 abre el archivo a todo el mundo: usa permisos mínimos (644/755) o pide aprobación.' },
-    { p: /\bdd\b[^|;&]*\bof=\/dev\//i,                        m: 'dd sobre /dev/* puede destruir un disco entero: requiere aprobación explícita.' },
-    { p: /\bmkfs(\.\w+)?\b/i,                                 m: 'mkfs formatea un dispositivo (borra TODO): requiere aprobación explícita.' },
-    { p: /\bdocker\s+(system|volume|image|container)\s+prune\b/i, m: 'docker prune borra recursos compartidos de la máquina (volúmenes = datos): requiere aprobación.' },
-    { p: /\bsystemctl\s+(stop|disable|mask)\b/i,              m: 'Parar/deshabilitar servicios del sistema puede tumbar producción: requiere aprobación explícita.' },
-    { p: /\biptables\s+(-F\b|--flush)|\bnft\s+flush\s+ruleset\b/i, m: 'Vaciar el firewall deja el servidor expuesto: requiere aprobación explícita.' },
-    { p: /\bcrontab\s+-\w*r\b/i,                              m: 'crontab -r borra TODOS los cron del usuario (sin deshacer): requiere aprobación.' },
+    { p: /\b(curl|wget)\b[^|;&]*\|\s*(sudo\s+)?(ba|z|da)?sh\b/i, id: 'rule.curlBash' },
+    { p: /\bchmod\s+(-[a-z]+\s+)*0?777\b/i, id: 'rule.chmod777' },
+    { p: /\bdd\b[^|;&]*\bof=\/dev\//i, id: 'rule.dd' },
+    { p: /\bmkfs(\.\w+)?\b/i, id: 'rule.mkfs' },
+    { p: /\bdocker\s+(system|volume|image|container)\s+prune\b/i, id: 'rule.dockerPrune' },
+    { p: /\bsystemctl\s+(stop|disable|mask)\b/i, id: 'rule.systemctl' },
+    { p: /\biptables\s+(-F\b|--flush)|\bnft\s+flush\s+ruleset\b/i, id: 'rule.iptables' },
+    { p: /\bcrontab\s+-\w*r\b/i, id: 'rule.crontab' },
 ];
 
 function deny(lines) {
@@ -97,22 +100,21 @@ function escribeEn(cmdTxt, archivo) {
     return limpio.split(/&&|\|\||;|\n|\|/).some(s => archivo.test(s) && VERBOS_ESCRIBEN.test(s));
 }
 if (escribeEn(c, /\.dev-standards\.json|\bsenzu\.json\b/i)) {
-    deny(['[BLOQUEADO por Senzu] El marcador del proyecto (senzu/senzu.json) guarda los permisos del proyecto y solo lo cambia el usuario (o el instalador lanzado por el usuario). Léelo si lo necesitas, pero no lo escribas.']);
+    deny([msg('marker.block', lang)]);
 }
 // --- Convenciones SELLADAS (/adoptar): tampoco desde la terminal ---
 // protect-files para las ediciones; esto, para los comandos (sed -i, >, rm, mv, Set-Content, git checkout…).
 // No hay escape para el agente: si el usuario decide cambiarlas, lo hace él (o las borra y re-ejecuta /adoptar).
 if (/\bconventions\.(md|json)\b|\bcapas\.json\b/i.test(c) && convencionesSelladas(root) && escribeEn(c, /\bconventions\.(md|json)\b|\bcapas\.json\b/i)) {
-    deny(['[BLOQUEADO por Senzu] Las convenciones del proyecto están SELLADAS como inmutables (/adoptar): no se escriben, mueven, borran ni restauran desde el agente, por ningún camino.',
-        'Léelas y escribe el código como dicen. Si el usuario quiere cambiarlas, que lo haga él: borra conventions.md y conventions.json y re-ejecuta /adoptar.']);
+    deny(msg('conventions.block', lang));
 }
 if (/\b(SENZU|DEV_STANDARDS)_ALLOW_CONVENCIONES\b/i.test(c)) {
-    deny(['[BLOQUEADO por Senzu] SENZU_ALLOW_CONVENCIONES es la llave del usuario para commitear un cambio de las convenciones selladas: no la usa el agente.']);
+    deny([msg('conventions.allowKey', lang)]);
 }
 // El menú del instalador es para el usuario: el agente no le pasa respuestas por tubería ni redirección
 // (dentro de la MISMA orden: sin cruzar saltos de línea; el «-i» de un sed en la línea siguiente no es el menú)
 if (/\|\s*(node|npx)\b[^|;&\n]*\binit\.mjs\b|\b(node|npx)\s[^|;&\n]*\binit\.mjs\b[^|;&\n]*<\s*\S|\b(node|npx)\s[^|;&\n]*\binit\.mjs\b[^|;&\n]*\s(-i|--interactivo)\b/i.test(c)) {
-    deny(['[BLOQUEADO por Senzu] El menú del instalador lo responde el usuario (ahí se dan permisos y se apagan hooks). Para instalar sin menú usa los flags de selección (--seleccion, --grupos...); el menú, que lo abra él en su terminal.']);
+    deny([msg('installer.menu', lang)]);
 }
 // Instalar en la carpeta temporal (proyectos de prueba que se tiran) con esos flags no da permisos a nadie
 const rutasDestino = [...c.matchAll(/(?:^|\s)-{1,2}path\s+("[^"]+"|'[^']+'|[^\s;&|]+)/gi)].map(m => m[1].replace(/^["']|["']$/g, ''));
@@ -120,62 +122,98 @@ const rutasDestino = [...c.matchAll(/(?:^|\s)-{1,2}path\s+("[^"]+"|'[^']+'|[^\s;
 const soloEnTemporal = rutasDestino.length > 0 && rutasDestino.every(r => !/[$%]/.test(r)
     && relDelProyecto(os.tmpdir(), rutaNativa(r, root)) !== null && relDelProyecto(root, rutaNativa(r, root)) === null);
 if (!soloEnTemporal && /(^|\s)(--permitir|-permitir|--apagar-hooks|-apagarhooks|--sin-permisos|-sinpermisos|--encender-hooks|-encenderhooks|--omitir-paso|--sin-omitir)\b/i.test(c)) {
-    deny(['[BLOQUEADO por Senzu] Dar permisos, apagar hooks u omitir pasos del método lo decide el usuario: que lo ejecute él (en Claude Code, escribiendo "!" delante del comando) o desde el menú del instalador.']);
+    deny([msg('installer.permisos', lang)]);
 }
 
 // --- Reglas de git commit: rama protegida, Conventional Commits, sin co-autores ---
 if (/\bgit\s+commit\b/i.test(c)) {
     const branch = ramaActual();
     if (ramaProtegida(root, branch) && !permisos.commitEnMain) {
-        deny([`[BLOQUEADO por Senzu] No se commitea en '${branch}'. Crea una rama (git switch -c feat/...) y commitea ahi. (Si el usuario lo quiere permitir en este proyecto: "permisos": { "commitEnMain": true } en senzu/senzu.json.)`]);
+        deny([msg('commit.protectedBranch', lang, { branch })]);
     }
     if (/co-authored-by/i.test(cmd)) {
-        deny(['[BLOQUEADO por Senzu] Los commits no llevan Co-Authored-By (regla del equipo).']);
+        deny([msg('commit.coauthor', lang)]);
     }
     // Mensaje: -m "..." o -m '...'  (se valida solo el primer -m)
-    let msg = null;
+    let mensaje = null;
     let m = /-m\s+"([^"]*)"/is.exec(cmd);
-    if (m) msg = m[1];
-    else { m = /-m\s+'([^']*)'/is.exec(cmd); if (m) msg = m[1]; }
-    if (msg) {
-        const first = msg.split(/\r?\n/)[0].trim();
+    if (m) mensaje = m[1];
+    else { m = /-m\s+'([^']*)'/is.exec(cmd); if (m) mensaje = m[1]; }
+    if (mensaje) {
+        const first = mensaje.split(/\r?\n/)[0].trim();
         if (!/^(feat|fix|refactor|docs|test|chore|perf|build|ci|style|revert)(\([\w\-\./ ]+\))?!?:\s\S/.test(first)) {
-            deny([`[BLOQUEADO por Senzu] El mensaje no sigue Conventional Commits: '${first}'. Formato: tipo(scope): descripcion  (feat|fix|refactor|docs|test|chore|perf|build|ci|style|revert).`]);
+            deny([msg('commit.conventional', lang, { first })]);
         }
         if (first.length > 72) {
-            deny([`[BLOQUEADO por Senzu] Primera linea del commit > 72 caracteres (${first.length}). Acortala y pasa el detalle al cuerpo.`]);
+            deny([msg('commit.tooLong', lang, { length: first.length })]);
         }
     }
 }
 
+// --- No borrar tests para que pase la suite (escape SENZU_ALLOW_DELTEST=1 tras aprobacion del usuario) ---
+// Mira lo que se EJECUTA (c, sin texto citado). Borrado por rm/git rm/del/unlink/Remove-Item de un archivo o
+// carpeta de test. Renombrar o reescribir un test es legitimo; borrarlo para que la suite deje de fallar, no.
+function borraTest(cmd) {
+    if (!/\b(rm|unlink|del|remove-item|ri)\b/i.test(cmd) && !/\bgit\s+rm\b/i.test(cmd)) return false;
+    // Objetivo que es un test. Sin flag /i a proposito: .test./.spec./_test. y las carpetas van en minuscula
+    // (convencion), y «[A-Za-z0-9]Test.php» exige la T mayuscula de PHPUnit (FooTest.php) para no cazar
+    // latest.php ni greatest.php.
+    return /\.(test|spec)\.\w+|_test\.\w+|(^|[\s"'\\/])(tests?|__tests__|spec)[\\/]|[A-Za-z0-9]Test\.php\b/.test(cmd);
+}
+if (!escapeComando(c, 'ALLOW_DELTEST') && borraTest(c)) {
+    deny(msg('deltest.block', lang));
+}
+
 // --- Deploy a produccion: NUNCA sin aprobacion explicita del usuario ---
-if (envSenzu('ALLOW_DEPLOY') !== '1') {
-    const deployPat = /(netlify\s+deploy(?=.*--prod))|(\bvercel\b(?=.*--prod))|(\bfly\s+deploy\b)|(\bwrangler\s+(deploy|publish)\b(?!.*--env[= ](dev|preview)))/i;
-    if (deployPat.test(c)) {
-        deny([
-            '[BLOQUEADO por Senzu] Deploy a PRODUCCION detectado. Requiere aprobacion explicita del usuario en este momento (checklist /desplegar: backup fresco verificado + plan de rollback + smoke posterior).',
-            'Con la aprobacion recibida: reintenta con SENZU_ALLOW_DEPLOY=1 y documenta la aprobacion y el resultado en el devlog. Los deploys de preview (sin --prod) pasan sin muro.',
-        ]);
+const deployProdPat = /(netlify\s+deploy(?=.*--prod))|(\bvercel\b(?=.*--prod))|(\bfly\s+deploy\b)|(\bwrangler\s+(deploy|publish)\b(?!.*--env[= ](dev|preview)))/i;
+if (!escapeComando(c, 'ALLOW_DEPLOY')) {
+    if (deployProdPat.test(c)) {
+        deny(msg('deploy.block', localeUI(root)));
     }
+}
+
+// --- Web publica sin NINGUNA pagina legal (privacidad/cookies): no se publica a produccion ---
+// Solo se llega aqui con el deploy a prod ya aprobado (ALLOW_DEPLOY=1 en el comando); si no, el bloque de arriba ya corto.
+// Busca por nombre de archivo en el arbol del proyecto; con una sola pagina legal basta (el detalle lo cubre /lanzar).
+function tieneLegales(dir) {
+    const legalRe = /(privacidad|privacy|cookies?|aviso.?legal|datenschutz|rgpd|gdpr|lopd|t[eé]rminos|terms|pol[ií]tica.?(de.?)?(privacidad|cookies|datos))/i;
+    const saltar = new Set(['node_modules', 'dist', 'build', 'out', 'vendor', 'coverage', 'senzu', 'storage', 'target', 'tmp']);
+    const stack = [{ d: dir, depth: 0 }];
+    let visto = 0;
+    while (stack.length) {
+        const { d, depth } = stack.pop();
+        let ents;
+        try { ents = fs.readdirSync(d, { withFileTypes: true }); } catch { continue; }
+        for (const e of ents) {
+            if (visto++ > 20000) return true;   // repo enorme: no bloqueamos a ciegas (lado seguro)
+            if (e.isDirectory()) {
+                if (e.name.startsWith('.') || saltar.has(e.name)) continue;
+                if (depth < 6) stack.push({ d: path.join(d, e.name), depth: depth + 1 });
+            } else if (legalRe.test(e.name)) {
+                return true;
+            }
+        }
+    }
+    return false;
+}
+if (deployProdPat.test(c) && !escapeComando(c, 'ALLOW_SIN_LEGAL') && !tieneLegales(root)) {
+    deny(msg('legal.block', localeUI(root)));
 }
 
 // --- Logo ya elegido: los generadores de logos e iconos no se lanzan sin que el usuario lo pida ---
 // (graphic-design scripts/logo|icon/generate.py, o image-gen con un prompt de logo). Escape tras pedirlo: SENZU_ALLOW_LOGO=1.
-if (envSenzu('ALLOW_LOGO') !== '1' && (/scripts[\\/](logo|icon)[\\/]generate\.py/i.test(c) || (/image-gen[\\/]scripts[\\/]generate\.mjs/i.test(c) && /\b(logo|logotipo|isotipo|s[ií]mbolo|favicon)\b/i.test(c)))) {
+if (!escapeComando(c, 'ALLOW_LOGO') && (/scripts[\\/](logo|icon)[\\/]generate\.py/i.test(c) || (/image-gen[\\/]scripts[\\/]generate\.mjs/i.test(c) && /\b(logo|logotipo|isotipo|s[ií]mbolo|favicon)\b/i.test(c)))) {
     const elegido = textoLogos(root);
     if (elegido) deny([
-        '[BLOQUEADO por Senzu] ' + elegido,
-        'Si el usuario ha pedido EXPLÍCITAMENTE nuevas variantes o sustituir el logo: reintenta con SENZU_ALLOW_LOGO=1 y anótalo en el devlog.',
+        msg('guard.prefix', lang) + ' ' + elegido,
+        msg('logo.retry', lang),
     ]);
 }
 
 // --- Librerias vetadas (regla dura: sin jQuery/Bootstrap ni segunda libreria de componentes sin aprobacion) ---
-if (envSenzu('ALLOW_LIB') !== '1' && /\b(npm|pnpm|yarn|bun)\s+(install|add|i)\b/i.test(c)) {
+if (!escapeComando(c, 'ALLOW_LIB') && /\b(npm|pnpm|yarn|bun)\s+(install|add|i)\b/i.test(c)) {
     if (/\b(jquery|bootstrap)\b/i.test(c)) {
-        deny([
-            '[BLOQUEADO por Senzu] jQuery/Bootstrap estan vetados por defecto (regla dura 12: se reutiliza lo que ya hay; nada de segundas librerias de componentes).',
-            'Si el usuario lo aprueba explicitamente: que lo ejecute el, o reintenta con SENZU_ALLOW_LIB=1 en el entorno y documenta la aprobacion en el devlog.',
-        ]);
+        deny(msg('lib.vetada', lang));
     }
 }
 
@@ -184,9 +222,9 @@ for (const r of rules) {
     if (pushOk && r === rules[0]) continue;   // push normal permitido por el proyecto (las reglas de forzado siguen)
     if (r.p.test(c)) {
         deny([
-            `[BLOQUEADO por Senzu] ${r.m}`,
-            `Comando: ${cmd}`,
-            'Si de verdad quieres hacerlo, pídeme aprobación explícita y ejecútalo tú, o autorízalo para esta vez.',
+            msg('guard.prefix', lang) + ' ' + msg(r.id, lang),
+            msg('guard.cmdLine', lang, { cmd }),
+            msg('guard.ruleAsk', lang),
         ]);
     }
 }

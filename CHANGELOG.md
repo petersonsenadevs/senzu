@@ -4,6 +4,10 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-23
+
+- **feature** — F8-T1: baselines grep y bm25 para el benchmark comparado de la memoria (exp) (entrada 173)
+
 ## 2026-10-22
 
 - **fix** — fix: brand con sync-senzu.mjs y /dependencias como comando (2.24.2) (entrada 172)
@@ -25,7 +29,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-16
 
-- **fix** — El CHANGELOG público ya no filtra rutas locales (D:/…) (entrada 162)
+- **fix** — El CHANGELOG público ya no filtra rutas locales () (entrada 162)
 - **feature** — /instalar pregunta el idioma y pasa --lang (2.23.0) (entrada 161)
 - **feature** — X-T17 verificado: la web bilingüe se llena de inglés con v2.22.0 (entrada 160)
 - **feature** — Muro legal en main (bilingüe) + RGPD a fondo e IA (AI Act) (entrada 159)
@@ -144,7 +148,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 - **fix** — Marketplace de 13 a 4 plugins (62 → 25 MB) y guía generada por la versión anterior reconocida · v2.2.0 (entrada 074)
 - **fix** — CI: falso FAIL de check-skills por finales de línea CRLF en Windows · v2.1.1 (entrada 073)
 - **feature** — Licencia MIT, CREDITOS.md generado, licencias en CI y actualización semanal de terceros por PR · v2.1.0 (entrada 072)
-- **docs** — Brief, marca, briefs de logos y plan de la web (movidos al repo aparte D:/senzu-web) (entrada 071)
+- **docs** — Brief, marca, briefs de logos y plan de la web (movidos al repo aparte) (entrada 071)
 - **docs** — Docs: clonado con la carpeta senzu/ y plugins senzu-* · v2.0.1 (entrada 070)
 
 ## 2026-10-01

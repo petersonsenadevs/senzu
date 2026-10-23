@@ -39,7 +39,8 @@
     "graphic-design",
     "slides",
     "brand",
-    "banner-design"
+    "banner-design",
+    "tanstack"
   ],
   "motion-web": [
     "gsap-scrolltrigger",

@@ -37,10 +37,11 @@ description: "ÚSAME PRIMERO en cualquier tarea no trivial: árbol de decisión 
 | Instalar o actualizar Senzu completo en el proyecto (/instalar): todo, por categorías o a medida | `instalar-proyecto` | Enrutado |
 | Arrancar un proyecto o feature, planificar, "¿qué hacemos ahora?", siguiente tarea; y SIEMPRE que exista plan/PLAN.md (se sigue el plan) | `project-planner` **(por defecto: empieza aquí)** | Planificación |
 | Crear, maquetar o rediseñar páginas, vistas, layouts, componentes, formularios, dashboards, temas, colores, tipografía, iconos, responsive, accesibilidad; archivos .vue .tsx .jsx .astro .blade.php .html .css | `ui-ux-pro-max` **(por defecto: empieza aquí)** | Front y diseño |
+| Estado del servidor (fetch, caché, invalidación, infinite), tablas con orden/filtro/paginación (cliente o servidor), virtualización de listas grandes; dashboards y tablas de datos (React, Vue, Svelte, Solid) | `tanstack` (si está instalada) | Front y diseño |
 | Tokens de diseño (primitivos → semánticos → componente), CSS variables, validación de tokens | `design-system` (si está instalada) | Front y diseño |
 | Componentes shadcn/ui (React o Vue) y utilidades/tema de Tailwind | `ui-styling` (si está instalada) | Front y diseño |
-| Verificar una UI terminada en navegador real: responsive 375/768/1440, dark mode, consola y accesibilidad (axe); obligatoria antes de dar una vista por hecha | `ui-verify` | Front y diseño |
 | Generar imágenes IA acordes a la web: producto flotante, heros, fondos, 3D, mockups, texturas (gpt-image en Codex, Nano Banana en Antigravity, script multi-proveedor) | `image-gen` | Front y diseño |
+| Verificar una UI terminada en navegador real: responsive 375/768/1440, dark mode, consola y accesibilidad (axe); obligatoria antes de dar una vista por hecha | `ui-verify` | Front y diseño |
 | Tendencias y principios de diseño web moderno | `modern-web-design` (si está instalada) | Front y diseño |
 | Animación declarativa en React/Next con Motion (variants, gestos, layout animations) | `motion-framer` (si está instalada) | Animación |
 | Animación basada en físicas en React (react-spring) | `react-spring-physics` (si está instalada) | Animación |
@@ -71,6 +72,7 @@ description: "ÚSAME PRIMERO en cualquier tarea no trivial: árbol de decisión 
 | Auditar backend y arquitectura con pruebas (herramientas por stack, evidencia por hallazgo, informe), deuda técnica, código legado, dependencias circulares y refactor seguro con tests de caracterización | `backend-audit` | Calidad de código |
 | Escribir o refactorizar lógica, crear tests, manejar errores/logs, seguridad, rendimiento, diseñar endpoints/APIs, revisar o abrir un PR | `code-quality` | Calidad de código |
 | Módulo con reglas de negocio ricas, varios contextos, refactor de arquitectura desde MVC, "¿cómo estructuro esto?" (empieza por su checklist "¿hace falta?") | `ddd-hexagonal` (si está instalada) | Arquitectura |
+| Revisar o auditar la seguridad del proyecto, blindar auth / una API / un agente de IA, hardening, pentesting autorizado, OWASP, inyección de prompt, XSS/CSRF/SSRF/IDOR, cabeceras de seguridad | `security` | Seguridad |
 | Maquetar o arreglar emails HTML (transaccionales y newsletters): react-email/MJML/plantillas del framework, compatibilidad Gmail/Outlook, dark mode, texto plano y pruebas antes de enviar | `email-html` | Marketing y SEO |
 | Posicionar y medir la web: SEO on-page y local, keywords, Search Console, GA4, Google Tag Manager (contenedor, dataLayer, Consent Mode) y MCPs de analítica para operar con agentes | `marketing-seo` | Marketing y SEO |
 | Desplegar y operar en producción cualquier stack: Netlify/Vercel/Forge/VPS, Docker, CI/CD con GitHub Actions, secretos por entorno, colas y cron en prod, backups con restore probado, monitorización e incidentes | `deploy-ops` | Operaciones y despliegue |

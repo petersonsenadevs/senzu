@@ -13,7 +13,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {
-    readHookInput, testIntroduced, soloCodigo, projectRoot, relDelProyecto, esCodigoBackend, esMigracion, testOnce, outHookJson,
+    readHookInput, testIntroduced, soloCodigo, projectRoot, relDelProyecto, esCodigoBackend, esMigracion, testOnce, outHookJson, localeUI, msg,
 } from './lib.mjs';
 
 const p = readHookInput();
@@ -33,29 +33,28 @@ if (p.tool_name === 'Write') despues = String(ti.content || '');
 else if (p.tool_name === 'Edit') despues = antes.replace(String(ti.old_string || ''), () => String(ti.new_string || ''));
 else for (const e of [].concat(ti.edits || [])) despues = despues.replace(String(e.old_string || ''), () => String(e.new_string || ''));
 
-function bloquear(msg, linea) {
-    process.stderr.write(`[BLOQUEADO por Senzu] ${msg}\nLínea: '${linea}'\nSi el usuario lo ha aprobado explícitamente, añade 'senzu-allow' con el motivo en esa línea y anótalo en el devlog.\n`);
+const lang = localeUI(root);
+function bloquear(id, linea, vars) {
+    process.stderr.write(msg('guard.prefix', lang) + ' ' + msg(id, lang, vars) + '\n'
+        + msg('backend.lineLine', lang, { linea }) + '\n' + msg('backend.allowLine', lang) + '\n');
     process.exit(2);
 }
 
 // Se mira el CÓDIGO sin comentarios (citar «no usar env()» no lo usa); los strings se conservan: SQL crudo, env('X')
 const COD = { strings: false, almohadilla: /\.(php|py|rb)$/i.test(file) };
+const isPy = /\.py$/i.test(file);
 
 // 1. Migraciones destructivas (solo la parte que se aplica al migrar)
 if (esMigracion(rel) || /(database\/migrations|migrations|alembic\/versions|prisma\/migrations)\//i.test(file)) {
     const parteUp = t => t.split(/(function\s+down\s*\(|def\s+downgrade\s*\(|exports\.down\b|async\s+down\s*\(|public\s+async\s+down\s*\()/i)[0];
     const destructivo = /(->dropColumn\s*\(|->renameColumn\s*\(|Schema::(drop|dropIfExists|rename)\s*\(|->dropIfExists\s*\(|\bDROP\s+(TABLE|COLUMN)\b|\bRENAME\s+(COLUMN|TO)\b|op\.drop_(column|table)\s*\(|new_column_name\s*=|\.dropColumn\s*\(|\.dropTable\s*\(|\.renameColumn\s*\()/i;
     const hit = testIntroduced(destructivo, parteUp(despues), parteUp(antes), COD);
-    if (hit) bloquear('Migración destructiva (borrar o renombrar columnas o tablas) en la parte que se aplica al migrar. '
-        + 'En producción pierde datos o rompe la versión que sigue desplegada. Haz expandir → migrar datos → contraer en despliegues '
-        + 'separados (code-quality references/database-design.md, migraciones seguras) y confirma con el usuario que hay backup.', hit);
+    if (hit) bloquear('backend.migDestructive', hit);
 
     // 4. Sin vuelta atrás: up() sin down() honesto. Solo si lo introduce este cambio (archivo nuevo o down que se vacía).
     const faltaDown = sinVueltaAtras(despues);
     if (faltaDown && !sinVueltaAtras(antes || 'x') && !/senzu-allow/i.test(despues)) {
-        bloquear(`Migración sin vuelta atrás: ${faltaDown}. Sin un down() que deshaga el up() no hay rollback cuando el despliegue `
-            + 'falla. Escribe el down() que revierte exactamente el up() (code-quality references/database-design.md). Si es irreversible '
-            + 'a propósito (borrado de datos), dilo al usuario y añade un comentario «senzu-allow: irreversible porque…» en la migración.', faltaDown);
+        bloquear('backend.migNoDown', faltaDown, { faltaDown });
     }
 }
 
@@ -90,32 +89,25 @@ function sinVueltaAtras(txt) {
 // 2. env() fuera de config/ (Laravel)
 if (/\.php$/i.test(file) && !/(^|\/)config\//i.test(file)) {
     const hit = testIntroduced(/(?<![\w>$:])env\s*\(\s*['"]/, despues, antes, COD);
-    if (hit) bloquear('env() fuera de config/: con la configuración cacheada (php artisan config:cache, lo normal en producción) '
-        + 'devuelve null y falla solo en producción. Define la clave en config/<archivo>.php y usa config(\'archivo.clave\').', hit);
+    if (hit) bloquear('backend.envOutsideConfig', hit);
 }
 
 // 3. Datos personales en logs
 const pii = /((Log::\w+|logger\s*\(|->(info|debug|warning|error|notice)\s*\()[^\n]*\$request->(all|input)\s*\(\s*\)|(logger|log|console)\.(info|debug|warn|error|log)\s*\([^\n]*\breq\.(body|headers|query)\b|(logger|logging|log)\.\w+\s*\([^\n]*\brequest\.(json|body|form|headers|data)\b|(Log::\w+|logger\s*\(|\blog(ger)?\.\w+\s*\()[^\n]*(password|contrase[nñ]a|passwd|api[_-]?key|access[_-]?token|secret)\b)/i;
 const hitPii = testIntroduced(pii, despues, antes, COD);
-if (hitPii) bloquear('Estás registrando en logs la petición completa o un dato sensible (contraseña, token, clave). '
-    + 'Los logs se guardan, se copian y los lee más gente: eso es una fuga de datos personales (RGPD). '
-    + 'Registra solo identificadores y los campos necesarios (code-quality references/errors-logging.md).', hitPii);
+if (hitPii) bloquear('backend.pii', hitPii);
 
 if (!esCodigoBackend(rel)) process.exit(0);
 
 // 5. Asignación masiva: la request entera al modelo
 const masiva = /((::|->)(create|update|fill|forceFill|forceCreate|updateOrCreate|firstOrCreate|firstOrNew|insert|upsert)\s*\(\s*(\$request->(all|input)\(\s*\)|request\(\)->all\(\s*\)|\$_(POST|REQUEST))|\.(create|update|insert|save|upsert|createMany|updateMany|insertOne|updateOne|findOneAndUpdate|findByIdAndUpdate|build|merge)\s*\(\s*(\{\s*data\s*:\s*)?(req|request|ctx\.request)\.body\s*[),}]|Object\.assign\(\s*[\w.]+\s*,\s*(req|request)\.body\s*\)|\w+\(\s*\*\*\s*(await\s+)?request\.(json\(\s*\)|data|POST|form|get_json\(\s*\)))/;
 const hitMasiva = testIntroduced(masiva, despues, antes, COD);
-if (hitMasiva) bloquear('Asignación masiva: guardas la petición ENTERA en el modelo. Un usuario puede mandar campos que no debería tocar '
-    + '(is_admin, precio, user_id). Valida en el borde (FormRequest, zod, pydantic) y pasa solo lo validado o un DTO: '
-    + '$request->validated(), schema.parse(req.body), Modelo(**datos.model_dump()) (code-quality, validación en el borde).', hitMasiva);
+if (hitMasiva) bloquear('backend.massAssign', hitMasiva);
 
 // 6. Errores tragados
 const tragado = /(catch\s*(\([^)]*\))?\s*\{\s*\}|\bexcept\b[^:\n]*:\s*pass\b|if\s+err\s*!=\s*nil\s*\{\s*\})/;
 const hitTragado = testIntroduced(tragado, despues, antes, { strings: true, almohadilla: COD.almohadilla });
-if (hitTragado) bloquear('Error tragado: un catch (o except/if err) vacío esconde el fallo y lo convierte en un dato corrupto o en un '
-    + 'bug imposible de rastrear. Regístralo con contexto y relánzalo, conviértelo en un error de dominio o devuelve una respuesta '
-    + 'de error clara (code-quality references/errors-logging.md). Si de verdad se puede ignorar, escribe por qué con senzu-allow.', hitTragado);
+if (hitTragado) bloquear('backend.swallowed', hitTragado);
 
 // 7. AVISO: varias escrituras en la misma función sin transacción
 const ESCRIBE = /(->save\(|::create\(|->create\(|->update\(|->delete\(|::insert\(|->insert\(|::destroy\(|->attach\(|->detach\(|->sync\(|->increment\(|->decrement\(|::updateOrCreate\(|->forceDelete\(|\b(prisma|db|knex|em|manager|queryRunner|repo|repository|\w+Repo|\w+Repository|\w+Model|this\.\w+)(\.\w+)?\s*\.\s*(create|update|delete|insert|save|upsert|destroy|createMany|updateMany|deleteMany|insertOne|insertMany|updateOne|deleteOne|remove)\s*\(|\b[A-Z]\w*\.(create|insertMany|updateOne|updateMany|deleteOne|deleteMany|findOneAndUpdate)\s*\(|\.save\(\)|objects\.(create|bulk_create|update_or_create|get_or_create)\(|session\.(add|delete|merge)\()/g;
@@ -132,5 +124,67 @@ if (sinTx && testOnce(p.session_id || 'default', 'tx-' + crypto.createHash('md5'
             + '(DB::transaction, prisma.$transaction, transaction.atomic, session.begin) y lanza los eventos o correos DESPUÉS del commit. '
             + 'Si son independientes a propósito, sigue. Solo se avisa una vez por archivo y sesión.',
     });
+    process.exit(0);
+}
+
+// 8. AVISO: consulta a la base de datos dentro de un bucle (N+1). Solo se mira lo que se INTRODUCE, en codigo
+// de backend, y con senales de BD estrictas (DB::, Model::find/where, prisma.x.find, SELECT...FROM): un .find()
+// o .map() sobre un array en memoria NO es una query, asi que no cuenta. Aviso una vez por archivo y sesion.
+const nMas1 = nuevo.map(t => queryEnBucle(t)).find(Boolean);
+if (nMas1 && testOnce(p.session_id || 'default', 'np1-' + crypto.createHash('md5').update(rel.toLowerCase()).digest('hex').slice(0, 10))) {
+    outHookJson('PreToolUse', { additionalContext: msg('backend.nPlus1', lang, { rel, primera: nMas1 }) });
 }
 process.exit(0);
+
+// Primera linea del bucle que hace una query dentro, o null. Lenguajes con llaves (PHP foreach, JS/TS for/of).
+function queryEnBucle(txt) {
+    if (!txt) return null;
+    const t = soloCodigo(txt, { strings: true, almohadilla: COD.almohadilla });
+    if (isPy) return queryEnBuclePy(t);
+    const QUERY = /(\bDB::(table|select|statement|raw)\b|\b[A-Z]\w*::(find|findOrFail|first|firstWhere|where|all|count|value|pluck)\s*\(|->firstWhere\s*\(|->firstOrFail\s*\(|\b(prisma|db)\.[A-Za-z_]\w*\.(find\w*|count|aggregate|groupBy)\s*\(|\bawait\s+[\w.]*(repo|repository|model|service|manager|em)\b[\w.]*\.(find\w*|get\w*|load\w*|query|count)\s*\(|\bSELECT\b[\s\S]{0,160}\bFROM\b)/;
+    const loopHdr = /\b(for|foreach|while)\s*\(/g;
+    let m;
+    while ((m = loopHdr.exec(t))) {
+        let i = m.index + m[0].length, depth = 1;          // saltar el (...) de la cabecera del bucle
+        for (; i < t.length && depth > 0; i++) { if (t[i] === '(') depth++; else if (t[i] === ')') depth--; }
+        const open = t.indexOf('{', i);
+        let body;
+        if (open >= 0 && /^\s*$/.test(t.slice(i, open))) {   // cuerpo con llaves justo tras la cabecera
+            let d = 0, j = open;
+            for (; j < t.length; j++) { if (t[j] === '{') d++; else if (t[j] === '}' && --d === 0) break; }
+            body = t.slice(open + 1, j);
+        } else {
+            body = t.slice(i, i + 200);                      // bucle de una linea sin llaves
+        }
+        if (QUERY.test(body)) {
+            const linea = (t.slice(m.index).split('\n')[0] || '').trim().slice(0, 120);
+            return linea;
+        }
+    }
+    return null;
+}
+
+// Igual que queryEnBucle pero para Python: los bucles no tienen paréntesis ni llaves, el cuerpo es el bloque
+// con más sangría que la cabecera «for … in …:» o «while …:» (el colon se busca al final por si hay sangría con
+// slices como rows[0:10]). Señales de BD estrictas de Python: Django (.objects.X()), SQLAlchemy (session.query/
+// execute/scalars, session.get(Model,…) con la clase en mayúscula para no confundir con session.get('clave') de
+// Flask), cursor.execute, un repositorio/repo/dao con método de lectura, o un await de find/get_/fetch/execute.
+function queryEnBuclePy(t) {
+    const QUERY_PY = /(\.objects\.(get|filter|all|first|last|count|exclude|aggregate|annotate|get_or_create|values|values_list|earliest|latest|exists)\s*\(|\b(?:db\.)?session\.(query|execute|scalar|scalars)\s*\(|\b(?:db\.)?session\.get\s*\(\s*[A-Z]\w*|\.query\s*\(\s*[\w.]+\s*\)\s*\.\s*(filter|filter_by|all|first|one|one_or_none|get|count)\b|\bcursor\.(execute|executemany)\s*\(|\b\w*(?:repository|repo|dao)\.(get|get_\w+|find\w*|fetch\w*|load\w*|list\w*|by_\w+|all|query|count)\s*\(|\bawait\s+[\w.]+\.(find\w*|get_\w+|fetch\w*|execute|scalar\w*)\s*\()/;
+    const lines = t.split('\n');
+    const hdr = /^([ \t]*)(?:async\s+)?((?:for|while)\b.*):(.*)$/;
+    for (let a = 0; a < lines.length; a++) {
+        const m = hdr.exec(lines[a]);
+        if (!m) continue;
+        const indent = m[1].length;
+        const partes = [m[3] || ''];                          // cuerpo en la misma línea (one-liner for x in xs: query())
+        for (let b = a + 1; b < lines.length; b++) {
+            const ln = lines[b];
+            if (!ln.trim()) { partes.push(ln); continue; }     // línea en blanco: sigue dentro del bloque
+            if ((ln.match(/^[ \t]*/)[0] || '').length <= indent) break;   // vuelve al nivel del bucle o menos: fin del cuerpo
+            partes.push(ln);
+        }
+        if (QUERY_PY.test(partes.join('\n'))) return lines[a].trim().slice(0, 120);
+    }
+    return null;
+}

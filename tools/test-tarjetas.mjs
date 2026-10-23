@@ -11,6 +11,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HOOK = path.join(ROOT, 'core', 'hooks', 'tarjeta-guard.mjs');
+process.env.SENZU_LANG = 'es';   // este suite comprueba el CONTENIDO en castellano de tarjeta-guard; se ejerce en locale es
 let casos = 0, fallos = 0;
 const ok = (c, n, d = '') => { casos++; if (!c) { fallos++; process.stdout.write(`FAIL ${n}${d ? ' -> ' + d : ''}\n`); } };
 
@@ -105,6 +106,11 @@ deja(edita('Idempotencia del webhook  [S] [doing]', 'Idempotencia del webhook  [
 reset();
 const parche = '*** Begin Patch\n*** Update File: senzu/plan/PLAN.md\n@@\n-### F1-T2 · Renombrar variable  [S] [doing]\n+### F1-T2 · Renombrar variable  [S] [done]\n*** End Patch\n';
 bloquea(hook({ tool_name: 'apply_patch', tool_input: { command: parche }, cwd: proj }), 'Codex (apply_patch) tampoco cierra sin pruebas', /F1-T2/);
+
+// 12. ids que improvisa el planner (A-H01, A-H0608): el muro también los ve al pasarlos a done
+reset();
+fs.appendFileSync(plan, '\n### A-H0608 · Higiene y hardening  [S] [doing]\n- Para qué: ruff en el flujo y endurecer\n- Verificar: ruff check .\n');
+bloquea(edita('Higiene y hardening  [S] [doing]', 'Higiene y hardening  [S] [done]'), 'tarjeta A-H0608 sin pruebas también se bloquea', /A-H0608/);
 
 fs.rmSync(proj, { recursive: true, force: true });
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);

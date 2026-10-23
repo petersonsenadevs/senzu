@@ -9,7 +9,7 @@
 // Nunca toca lo que es del propio método: senzu/, CLAUDE.md, AGENTS.md, .claude/, .agents/ y la documentación.
 
 import path from 'node:path';
-import { readHookInput, projectRoot, testOnce, siguientePaso, esArchivoDeCodigo, outHookJson } from './lib.mjs';
+import { readHookInput, projectRoot, testOnce, siguientePaso, esArchivoDeCodigo, outHookJson, localeUI, msg } from './lib.mjs';
 
 const p = readHookInput();
 if (!p || !['Edit', 'Write', 'MultiEdit'].includes(p.tool_name)) process.exit(0);
@@ -29,21 +29,11 @@ const sid = p.session_id ? String(p.session_id) : 'default';
 if (!testOnce(sid, 'arranque-' + paso.paso)) process.exit(0);
 
 if (paso.conversar) {
-    outHookJson('PreToolUse', {
-        additionalContext: `[senzu] Vas a escribir código (${rel}) en un ${paso.motivo}. No hace falta un plan para todo, pero sí saber qué se va a hacer: `
-            + 'si el usuario te ha dicho con claridad qué quiere y para qué, sigue. Si no lo sabes (objetivo, alcance, qué entra y qué no), '
-            + 'PARA y háblalo con él antes de programar, en llano y con pocas preguntas; no lo supongas. '
-            + `Propón ${paso.comando} solo si es algo grande, de varias partes, o si él lo quiere.`,
-    });
+    outHookJson('PreToolUse', { additionalContext: msg('arranque.conversar', localeUI(root), { rel, motivo: paso.motivo, comando: paso.comando }) });
     process.exit(0);
 }
 
-const omitible = paso.paso !== 'instalar'
-    ? `\nSi el usuario no quiere este paso en este proyecto, que lo quite él: node <senzu>/tools/init.mjs --path . --omitir-paso ${paso.paso} (tú no puedes).`
-    : '';
-process.stderr.write(`[BLOQUEADO por Senzu] Antes de escribir código (${rel}) falta un paso del método: ${paso.comando}.\n`
-    + `Por qué: ${paso.motivo}.\n`
-    + `Qué hacer: para, explícale al usuario en una frase qué falta y por qué, y proponle ${paso.comando}. `
-    + 'Si te dice que sigas sin él, sigue: este muro solo te para una vez por paso y sesión.'
-    + omitible + '\n');
+const lang = localeUI(root);
+const omitible = paso.paso !== 'instalar' ? msg('arranque.omitible', lang, { paso: paso.paso }) : '';
+process.stderr.write(msg('arranque.block', lang, { rel, comando: paso.comando, motivo: paso.motivo }) + omitible + '\n');
 process.exit(2);

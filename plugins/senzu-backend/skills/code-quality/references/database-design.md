@@ -48,9 +48,30 @@
 - Sea cual sea: la búsqueda se llena por eventos del modelo (observer/job), y reindexar completo es un
   comando idempotente, no un ritual manual.
 
-## 6. Errores típicos del agente
+## 6. Conexiones y pool (lo que tumba la app en producción)
+La BD aguanta un número LIMITADO de conexiones a la vez (`max_connections`: ~100 en Postgres por defecto).
+Agotarlas = la app entera deja de responder («too many connections», timeout al adquirir del pool). El modelo
+cambia por stack, y aquí es donde un dev de Laravel se confía de más:
+- **Laravel / PHP-FPM**: una conexión por request que se cierra al terminar; el pool lo gestiona el servidor casi
+  solo. Redis para caché, sesión y colas. Rara vez es el problema. **En otros stacks NO es así.**
+- **Node / Python (proceso de larga vida)**: TÚ creas el pool, UNA vez al arrancar, y lo reutilizas. Nunca un
+  pool ni un cliente nuevo por petición (eso agota la BD). Ciérralo en el apagado (SIGTERM). Dimensiónalo:
+  `pool ≤ max_connections / nº de instancias` (deja margen para migraciones y psql manual). Pon timeouts
+  (`connect_timeout`, `statement_timeout`, idle del pool) para que una query colgada no retenga la conexión.
+  SQLAlchemy: `create_async_engine(url, pool_size=10, max_overflow=5, pool_timeout=30, pool_pre_ping=True)`.
+- **Serverless (Vercel / Lambda) — el caso que más cae**: cada invocación es un proceso nuevo; si abres una
+  conexión directa por invocación, agotas la BD en el primer pico. Soluciones: conéctate a través de un
+  **pooler en modo transaction** (PgBouncer, o las cadenas «pooled» de Neon/Supabase), limita las conexiones
+  (`connection_limit=1` en la URL de Prisma) y reutiliza el cliente con el **singleton global**:
+  `const prisma = globalThis.prisma ?? new PrismaClient(); if (process.env.NODE_ENV !== 'production') globalThis.prisma = prisma;`
+- **Resiliencia**: reconexión/retry con backoff ante caída transitoria; un `/health` que mire conexiones activas,
+  no solo `SELECT 1` (deploy-ops references/backups-monitoring.md). El hook `pool-guard` avisa al escribir
+  código que crea conexiones por petición o un Prisma sin singleton.
+
+## 7. Errores típicos del agente
 - Float para dinero · fechas locales sin zona · VARCHAR(255) para todo por inercia.
 - FK sin índice en Postgres · índice en cada columna "por si acaso" · UNIQUE olvidado y "validado en código".
 - Migración que renombra/borra columna en el mismo deploy que el código nuevo (ventana de errores 500).
 - Backfill sin chunks (lock de minutos) · `down()` vacío "porque nunca se usa".
 - JSON columns como cajón desastre para datos que se filtran (eso son columnas o una tabla).
+- `new PrismaClient()` / pool nuevo por request · pool sin dimensionar ni timeouts · conexión directa en serverless.

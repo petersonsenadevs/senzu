@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HOOKS = path.join(ROOT, 'core', 'hooks');
+process.env.SENZU_LANG = 'es';   // este suite comprueba el CONTENIDO en castellano de cierre-limpio; se ejerce en locale es
 let casos = 0, fallos = 0;
 const ok = (c, n, d = '') => { casos++; if (!c) { fallos++; process.stdout.write(`FAIL ${n}${d ? ' -> ' + d : ''}\n`); } };
 

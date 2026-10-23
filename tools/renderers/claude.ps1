@@ -8,8 +8,8 @@ function Get-HookSet {
         SessionStart     = @(@{ matcher = $null; files = @('session-start.mjs') })
         UserPromptSubmit = @(@{ matcher = $null; files = @('prompt-router.mjs', 'memoria-viva.mjs', 'recuerdo-vivo.mjs') })
         PreToolUse       = @(
-            @{ matcher = 'Bash|PowerShell';                   files = @('guard.mjs') },
-            @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }
+            @{ matcher = 'Bash|PowerShell';                   files = @('guard.mjs', 'supply-guard.mjs', 'pentest-guard.mjs') },
+            @{ matcher = 'Edit|Write|MultiEdit|NotebookEdit|apply_patch'; files = @('protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'security-guard.mjs', 'pool-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs') + $(if ($HasFront) { @('front-skill-reminder.mjs') } else { @() }) }
         )
         PostToolUse      = @(@{ matcher = 'Edit|Write|MultiEdit|apply_patch'; files = @('format-on-save.mjs', 'edit-tracker.mjs', 'hechos-guard.mjs') }, @{ matcher = 'Bash|PowerShell'; files = @('depurar-coach.mjs', 'feature-guard.mjs', 'hechos-guard.mjs') })
         Stop             = @(@{ matcher = $null; files = @('stop-guard.mjs', 'cierre-limpio.mjs', 'feature-guard.mjs', 'hechos-guard.mjs', 'estado-sesion.mjs') })
@@ -104,6 +104,9 @@ function Render-Claude {
     $hooksDst = Join-Path $ProjectPath '.claude\hooks'
     Ensure-Dir $hooksDst
     Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | ForEach-Object { Copy-Item $_.FullName (Join-Path $hooksDst $_.Name) -Force }
+    # listas de datos de supply-guard (denylist de malware, paquetes populares): sin ellas el escaner no vigila
+    $dataSrc = Join-Path $root 'core\hooks\data'
+    if (Test-Path $dataSrc) { Copy-Tree $dataSrc (Join-Path $hooksDst 'data') }
     # limpiar hooks .ps1 de versiones anteriores de Senzu (sustituidos por .mjs agnosticos)
     Get-ChildItem $hooksDst -Filter *.ps1 -ErrorAction SilentlyContinue | Where-Object { Test-Path (Join-Path $root ('core\hooks\' + ($_.BaseName + '.mjs'))) -or $_.Name -eq '_common.ps1' } | Remove-Item -Force
     Copy-Tree (Join-Path $Stack.Dir 'hooks') $hooksDst
@@ -113,7 +116,7 @@ function Render-Claude {
     if (Test-Path $cmdSrc) {
         $cmdDst = Join-Path $ProjectPath '.claude\commands'
         Ensure-Dir $cmdDst
-        $names = @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md') + $(if ($hasFront) { @('brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md') } else { @() })
+        $names = @('instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'seguridad.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md') + $(if ($hasFront) { @('brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md') } else { @() })
         $selProp = $Stack.PSObject.Properties['Selection']
         $cmdSel = if ($selProp -and $selProp.Value -and $selProp.Value.PSObject.Properties['comandos']) { @($selProp.Value.comandos) } else { $null }
         foreach ($cf in (Get-ChildItem $cmdSrc -Filter *.md)) {

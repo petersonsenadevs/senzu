@@ -145,6 +145,18 @@ foreach ($p in $a, $b) {
     if (-not (Test-Path (Join-Path $p '.claude\skills\deploy-ops'))) { Fail "[perfil-backend] falta deploy-ops (grupo ops) ($p)" }
 }
 
+# Escenario 2c: idioma de la UI. --lang es / -Lang es deben escribir lang:'es' igual en los dos marcadores
+# (y seguir produciendo proyectos identicos). El contenido de las skills NO cambia con el idioma.
+$env:SENZU_ASSUME_YES = '1'
+& (Join-Path $PSScriptRoot 'sync.ps1') -Path $a -Lang es *>$null
+node (Join-Path $PSScriptRoot 'init.mjs') --path $b --lang es *>$null
+$env:SENZU_ASSUME_YES = ''
+Compare-Proyectos 'lang'
+foreach ($p in $a, $b) {
+    $mk = (Read-Utf8 (Join-Path $p 'senzu/senzu.json')) | ConvertFrom-Json
+    if ($mk.lang -ne 'es') { Fail "[lang] el marcador no quedo en lang=es tras --lang es; hay: '$($mk.lang)' ($p)" }
+}
+
 # Escenario 3: proyecto ANTIGUO (devlog/, plan/ y .dev-standards.json en la raiz). Los dos instaladores
 # tienen que migrarlo igual a senzu/ y dejar la raiz limpia.
 foreach ($p in $a, $b) {

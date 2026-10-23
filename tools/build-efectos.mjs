@@ -133,9 +133,15 @@ const escribir = (f, contenido) => {
     if (antes === contenido) return false;
     fs.writeFileSync(p, contenido); return true;
 };
+// docs/efectos.en.md es la traducción a mano de esta página (el catálogo está en castellano): sigue al día si
+// enlaza las mismas demos y recetas. Un efecto, demo o receta nueva cambia los enlaces y obliga a traducirlo.
+const enlaces = t => [...t.matchAll(/\]\(([^)\s]+)\)/g)].map(m => m[1]).sort().join('\n');
+const enDesfasado = existe('docs/efectos.en.md') && enlaces(leer('docs/efectos.en.md')) !== enlaces(md);
+if (enDesfasado) console.error('  AVISO: docs/efectos.en.md no enlaza lo mismo que docs/efectos.md: tradúcele lo nuevo');
 if (process.argv.includes('--comprobar')) {
     const igual = f => existe(f) && leer(f) === (f.endsWith('.json') ? salidaJson : md);
     const mal = ['docs/efectos.md', 'docs/efectos.json'].filter(f => !igual(f));
+    if (enDesfasado) mal.push('docs/efectos.en.md (traducción)');
     if (mal.length) { console.error(`Sin actualizar: ${mal.join(', ')} (ejecuta node tools/build-efectos.mjs)`); process.exit(1); }
     console.log(`Efectos: ${categorias.length} categorías, ${categorias.reduce((n, c) => n + c.efectos.length, 0)} efectos, ${demos.length} demos; todo al día.`);
 } else {

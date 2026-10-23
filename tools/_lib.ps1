@@ -381,7 +381,7 @@ function Test-SeleccionSinFront($Sel) {
     }
     return $false
 }
-$script:CoreGroups  = @('planning', 'routing', 'quality', 'architecture', 'growth', 'ops', 'docs')
+$script:CoreGroups  = @('planning', 'routing', 'quality', 'architecture', 'security', 'growth', 'ops', 'docs')
 
 # Protocolo de carga (texto común)
 $script:LoadProtocol = @(

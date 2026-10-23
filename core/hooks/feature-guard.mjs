@@ -11,7 +11,7 @@ import fs from 'node:fs';
 import crypto from 'node:crypto';
 import {
     readHookInput, projectRoot, sessionFlag, testOnce, editadosSesion, esCodigoBackend, esTest, esMigracion,
-    lineasAnadidas, clavesDeEntorno, envEjemplo, readText, relDelProyecto,
+    lineasAnadidas, clavesDeEntorno, envEjemplo, readText, relDelProyecto, localeUI, msg,
 } from './lib.mjs';
 
 const p = readHookInput() || {};
@@ -39,6 +39,7 @@ if (evento === 'PostToolUse') {
 
 // ---------------- Stop
 const root = projectRoot();
+const lang = localeUI(root);
 const editados = editadosSesion(sid).map(r => relDelProyecto(root, r) ?? r.replace(/\\/g, '/')).filter(r => fs.existsSync(`${root}/${r}`));
 if (!editados.length) process.exit(0);
 const huella = l => crypto.createHash('md5').update([...l].sort().join('|').toLowerCase()).digest('hex').slice(0, 10);
@@ -49,9 +50,7 @@ const motivos = [];
 const back = editados.filter(esCodigoBackend);
 const tests = editados.filter(esTest);
 if (back.length && !tests.length && testOnce(sid, 'feature-test-' + huella(back))) {
-    motivos.push(`Has tocado código de backend (${lista(back)}) y ningún test. Una feature sin test no demuestra que funciona ni avisa cuando se rompa: `
-        + 'escribe el test que la cubre (camino feliz + el error que más importa; code-quality, testing) y ejecútalo. '
-        + 'Si de verdad no aplica (configuración, renombrado, código ya cubierto por un test existente), dilo en tu respuesta con el motivo.');
+    motivos.push(msg('feature.noTest', lang, { back: lista(back) }));
 }
 
 // 2. Migraciones sin ejecutar o sin probar la vuelta atrás
@@ -59,11 +58,9 @@ const migs = editados.filter(r => esMigracion(r) && !esTest(r));
 if (migs.length) {
     const m = leerMigra();
     const sinDown = migs.every(r => /prisma\/|\.sql$/i.test(r));   // Prisma/Drizzle: migraciones SQL sin down
-    const falta = !m.ejecutada ? 'no la has ejecutado' : (!m.vuelta && !sinDown ? 'no has probado su vuelta atrás' : '');
+    const falta = !m.ejecutada ? msg('feature.faltaExec', lang) : (!m.vuelta && !sinDown ? msg('feature.faltaRollback', lang) : '');
     if (falta && testOnce(sid, 'feature-migra-' + huella(migs.concat(falta)))) {   // el motivo en la clave: tras migrar, aún avisa del rollback
-        motivos.push(`Has creado o tocado migraciones (${lista(migs)}) y ${falta}. Ejecútala en local (php artisan migrate, prisma migrate dev, alembic upgrade head…)`
-            + (sinDown ? '' : ', prueba el rollback (migrate:rollback, alembic downgrade -1…) y vuelve a migrar')
-            + ': así se ve antes de producción si rompe o si no se puede deshacer. Si aquí no hay base de datos, dilo en tu respuesta y deja el paso al usuario.');
+        motivos.push(msg('feature.migration', lang, { migs: lista(migs), falta, rollback: sinDown ? '' : msg('feature.rollbackClause', lang) }));
     }
 }
 
@@ -78,12 +75,11 @@ for (const r of editados.filter(r => (esCodigoBackend(r) || /(^|\/)config\//.tes
 }
 if (sinDoc.size && testOnce(sid, 'feature-env-' + huella([...sinDoc.keys()]))) {
     const ej = [...sinDoc.values()].find(Boolean);
-    motivos.push(`El código usa variables de entorno nuevas que no están documentadas: ${[...sinDoc.keys()].join(', ')}. `
-        + (ej ? `Añádelas a ${relDelProyecto(root, ej) || ej} con un valor de ejemplo (nunca el real)` : 'No hay .env.example: créalo con esas claves y valores de ejemplo (nunca los reales)')
-        + ', y en Laravel léelas desde config/. Quien instale el proyecto (o el servidor de producción) no sabrá que existen y fallará.');
+    const add = ej ? msg('feature.envAdd', lang, { ej: relDelProyecto(root, ej) || ej }) : msg('feature.envNoFile', lang);
+    motivos.push(msg('feature.env', lang, { keys: [...sinDoc.keys()].join(', '), add }));
 }
 
 if (!motivos.length) process.exit(0);
-const razon = '[senzu] Antes de dar la feature por hecha:\n' + motivos.map((m, i) => `${i + 1}. ${m}`).join('\n');
+const razon = msg('feature.intro', lang) + '\n' + motivos.map((m, i) => `${i + 1}. ${m}`).join('\n');
 process.stdout.write(JSON.stringify({ decision: 'block', reason: razon }) + '\n');
 process.exit(0);

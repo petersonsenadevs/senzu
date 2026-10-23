@@ -133,6 +133,13 @@ deja(w('backend-guard.mjs', MIG, "<?php\n// no usar ->dropColumn( aquí: expandi
 bloquea(w('backend-guard.mjs', 'app/Servicio.php', "<?php\n/* config */ $k = env('APP_KEY');\n"), 'ataque: env() tras un comentario');
 bloquea(w('backend-guard.mjs', MIG, "<?php\npublic function up() { DB::statement('DROP TABLE users'); }\n"), 'ataque: DROP TABLE dentro de un string SQL');
 
+// security-guard: AVISA (no bloquea). El sink citado en un comentario no cuenta; en el codigo, si.
+const avisoSec = r => /inyecci|injection|v-html|eval|raw/.test(String(r.stdout || ''));
+ok(!avisoSec(w('security-guard.mjs', 'src/sg-a.js', '// eval(userInput) es peligroso, no lo uses\nexport const x = 1;\n')), 'deja: eval() en un comentario (security-guard no avisa)');
+ok(avisoSec(w('security-guard.mjs', 'src/sg-b.js', 'export const run = (i) => eval(i);\n')), 'bloquea: eval() de verdad (security-guard avisa)');
+ok(!avisoSec(w('security-guard.mjs', 'app/SgA.php', '<?php\n// no usar whereRaw("age > $x") aqui\n$q = User::query();\n')), 'deja: whereRaw en un comentario (security-guard no avisa)');
+ok(avisoSec(w('security-guard.mjs', 'app/SgB.php', '<?php\n$q = User::whereRaw("age > $age")->get();\n')), 'bloquea: whereRaw con variable (security-guard avisa)');
+
 // 7. Lo que escribe un subagente no es del usuario: ni se enruta ni se apunta como corrección (devlog 095)
 const up = (h, prompt) => hook(h, { tool_name: undefined, hook_event_name: 'UserPromptSubmit', prompt, session_id: `up-${RUN}-${casos}` }).stdout;
 const AGENTE = '<agent-message from="a1">\n[Subagent hand-back] Informe: la landing usa marketing-seo y brand; no, eso no: siempre usa pnpm\n</agent-message>';

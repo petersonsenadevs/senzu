@@ -17,7 +17,7 @@ import { execFileSync } from 'node:child_process';
 
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));   // raíz del repo de Senzu
 const FRONT_GROUPS = ['front', 'motion', '3d', 'design'];
-const CORE_GROUPS = ['planning', 'routing', 'quality', 'architecture', 'growth', 'ops', 'docs'];
+const CORE_GROUPS = ['planning', 'routing', 'quality', 'architecture', 'security', 'growth', 'ops', 'docs'];
 
 // ---------------------------------------------------------------- helpers
 const stripBom = s => (s.charCodeAt(0) === 0xFEFF ? s.slice(1) : s);
@@ -419,8 +419,8 @@ function hookSet(hasFront) {
         SessionStart: [{ matcher: null, files: ['session-start.mjs'] }],
         UserPromptSubmit: [{ matcher: null, files: ['prompt-router.mjs', 'memoria-viva.mjs', 'recuerdo-vivo.mjs'] }],
         PreToolUse: [
-            { matcher: 'Bash|PowerShell', files: ['guard.mjs'] },
-            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
+            { matcher: 'Bash|PowerShell', files: ['guard.mjs', 'supply-guard.mjs', 'pentest-guard.mjs'] },
+            { matcher: 'Edit|Write|MultiEdit|NotebookEdit|apply_patch', files: ['protect-files.mjs', 'secrets-guard.mjs', 'code-hygiene.mjs', 'conventions-guard.mjs', 'arquitectura-guard.mjs', 'backend-guard.mjs', 'security-guard.mjs', 'pool-guard.mjs', 'back-skill-reminder.mjs', 'memoria-archivo.mjs', 'tarjeta-guard.mjs', 'arranque-guard.mjs', ...(hasFront ? ['front-skill-reminder.mjs'] : [])] },
         ],
         PostToolUse: [{ matcher: 'Edit|Write|MultiEdit|apply_patch', files: ['format-on-save.mjs', 'edit-tracker.mjs', 'hechos-guard.mjs'] }, { matcher: 'Bash|PowerShell', files: ['depurar-coach.mjs', 'feature-guard.mjs', 'hechos-guard.mjs'] }],
         Stop: [{ matcher: null, files: ['stop-guard.mjs', 'cierre-limpio.mjs', 'feature-guard.mjs', 'hechos-guard.mjs', 'estado-sesion.mjs'] }],
@@ -438,7 +438,7 @@ const PERMISOS = [
     ['push-main', 'Subir también a las ramas principales (main, develop, staging, production…)', 'pushMain'],
     ['commit-main', 'Commitear directamente en main, master o develop', 'commitEnMain'],
 ];
-const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];
+const HOOKS_NO_APAGABLES = ['guard', 'supply-guard', 'pentest-guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];
 function permisosDesde(lista) {   // ['push', 'push-main'] -> { push: true, pushMain: true }
     const o = {};
     for (const [id, , clave] of PERMISOS) if (lista.includes(id)) o[clave] = true;
@@ -452,6 +452,8 @@ const HOOKS_ELEGIBLES = [
     ['code-hygiene', 'console.log, tests desactivados, conflictos, vetos y clichés de IA'],
     ['conventions-guard', 'Hace cumplir las convenciones selladas con /adoptar'],
     ['backend-guard', 'Backend: migraciones destructivas, env() fuera de config, datos personales en logs'],
+    ['security-guard', 'Avisa de puntos de inyección (XSS, SQL injection, inyección de comando, eval) en el código nuevo'],
+    ['pool-guard', 'Backend: avisa de conexiones que agotan el pool (Prisma sin singleton, pool por petición)'],
     ['back-skill-reminder', 'Backend: recuerda la receta del stack en la primera edición'],
     ['depurar-coach', 'Si falla un test o un build, activa el método de depuración'],
     ['front-skill-reminder', 'Front: pregunta antes de diseñar y recuerda las reglas de UI'],
@@ -548,6 +550,8 @@ async function renderClaude(stack, projectPath, extra, bundles) {
     for (const f of fs.readdirSync(path.join(ROOT, 'core', 'hooks')).filter(n => n.endsWith('.mjs'))) {
         fs.copyFileSync(path.join(ROOT, 'core', 'hooks', f), path.join(hooksDst, f));
     }
+    // Listas de datos de supply-guard (denylist de malware, paquetes populares): sin ellas el escaner no vigila
+    if (exists(path.join(ROOT, 'core', 'hooks', 'data'))) copyTree(path.join(ROOT, 'core', 'hooks', 'data'), path.join(hooksDst, 'data'));
     for (const f of fs.readdirSync(hooksDst).filter(n => n.endsWith('.ps1'))) {
         if (exists(path.join(ROOT, 'core', 'hooks', f.replace(/\.ps1$/, '.mjs'))) || f === '_common.ps1') fs.rmSync(path.join(hooksDst, f), { force: true });
     }
@@ -557,7 +561,7 @@ async function renderClaude(stack, projectPath, extra, bundles) {
     if (exists(cmdSrc)) {
         const cmdDst = path.join(projectPath, '.claude', 'commands');
         ensureDir(cmdDst);
-        const names = ['instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md',
+        const names = ['instalar.md', 'plan.md', 'siguiente.md', 'verificar.md', 'desplegar.md', 'dependencias.md', 'seguridad.md', 'adoptar.md', 'auditar.md', 'refactor.md', 'depurar.md', 'estimar.md', 'entregar.md', 'mapa.md', 'recordar.md', 'retomar.md',
             ...(hasFront ? ['brief.md', 'propuestas.md', 'ronda.md', 'design-system.md', 'efecto.md', 'revisar-ui.md', 'repaso.md', 'lanzar.md'] : [])];
         const cmdSel = stack.selection && stack.selection.comandos ? new Set(stack.selection.comandos) : null;
         for (const n of fs.readdirSync(cmdSrc).filter(f => f.endsWith('.md'))) {
@@ -688,7 +692,7 @@ async function seedProject(projectPath) {
 function lista(v) { return String(v || '').split(',').map(s => s.trim().toLowerCase()).filter(Boolean); }
 
 function parseArgs(argv) {
-    const a = { path: process.cwd(), tools: null, stack: null, skills: [], bundle: [], perfil: null, seleccion: null, grupos: null, soloSkills: null, hooks: null, comandos: null, interactivo: false, ahorro: null, permitir: null, apagarHooks: null, sinMigrar: false, omitirPasos: null };
+    const a = { path: process.cwd(), tools: null, stack: null, skills: [], bundle: [], perfil: null, seleccion: null, grupos: null, soloSkills: null, hooks: null, comandos: null, interactivo: false, ahorro: null, permitir: null, apagarHooks: null, sinMigrar: false, omitirPasos: null, lang: null };
     for (let i = 0; i < argv.length; i++) {
         const k = argv[i];
         const next = () => argv[++i];
@@ -710,6 +714,7 @@ function parseArgs(argv) {
         else if (k === '--sin-permisos') a.permitir = [];
         else if (k === '--apagar-hooks') a.apagarHooks = lista(next());
         else if (k === '--encender-hooks') a.apagarHooks = [];
+        else if (k === '--lang') a.lang = next();
         else if (k === '--sin-migrar') a.sinMigrar = true;
         else if (k === '--omitir-paso') a.omitirPasos = lista(next());
         else if (k === '--sin-omitir') a.omitirPasos = [];
@@ -806,6 +811,8 @@ async function modoInteractivo(a) {
         a.stack = stacks[iStack - 1];
         const iTools = await elegirUno(rl, 'Herramientas:', ['Claude Code', 'Claude Code + Codex', 'Solo Codex'], 1);
         a.tools = [['claude'], ['claude', 'codex'], ['codex']][iTools - 1];
+        const iLang = await elegirUno(rl, 'Idioma de los avisos de Senzu (muros, arranque, cierre):', ['English (por defecto)', 'Castellano'], (marker && marker.lang === 'es') ? 2 : 1);
+        a.lang = iLang === 2 ? 'es' : 'en';
         const iPerfil = await elegirUno(rl, '¿Qué es el proyecto?', [
             ...PERFILES.map(p => `${p.nombre}: ${p.para}`),
             'Elegir yo: todo, por categorías o a medida',
@@ -851,6 +858,7 @@ async function main() {
         log('       [--seleccion todo|categorias|a-medida] [--grupos front,motion,3d,quality,architecture,growth,ops,design]');
         log('       [--solo-skills a,b] [--hooks guard,stop-guard,...] [--comandos plan,verificar,...] [--skills a,b] [--bundle x] [--ahorro|--sin-ahorro]');
         log('       [--permitir push,push-main,commit-main | --sin-permisos] [--apagar-hooks format-on-save,... | --encender-hooks] [--sin-migrar]');
+        log('       [--lang en|es]   (idioma de los avisos de Senzu en el proyecto; por defecto en; SENZU_LANG manda)');
         log('       [--omitir-paso adoptar,plan,brief | --sin-omitir]   (pasos del método que el muro arranque-guard no exigirá en este proyecto)');
         log('Stacks: ' + fs.readdirSync(path.join(ROOT, 'stacks')).join(', '));
         return;
@@ -935,6 +943,9 @@ async function main() {
     }
     if (seleccion) markerObj.seleccion = seleccion;
     if (stack.ahorro) markerObj.ahorro = true;
+    // Idioma de la UI del proyecto (muros, avisos): lo lee localeUI(root). Si no se fija, se omite (por defecto 'en').
+    const langIn = a.lang != null ? a.lang : (marker && marker.lang);
+    if (langIn != null) markerObj.lang = String(langIn).toLowerCase().startsWith('es') ? 'es' : 'en';
     // Permisos y hooks apagados: los decide el usuario; si no se pasan, se conservan los del marcador
     const permisos = a.permitir !== null ? permisosDesde(a.permitir) : ((marker && marker.permisos) || {});
     if (Object.keys(permisos).length) markerObj.permisos = permisos;

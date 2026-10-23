@@ -11,6 +11,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HOOKS = path.join(ROOT, 'core', 'hooks');
+process.env.SENZU_LANG = 'es';   // este suite comprueba el CONTENIDO en castellano de siguientePaso/arranque; se ejerce en locale es
 const lib = await import(pathToFileURL(path.join(HOOKS, 'lib.mjs')).href);
 const PLANTILLAS = path.join(ROOT, 'core', 'skills', 'project-planner', 'templates');
 let casos = 0, fallos = 0;
@@ -70,6 +71,17 @@ ok(/^\/verificar → \/desplegar → \/entregar$/.test((lib.siguientePaso(termin
 // 2. planStatus no cuenta las tarjetas de ejemplo de la plantilla
 ok(lib.planStatus(proyecto('plantilla', { marker: BACK })).total === 0, 'la plantilla de PLAN.md tiene 0 tareas reales');
 ok(lib.planStatus(conPlan).total === 1, 'una tarjeta real cuenta');
+// 2b. IDs que improvisa el planner (hallazgos de auditoría: A-H01, A-H01d3b2, A-H0608) también cuentan.
+// Antes la regex solo veía F<fase>-T<n>, contaba las F-T hechas y reportaba el plan terminado, ocultando
+// las A-H pendientes (r3v3rs3: 40/40 falso). El plan NO debe parecer acabado si quedan tarjetas.
+const idsRaros = proyecto('ids-raros', { marker: BACK });
+fs.appendFileSync(path.join(idsRaros, 'senzu', 'plan', 'PLAN.md'),
+    '\n### F1-T1 · Crear la API  [M] [done]\n### A-H01 · Dividir el god-file  [L] [todo]\n'
+    + '### A-H01d3b2 · Extraer invocación del reasoner  [M] [doing]\n### A-H0608 · Higiene y hardening  [S] [todo]\n');
+const psRaros = lib.planStatus(idsRaros);
+ok(psRaros.total === 4 && psRaros.done === 1, 'tarjetas A-H… cuentan (no se reportan como plan terminado)', JSON.stringify(psRaros));
+ok(psRaros.doing.some(t => /A-H01d3b2/.test(t)), 'una A-H en curso aparece en doing', JSON.stringify(psRaros.doing));
+ok(psRaros.next.some(t => /A-H01\b/.test(t)), 'una A-H todo aparece en next', JSON.stringify(psRaros.next));
 
 // 3. el muro
 const HOOK = path.join(HOOKS, 'arranque-guard.mjs');

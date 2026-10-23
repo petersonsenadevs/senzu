@@ -15,7 +15,7 @@ El agente decide solo, en tres capas automáticas:
 3. **Tablas de activación** (`skill-router` y `front-activation`, generadas del registro): el agente las
    consulta cuando duda; `references/decision-trees.md` tiene los árboles de decisión completos.
 
-Total: **43 skills**. Fuente única: `core/skills-registry.json` (grupo, cuándo, señales, prioridad, dependencias).
+Total: **45 skills**. Fuente única: `core/skills-registry.json` (grupo, cuándo, señales, prioridad, dependencias).
 
 ### Planificación (grupo `planning`, 1 skill)
 
@@ -27,9 +27,9 @@ Total: **43 skills**. Fuente única: `core/skills-registry.json` (grupo, cuándo
 
 | Skill | Prio | Cuándo usarla | Señales que la activan (muestra) |
 |---|---|---|---|
-| **`skill-router`** (entrada) | 0 | Empezar cualquier tarea no trivial: decide qué skill y sección leer (tabla de activación + protocolo de carga) | que stack, elegir stack, con que lo hago, que skill |
+| **`skill-router`** (entrada) | 0 | Empezar cualquier tarea no trivial: decide qué skill y sección leer (tabla de activación + protocolo de carga) | que stack, elegir stack, con que lo hago, que skill, which stack, choose a stack, what do I use, which skill |
 | `front-activation` | 8 | Empezar una tarea de UI, animación o 3D: detecta el perfil de front y la lectura mínima por tarea; efectos concretos del catálogo (CSS moderno, formas y SVG, tipografía cinética, microinteracciones, WebGL avanzado, física e impacto: objetos que caen, pantalla rota, intros y loaders) | blobs, gooey, metaballs, morph, separadores de onda, onda entre secciones, clip-path, view transitions… |
-| `instalar-proyecto` | 8 | Instalar o actualizar Senzu completo en el proyecto (/instalar): todo, por categorías o a medida | instalar dev.standards, actualizar dev.standards, reinstala dev.standards, instalar el paquete, instalacion de dev.standards |
+| `instalar-proyecto` | 8 | Instalar o actualizar Senzu completo en el proyecto (/instalar): todo, por categorías o a medida | instalar dev.standards, actualizar dev.standards, reinstala dev.standards, instalar el paquete, instalacion de dev.standards, install dev.standards, update senzu, reinstall senzu… |
 
 ### Calidad de código (grupo `quality`, 3 skills)
 
@@ -51,12 +51,13 @@ Total: **43 skills**. Fuente única: `core/skills-registry.json` (grupo, cuándo
 |---|---|---|---|
 | `devlog` | 8 | Terminar un paso relevante o commitear (siempre); preguntas sobre el pasado del proyecto (memoria y buscador) | commit, commitea, cierra la tarea, documenta, devlog, memoria del proyecto, historial del proyecto, por que lo hicimos… |
 
-### Front y diseño (grupo `front`, 6 skills)
+### Front y diseño (grupo `front`, 7 skills)
 
 | Skill | Prio | Cuándo usarla | Señales que la activan (muestra) |
 |---|---|---|---|
 | **`ui-ux-pro-max`** (entrada) | 15 | Crear, maquetar o rediseñar páginas, vistas, layouts, componentes, formularios, dashboards, temas, colores, tipografía, iconos, responsive, accesibilidad; archivos .vue .tsx .jsx .astro .blade.php .html .css | landing, web, sitio, home, hero, pagina, pantalla, vista… |
 | `design-system` | 10 | Tokens de diseño (primitivos → semánticos → componente), CSS variables, validación de tokens | design tokens, tokens de diseño, tokens semanticos, primitivos, css variables, sistema de diseño |
+| `tanstack` | 10 | Estado del servidor (fetch, caché, invalidación, infinite), tablas con orden/filtro/paginación (cliente o servidor), virtualización de listas grandes; dashboards y tablas de datos (React, Vue, Svelte, Solid) | tanstack, @tanstack, react.query, vue.query, react.table, tanstack.table, useQuery, estado del servidor… |
 | `ui-styling` | 10 | Componentes shadcn/ui (React o Vue) y utilidades/tema de Tailwind | shadcn-vue, radix, reka, componentes de ui, tailwind config, cva |
 | `image-gen` | 8 | Generar imágenes IA acordes a la web: producto flotante, heros, fondos, 3D, mockups, texturas (gpt-image en Codex, Nano Banana en Antigravity, script multi-proveedor) | genera una imagen, imagenes ia, fotos de producto, producto flotando, levitando, hero image, imagen para el hero, fondo generado… |
 | `ui-verify` | 8 | Verificar una UI terminada en navegador real: responsive 375/768/1440, dark mode, consola y accesibilidad (axe); obligatoria antes de dar una vista por hecha | verifica, comprueba la ui, revisa el responsive, lighthouse, axe, capturas, screenshots, se ve bien en movil… |
@@ -114,3 +115,9 @@ Total: **43 skills**. Fuente única: `core/skills-registry.json` (grupo, cuándo
 | Skill | Prio | Cuándo usarla | Señales que la activan (muestra) |
 |---|---|---|---|
 | `deploy-ops` | 8 | Desplegar y operar en producción cualquier stack: Netlify/Vercel/Forge/VPS, Docker, CI/CD con GitHub Actions, secretos por entorno, colas y cron en prod, backups con restore probado, monitorización e incidentes | deploy, despliegue, desplegar, subelo a produccion, docker, dockerfile, docker.compose, dockeriza… |
+
+### Seguridad (grupo `security`, 1 skill)
+
+| Skill | Prio | Cuándo usarla | Señales que la activan (muestra) |
+|---|---|---|---|
+| `security` | 8 | Revisar o auditar la seguridad del proyecto, blindar auth / una API / un agente de IA, hardening, pentesting autorizado, OWASP, inyección de prompt, XSS/CSRF/SSRF/IDOR, cabeceras de seguridad | seguridad, security, revision de seguridad, auditoria de seguridad, hardening, endurec, pentest, pruebas de penetracion… |

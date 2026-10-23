@@ -7,6 +7,8 @@
 
 # Senzu
 
+**Español** · [English](README.en.md)
+
 *Una semilla y el proyecto se recupera.* (Antes **dev-standards**.)
 
 **El estándar de trabajo de la agencia convertido en sistema ejecutable para agentes de IA.**
@@ -15,7 +17,7 @@ skills que se activan solas, muros que bloquean de verdad y verificación obliga
 nada por hecho.
 
 <!-- GEN:resumen -->
-![Version](https://img.shields.io/badge/version-v2.19.42-black) ![Skills](https://img.shields.io/badge/skills-43-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Muros](https://img.shields.io/badge/muros-27_hooks-red) ![Comandos](https://img.shields.io/badge/comandos-22-orange) ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
+![Version](https://img.shields.io/badge/version-v2.19.43-black) ![Skills](https://img.shields.io/badge/skills-45-blue) ![Stacks](https://img.shields.io/badge/stacks-9-green) ![Plugins](https://img.shields.io/badge/plugins_Claude-4-purple) ![Muros](https://img.shields.io/badge/muros-31_hooks-red) ![Comandos](https://img.shields.io/badge/comandos-24-orange) ![Idioma](https://img.shields.io/badge/idioma-espa%C3%B1ol-yellow) ![Clones](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fpetersonsenadevs%2Fsenzu%2Fstats%2Fbadge-clones.json)
 
 | Grupo | Skills | Entra por |
 |---|---|---|
@@ -24,12 +26,13 @@ nada por hecho.
 | **Calidad de código** (3) | backend-audit, code-quality, depurar | router |
 | **Arquitectura** (1) | ddd-hexagonal | router |
 | **Documentación** (1) | devlog | router |
-| **Front y diseño** (6) | design-system, image-gen, modern-web-design, ui-styling… | `ui-ux-pro-max` |
+| **Front y diseño** (7) | design-system, image-gen, modern-web-design, tanstack… | `ui-ux-pro-max` |
 | **Animación** (9) | animated-component-libraries, animejs, barba-js, gsap-scrolltrigger… | router |
 | **3D / WebGL** (12) | aframe-webxr, babylonjs-engine, blender-web-pipeline, lightweight-3d-effects… | router |
 | **Diseño gráfico y marca** (4) | banner-design, brand, graphic-design, slides | router |
 | **Marketing y SEO** (2) | email-html, marketing-seo | router |
 | **Operaciones y despliegue** (1) | deploy-ops | router |
+| **Seguridad** (1) | security | router |
 <!-- /GEN:resumen -->
 
 ## Instalación rápida
@@ -67,8 +70,7 @@ Lo peligroso no se le pide por favor al agente: un hook lo **deniega** con el mo
 
 ```text
 > git push origin main
-[BLOQUEADO por Senzu] Este git push no se permite: va a una rama principal (main, develop, staging,
-production, release/…) … A una principal, solo si el usuario pone "pushMain": true o lo sube él.
+[BLOQUEADO por Senzu] git push está prohibido sin aprobación explícita.
 
 > netlify deploy --prod
 [BLOQUEADO] Deploy a PRODUCCIÓN detectado. Requiere aprobación explícita del usuario
@@ -102,9 +104,9 @@ Y no da nada por hecho sin pruebas, ni toca las ramas principales:
   - AU-T1 · Autorizar el acceso a pedidos: falta «Verificado:» con la evidencia; «Cumple:» que diga cómo
     cumple su «Para qué» (H-03 de la auditoría: un cliente ve los pedidos de otro); «Devlog:» de cierre
 
-> git push -u origin feat/carrito   (a tu rama de trabajo: pasa)
-> git push origin staging           (una rama principal: también despliega)
-[BLOQUEADO por Senzu] Este git push no se permite: va a una rama principal … (lo decide el usuario, no el agente)
+> git push origin staging        (en un proyecto que SÍ permite push a ramas de trabajo)
+[BLOQUEADO por Senzu] git push está prohibido sin aprobación explícita. (… a una rama principal
+(main, develop, staging, production, release/…), además "pushMain": true. Lo decide el usuario, no el agente.)
 ```
 
 También: secretos en código, `console.log` nuevos, migraciones ya desplegadas, archivos generados,

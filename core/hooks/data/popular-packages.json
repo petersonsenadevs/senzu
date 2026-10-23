@@ -1,0 +1,28 @@
+{
+  "_que_es": "Nombres de paquetes MUY populares por ecosistema, para detectar typosquatting (un nombre casi identico a uno famoso suele ser un paquete malicioso). Lista curada y ampliable por release; no pretende ser exhaustiva. Scoped (@scope/x) y nombres cortos (<4) no se comparan.",
+  "npm": [
+    "react", "react-dom", "preact", "lodash", "axios", "express", "chalk", "commander",
+    "debug", "moment", "dayjs", "vue", "webpack", "babel", "eslint", "prettier",
+    "typescript", "next", "nuxt", "svelte", "jest", "vitest", "rollup", "vite",
+    "dotenv", "cors", "body-parser", "mongoose", "prisma", "sequelize", "redis",
+    "socket.io", "passport", "jsonwebtoken", "bcrypt", "nodemailer", "uuid",
+    "classnames", "styled-components", "tailwindcss", "zod", "yup", "rxjs",
+    "cross-env", "concurrently", "nodemon", "ts-node", "esbuild", "pino",
+    "winston", "node-fetch", "undici", "ws", "puppeteer", "playwright", "cheerio",
+    "colors", "ua-parser-js", "left-pad", "request", "underscore", "async"
+  ],
+  "pypi": [
+    "requests", "numpy", "pandas", "flask", "django", "fastapi", "pydantic",
+    "sqlalchemy", "pytest", "setuptools", "pillow", "scipy", "matplotlib",
+    "beautifulsoup4", "urllib3", "boto3", "click", "rich", "httpx", "aiohttp",
+    "uvicorn", "celery", "redis", "pyyaml", "cryptography", "tensorflow",
+    "torch", "scikit-learn", "openai", "anthropic", "langchain", "python-dotenv",
+    "jinja2", "werkzeug", "colorama", "tqdm"
+  ],
+  "packagist": [
+    "laravel/framework", "symfony/symfony", "guzzlehttp/guzzle", "monolog/monolog",
+    "phpunit/phpunit", "doctrine/orm", "nesbot/carbon", "league/flysystem",
+    "spatie/laravel-permission", "livewire/livewire", "inertiajs/inertia-laravel",
+    "fakerphp/faker", "fruitcake/laravel-cors", "barryvdh/laravel-debugbar"
+  ]
+}

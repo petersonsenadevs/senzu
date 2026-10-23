@@ -7,7 +7,9 @@ que tienen prioridad sobre cualquier atajo.
 
 ## Idioma
 - Comunícate en **español**, con ortografía y acentos correctos.
-- Identificadores de código y comandos van en su forma original.
+- **Código en inglés por defecto**: los identificadores (clases, funciones, variables, archivos) van en inglés; los términos de dominio del negocio, en su idioma (lenguaje ubicuo: `Factura`, `Pedido`, `Cliente`). Las palabras clave y las APIs, en su forma original.
+- Los textos de cara al usuario (UI, mensajes visibles) van en el idioma del producto.
+- Si el proyecto fija otra cosa con `/adoptar` (p. ej. un código heredado ya consistente en otro idioma), esa convención sellada manda.
 
 ## Cómo pensamos (principios)
 - **Pragmatismo**: la solución más simple que resuelve el problema completo; la arquitectura se gana con complejidad real, no por moda.

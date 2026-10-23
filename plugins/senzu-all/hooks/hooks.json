@@ -40,6 +40,16 @@
                                                            "type":  "command",
                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/guard.mjs\"",
                                                            "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/supply-guard.mjs\"",
+                                                           "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pentest-guard.mjs\"",
+                                                           "timeout":  30
                                                        }
                                                    ]
                                      },
@@ -74,6 +84,16 @@
                                                        {
                                                            "type":  "command",
                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/backend-guard.mjs\"",
+                                                           "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/security-guard.mjs\"",
+                                                           "timeout":  30
+                                                       },
+                                                       {
+                                                           "type":  "command",
+                                                           "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/pool-guard.mjs\"",
                                                            "timeout":  30
                                                        },
                                                        {

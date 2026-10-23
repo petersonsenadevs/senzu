@@ -26,9 +26,10 @@ actualiza respetando la selección guardada. No toques nada más del proyecto en
    `laravel` · carpeta wp-includes → `wordpress` · en package.json: next → `next`, nuxt → `nuxt`,
    @sveltejs/kit → `sveltekit`, astro → `astro`, vue sin meta-framework → `vue-ts`, express o @nestjs →
    `node-api` · pyproject.toml → `python-langgraph`. Si hay duda entre dos, pregunta con propuesta.
-3. **Confirma en una sola pregunta**: stack, herramientas (Claude, Claude + Codex o solo Codex) y, si el
-   proyecto ya tiene CLAUDE.md, AGENTS.md o diario propio, qué hacer con ellos (respaldar e importar es
-   lo sensato por defecto).
+3. **Confirma en una sola pregunta**: stack, herramientas (Claude, Claude + Codex o solo Codex), **idioma de
+   los avisos de Senzu** (muros, arranque, cierre: inglés por defecto o castellano; si el usuario te escribe
+   en castellano, propón castellano) y, si el proyecto ya tiene CLAUDE.md, AGENTS.md o diario propio, qué
+   hacer con ellos (respaldar e importar es lo sensato por defecto).
 4. **Pregunta qué es el proyecto** (opciones cerradas, de `core/perfiles.json` del paquete; si ya lo
    dijo, no preguntes; propón la que encaje con lo que ves):
    - **Web completa** (front y backend): todo lo del stack.
@@ -46,7 +47,8 @@ actualiza respetando la selección guardada. No toques nada más del proyecto en
    `node "<paquete>/tools/init.mjs" --stack <stack> --path "<raíz-del-proyecto>" --tools claude`
    y, según lo elegido: `--perfil web|backend|front|agente-ia|libreria` · `--seleccion categorias --grupos
    front,motion` · `--seleccion a-medida --solo-skills a,b --hooks guard,stop-guard --comandos plan,verificar`.
-   Añade `,codex` en `--tools` si usa Codex. Para cambiar una selección guardada, pasa la nueva.
+   Añade `,codex` en `--tools` si usa Codex. **Idioma**: `--lang es` si pidió castellano (por defecto inglés;
+   no lo pongas para inglés). Para cambiar una selección guardada, pasa la nueva.
    Cursor y Windsurf solo con la versión PowerShell en Windows (`tools/sync.ps1`). No inventes otros
    caminos ni scripts.
    **Permisos y hooks apagados** (`--permitir`, `--apagar-hooks`): los decide el usuario y el muro

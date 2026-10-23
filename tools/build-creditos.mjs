@@ -58,36 +58,71 @@ for (const e of efectos) {
     }
 }
 
-// ---------------------------------------------------------------- CREDITOS.md
-const L = [];
-L.push('<!-- GENERADO por tools/build-creditos.mjs desde los manifiestos de terceros. No editar a mano. -->', '');
-L.push('# Créditos', '');
-L.push('Senzu se apoya en el trabajo de otras personas. Todo lo de terceros conserva su licencia original y su');
-L.push('aviso de copyright (`LICENSE.upstream` en cada skill; el archivo de licencia en cada efecto). Nuestro');
-L.push('código es MIT ([LICENSE](LICENSE)). Se actualiza cada semana desde los repositorios originales.', '');
-L.push('## Skills de terceros', '');
-L.push('Copiadas tal cual y con una capa en castellano encima (`core/skills-overlay/`); el original no se modifica.', '');
-L.push('| Repositorio | Autor | Licencia | Skills |', '|---|---|---|---|');
-for (const r of porRepo.values()) {
-    const url = String(r.url || '').replace(/\.git$/, '');
-    L.push(`| [${r.name}](${url}) | ${r.copyright.replace(/^\d{4}(-\d{4})?\s*/, '') || '—'} | ${[...r.licencias].join(', ') || '—'} | ${r.skills.length}: ${r.skills.sort().join(', ')} |`);
-}
-L.push('', `## Colección de efectos (${efectos.length} repositorios)`, '');
-L.push('Fuente de las recetas del catálogo de efectos de `front-activation`. No va en el repositorio: se descarga');
-L.push('con `tools/vendor-effects.ps1`.', '');
+// ---------------------------------------------------------------- CREDITOS.md y CREDITOS.en.md
+// En inglés, las categorías y el «para qué» de cada efecto salen de core/i18n/creditos.json (si falta uno, se
+// queda en castellano y test-i18n lo marca); el resto del texto está aquí.
+const i18n = json(path.join(ROOT, 'core', 'i18n', 'creditos.json')) || { categorias: {}, para: {} };
+const TXT = {
+    es: {
+        gen: '<!-- GENERADO por tools/build-creditos.mjs desde los manifiestos de terceros. No editar a mano. -->',
+        titulo: '# Créditos',
+        intro: ['Senzu se apoya en el trabajo de otras personas. Todo lo de terceros conserva su licencia original y su',
+            'aviso de copyright (`LICENSE.upstream` en cada skill; el archivo de licencia en cada efecto). Nuestro',
+            'código es MIT ([LICENSE](LICENSE)). Se actualiza cada semana desde los repositorios originales.'],
+        skills: '## Skills de terceros',
+        skillsIntro: 'Copiadas tal cual y con una capa en castellano encima (`core/skills-overlay/`); el original no se modifica.',
+        cabSkills: '| Repositorio | Autor | Licencia | Skills |',
+        efectos: n => `## Colección de efectos (${n} repositorios)`,
+        efectosIntro: ['Fuente de las recetas del catálogo de efectos de `front-activation`. No va en el repositorio: se descarga',
+            'con `tools/vendor-effects.ps1`.'],
+        cabEfectos: '| Repositorio | Licencia | Para qué |',
+        categoria: c => c,
+        para: e => e.for,
+        ideas: '## Ideas, no código',
+        ideasLista: ['- **Modo ahorro**: inspirado en la idea de [caveman](https://github.com/JuliusBrussee/caveman) (Apache-2.0); implementación y textos propios.',
+            '- **Recetas con Pretext**: usan la librería [@chenglou/pretext](https://github.com/chenglou/pretext) (MIT) como dependencia del proyecto que la instale; no se incluye su código.'],
+    },
+    en: {
+        gen: '<!-- GENERADO por tools/build-creditos.mjs desde los manifiestos de terceros y core/i18n/creditos.json. No editar a mano. -->',
+        titulo: '# Credits',
+        intro: ['Senzu builds on other people\'s work. Everything third-party keeps its original license and its',
+            'copyright notice (`LICENSE.upstream` in each skill; the license file in each effect). Our own',
+            'code is MIT ([LICENSE](LICENSE)). It is updated every week from the original repositories.'],
+        skills: '## Third-party skills',
+        skillsIntro: 'Copied as they are, with a layer on top (`core/skills-overlay/`); the original is not modified.',
+        cabSkills: '| Repository | Author | License | Skills |',
+        efectos: n => `## Effects collection (${n} repositories)`,
+        efectosIntro: ['Source of the recipes in the `front-activation` effects catalog. It is not in the repository: it is downloaded',
+            'with `tools/vendor-effects.ps1`.'],
+        cabEfectos: '| Repository | License | What for |',
+        categoria: c => i18n.categorias?.[c] || c,
+        para: e => i18n.para?.[e.repo] || e.for,
+        ideas: '## Ideas, not code',
+        ideasLista: ['- **Saving mode**: inspired by the idea of [caveman](https://github.com/JuliusBrussee/caveman) (Apache-2.0); our own implementation and texts.',
+            '- **Pretext recipes**: they use the [@chenglou/pretext](https://github.com/chenglou/pretext) library (MIT) as a dependency of the project that installs it; its code is not included.'],
+    },
+};
 const porCategoria = new Map();
 for (const e of efectos) { if (!porCategoria.has(e.category)) porCategoria.set(e.category, []); porCategoria.get(e.category).push(e); }
-for (const [cat, lista] of [...porCategoria].sort((a, b) => String(a[0]).localeCompare(String(b[0])))) {
-    L.push(`### ${cat}`, '', '| Repositorio | Licencia | Para qué |', '|---|---|---|');
-    for (const e of lista.sort((a, b) => a.repo.localeCompare(b.repo))) L.push(`| [${e.repo}](https://github.com/${e.repo}) | ${e.license} | ${String(e.for || '').replace(/\|/g, '/')} |`);
-    L.push('');
+function creditos(lang) {
+    const t = TXT[lang];
+    const L = [t.gen, '', t.titulo, '', ...t.intro, '', t.skills, '', t.skillsIntro, '', t.cabSkills, '|---|---|---|---|'];
+    for (const r of porRepo.values()) {
+        const url = String(r.url || '').replace(/\.git$/, '');
+        L.push(`| [${r.name}](${url}) | ${r.copyright.replace(/^\d{4}(-\d{4})?\s*/, '') || '—'} | ${[...r.licencias].join(', ') || '—'} | ${r.skills.length}: ${[...r.skills].sort().join(', ')} |`);
+    }
+    L.push('', t.efectos(efectos.length), '', ...t.efectosIntro, '');
+    for (const [cat, lista] of [...porCategoria].sort((a, b) => String(a[0]).localeCompare(String(b[0])))) {
+        L.push(`### ${t.categoria(cat)}`, '', t.cabEfectos, '|---|---|---|');
+        for (const e of [...lista].sort((a, b) => a.repo.localeCompare(b.repo))) L.push(`| [${e.repo}](https://github.com/${e.repo}) | ${e.license} | ${String(t.para(e) || '').replace(/\|/g, '/')} |`);
+        L.push('');
+    }
+    L.push(t.ideas, '', ...t.ideasLista, '');
+    return L.join('\n');
 }
-L.push('## Ideas, no código', '');
-L.push('- **Modo ahorro**: inspirado en la idea de [caveman](https://github.com/JuliusBrussee/caveman) (Apache-2.0); implementación y textos propios.');
-L.push('- **Recetas con Pretext**: usan la librería [@chenglou/pretext](https://github.com/chenglou/pretext) (MIT) como dependencia del proyecto que la instale; no se incluye su código.');
-L.push('');
-fs.writeFileSync(path.join(ROOT, 'CREDITOS.md'), L.join('\n'));
-console.log(`  [docs] CREDITOS.md (${[...porRepo.values()].reduce((n, r) => n + r.skills.length, 0)} skills de ${porRepo.size} repos, ${efectos.length} repos de efectos)`);
+fs.writeFileSync(path.join(ROOT, 'CREDITOS.md'), creditos('es'));
+fs.writeFileSync(path.join(ROOT, 'CREDITOS.en.md'), creditos('en'));
+console.log(`  [docs] CREDITOS.md + CREDITOS.en.md (${[...porRepo.values()].reduce((n, r) => n + r.skills.length, 0)} skills de ${porRepo.size} repos, ${efectos.length} repos de efectos)`);
 
 if (comprobar) {
     if (problemas.length) { console.log('Licencias: ' + problemas.length + ' problema(s):'); for (const p of problemas) console.log('  - ' + p); process.exit(1); }

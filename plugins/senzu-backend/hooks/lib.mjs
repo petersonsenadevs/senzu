@@ -110,7 +110,7 @@ export const rutaMarcador = root => ruta(root, 'senzu.json');
 //   "hooksApagados": ["format-on-save", "front-skill-reminder"]
 // Solo cuenta el valor booleano true. guard, secrets-guard, protect-files y conventions-guard NO se pueden apagar: el push forzado,
 // lo destructivo, los secretos y los archivos protegidos siguen bloqueados siempre.
-export const HOOKS_NO_APAGABLES = ['guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];   // las convenciones selladas tampoco se apagan
+export const HOOKS_NO_APAGABLES = ['guard', 'supply-guard', 'secrets-guard', 'protect-files', 'conventions-guard', 'arquitectura-guard'];   // seguridad y convenciones selladas no se apagan
 // Ramas PRINCIPALES: ni commit directo ni push del agente (salvo permiso commitEnMain / pushMain del usuario).
 // Todas las de entorno, no solo main: un push a staging o production también despliega. El usuario puede añadir
 // las suyas en el marcador: "ramasProtegidas": ["demo", "cliente-x"].
@@ -146,6 +146,21 @@ function getMarkerSeguro(root) { try { return readJson(rutaMarcador(root)); } ca
 
 // Variables de entorno: SENZU_X (nombre actual) o SENZU_X (nombre anterior, se sigue aceptando)
 export const envSenzu = n => process.env['SENZU_' + n] || process.env['DEV_STANDARDS_' + n] || '';   // compat-dev-standards
+
+// Idioma de la UI que ve el usuario (nombres y descripciones de comando, mensajes de los muros, keywords,
+// avisos). El CONTENIDO de las skills no depende de esto: lo lee el agente, que responde en el idioma del
+// usuario. Por defecto 'en' (Senzu es ingles por defecto); 'es' si el proyecto lo pide.
+// Orden: SENZU_LANG (entorno) > senzu.json "lang" > 'en'. Solo 'es'/'en'; cualquier otra cosa cae a 'en'.
+export function localeUI(root) {
+    const norm = v => { const s = String(v || '').trim().toLowerCase(); return s.startsWith('es') ? 'es' : s.startsWith('en') ? 'en' : ''; };
+    const env = norm(envSenzu('LANG'));
+    if (env) return env;
+    const m = getMarkerSeguro(root);
+    const marker = m && norm(m.lang);
+    return marker || 'en';
+}
+import { msg } from './messages.mjs';   // catalogo de mensajes de UI por idioma (ver messages.mjs)
+export { msg };
 
 export function readHookInput() {
     const p = leerEntradaCruda();
@@ -609,7 +624,10 @@ export function planStatus(root) {
     if (txt === null) return r;
     r.exists = true;
     for (const line of txt.split(/\r?\n/)) {
-        const m = /^###\s+([A-Z]+\d*-T\d+[a-z]?)\s*[·\-]\s*(.+?)\s*\[(S|M|L)\]\s*\[(todo|doing|blocked|done)\]/.exec(line);
+        // ID: letra inicial + letras/números/./- (F1-T1, F1-T3a, X-T2, pero también los que improvisa el
+        // planner: A-H01, A-H01d3b2, A-H0608). Se exige espacio ANTES del separador para no partir el guion
+        // interno del propio ID (si no, «A-H01 ·» se leería como id «A» y título «H01 · …»).
+        const m = /^###\s+([A-Z][\w.-]*?)\s+[·\-]\s*(.+?)\s*\[(S|M|L)\]\s*\[(todo|doing|blocked|done)\]/.exec(line);
         if (m && !/^(…|\.\.\.|<)/.test(m[2])) {   // las tarjetas de ejemplo de la plantilla («X-T1 …», «<Verbo + objeto>») no cuentan
             r.total++;
             const [, id, title, , st] = m;
@@ -645,31 +663,32 @@ export function esArchivoDeCodigo(rel) { return EXT_CODIGO.test(String(rel || ''
 // Tres niveles: bloquea (instalar, adoptar), conversar (sin plan en proyecto nuevo: saber qué se hace o
 // preguntarlo) y anunciar (solo se dice: /siguiente, /plan en uno existente, el cierre del plan).
 export function siguientePaso(root) {
+    const lang = localeUI(root);
     const marker = getMarkerSeguro(root);
-    if (!marker) return { paso: 'instalar', comando: '/instalar', bloquea: true,
-        motivo: 'Senzu no está instalado en este proyecto: sin eso solo hay skills sueltas, no el método (perfil, plan, devlog, memoria y los muros del proyecto)' };
+    if (!marker) return { paso: 'instalar', comando: msg('step.instalar.cmd', lang), bloquea: true,
+        motivo: msg('step.instalar.motivo', lang) };
     const omitir = new Set([].concat(marker.omitirPasos || []).map(String));
     const mat = projectMaturity(root);
-    if (mat.existing && !mat.hasConventions && !omitir.has('adoptar')) return { paso: 'adoptar', comando: '/adoptar', bloquea: true,
-        motivo: 'hay código con su propio estilo y ninguna convención sellada: sin /adoptar escribirías a tu manera, no a la del proyecto' };
+    if (mat.existing && !mat.hasConventions && !omitir.has('adoptar')) return { paso: 'adoptar', comando: msg('step.adoptar.cmd', lang), bloquea: true,
+        motivo: msg('step.adoptar.motivo', lang) };
     const plan = planStatus(root);
     if (!mat.existing && !plan.total) {
         const briefTxt = readText(path.join(ruta(root, 'plan'), 'brief.md')) || '';
         const hayBrief = tieneContenido(seccionMd(briefTxt, 'Objetivo'));
         // Plan y brief NO se imponen: no todo proyecto los necesita. Lo obligatorio es saber qué se va a hacer;
         // si el usuario no lo ha dicho claro, se habla con él antes de programar (decisión del usuario, ver 091).
-        if (marker.frontProfile && !hayBrief && !omitir.has('brief') && !omitir.has('plan')) return { paso: 'brief', comando: '/brief y después /plan', bloquea: false, conversar: true,
-            motivo: 'proyecto nuevo con interfaz y sin brief ni plan' };
-        if (!omitir.has('plan')) return { paso: 'plan', comando: '/plan', bloquea: false, conversar: true,
-            motivo: 'proyecto nuevo sin plan' };
+        if (marker.frontProfile && !hayBrief && !omitir.has('brief') && !omitir.has('plan')) return { paso: 'brief', comando: msg('step.brief.cmd', lang), bloquea: false, conversar: true,
+            motivo: msg('step.briefNuevo.motivo', lang) };
+        if (!omitir.has('plan')) return { paso: 'plan', comando: msg('step.plan.cmd', lang), bloquea: false, conversar: true,
+            motivo: msg('step.planNuevo.motivo', lang) };
     }
-    if (plan.doing.length || plan.next.length) return { paso: 'siguiente', comando: '/siguiente', bloquea: false, anunciar: true,
-        motivo: plan.doing.length ? `tarea en curso: ${plan.doing[0]}` : `siguiente tarjeta: ${plan.next[0]}` };
+    if (plan.doing.length || plan.next.length) return { paso: 'siguiente', comando: msg('step.siguiente.cmd', lang), bloquea: false, anunciar: true,
+        motivo: plan.doing.length ? msg('step.siguiente.doing', lang, { x: plan.doing[0] }) : msg('step.siguiente.next', lang, { x: plan.next[0] }) };
     if (plan.total && plan.done >= plan.total) return { paso: 'cierre', bloquea: false, anunciar: true,
-        comando: marker.frontProfile ? '/verificar → /lanzar → /desplegar → /entregar' : '/verificar → /desplegar → /entregar',
-        motivo: `plan terminado (${plan.done}/${plan.total} tarjetas): toca comprobarlo todo y llevarlo a producción, con el OK del usuario en cada paso` };
-    if (mat.existing && !plan.total && !omitir.has('plan')) return { paso: 'plan', comando: '/plan', bloquea: false, anunciar: true,
-        motivo: 'proyecto con código y sin plan: para una feature de varias partes, /plan (objetivo, alcance y tarjetas); para un arreglo puntual no hace falta' };
+        comando: marker.frontProfile ? msg('step.cierre.cmdFront', lang) : msg('step.cierre.cmd', lang),
+        motivo: msg('step.cierre.motivo', lang, { done: plan.done, total: plan.total }) };
+    if (mat.existing && !plan.total && !omitir.has('plan')) return { paso: 'plan', comando: msg('step.plan.cmd', lang), bloquea: false, anunciar: true,
+        motivo: msg('step.planExistente.motivo', lang) };
     return null;
 }
 
@@ -944,6 +963,58 @@ export function sinTextoCitado(cmd) {
         const w = s.slice(i, j);
         if (!(palabras.length === 0 && /^\w+=/.test(w))) palabras.push(w);   // VAR=x cmd: la cabeza es cmd
         out += w; i = j;
+    }
+    return out;
+}
+
+// --- Escape POR COMANDO (no de sesion): la llave SENZU_ALLOW_<NAME>=1 (o DEV_STANDARDS_, compat) escrita como
+// asignacion en el PROPIO comando (`SENZU_ALLOW_PENTEST=1 nmap ...`) autoriza SOLO ese comando, no toda la
+// sesion. Cierra el hueco de exportar la variable de entorno y dejar la puerta abierta el resto de la sesion.
+// Se mira sin texto citado (D-036): un `echo "SENZU_ALLOW_X=1"` no cuenta. Acepta =1 o =true. name = 'ALLOW_PENTEST'.
+export function escapeComando(cmd, name) {
+    const txt = sinTextoCitado(String(cmd || ''));
+    const re = new RegExp('(?:^|[\\s;&|(])(?:SENZU|DEV_STANDARDS)_' + name + '=(?:1|true)(?![\\w=])', 'i');
+    return re.test(txt);
+}
+
+// --- Scripts que un comando EJECUTA: para que los muros Bash miren tambien lo que hay DENTRO del script, no
+// solo su nombre. Un `bash x.sh` o `python x.py` cuyo contenido lanza nmap o instala un paquete con malware
+// pasaba sin mirar. Recibe el comando ya SIN texto citado (sinTextoCitado) y la raiz; devuelve [{rel, contenido}]
+// de los archivos de script LOCALES que existen (un solo nivel, sin recursion). No lee binarios ni gigantes.
+const INTERP_SCRIPT = /^(?:\S*[\\/])?(bash|sh|zsh|dash|ksh|node|nodejs|deno|bun|python[0-9.]*|py|ruby|perl|php|pwsh|powershell(?:\.exe)?)$/i;
+const EXT_SCRIPT = /\.(sh|bash|zsh|ksh|mjs|cjs|js|py|rb|pl|ps1)$/i;
+const FLAG_SIN_ARCHIVO = /^(-c|-e|--command|--eval|-m|--module|-)$/i;   // bash -c "...", python -m mod: no hay archivo que leer
+export function scriptsEjecutados(c, root) {
+    const vistos = new Set(), out = [];
+    for (let trozo of String(c || '').split(/&&|\|\||;|\n|\|/)) {
+        trozo = trozo.trim();
+        if (!trozo) continue;
+        trozo = trozo.replace(/^(?:(?:\w+=\S+|sudo|doas|env|time|nohup|exec)\s+)*/i, '');   // VAR=x / sudo / env … delante
+        const tokens = trozo.split(/\s+/).filter(Boolean);
+        if (!tokens.length) continue;
+        const t0 = tokens[0], rest = tokens.slice(1), t0base = t0.replace(/^.*[\\/]/, '');
+        let cand = null;
+        if (INTERP_SCRIPT.test(t0)) {
+            if (rest.some(t => FLAG_SIN_ARCHIVO.test(t))) continue;   // codigo en linea, no un archivo
+            cand = rest.find(t => EXT_SCRIPT.test(t)) || rest.find(t => !t.startsWith('-'));
+        } else if (t0 === '.' || t0 === '&' || /^source$/i.test(t0)) {
+            cand = rest[0];                                           // source x.sh / . x.sh / & ./x.ps1
+        } else if (EXT_SCRIPT.test(t0base) && !t0.includes('=')) {
+            cand = t0;                                               // ./x.sh, scripts/x.py, x.sh
+        }
+        if (!cand) continue;
+        cand = cand.replace(/^["']|["']$/g, '');
+        if (!cand || cand.startsWith('-')) continue;
+        const abs = path.isAbsolute(cand) ? cand : path.join(root, cand.replace(/^\.[\\/]/, ''));
+        if (vistos.has(abs)) continue;
+        vistos.add(abs);
+        try {
+            const st = fs.statSync(abs);
+            if (!st.isFile() || st.size > 512 * 1024) continue;
+            const buf = fs.readFileSync(abs);
+            if (buf.includes(0)) continue;                           // binario: fuera
+            out.push({ rel: relDelProyecto(root, abs) || cand, contenido: buf.toString('utf8') });
+        } catch { /* no existe o no se puede leer: no se escanea (lado seguro: nunca un falso positivo) */ }
     }
     return out;
 }
