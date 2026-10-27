@@ -18,6 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cargarLocomo, cargarLongmemeval } from './loader.mjs';
 import { recuperadorEmbedding, recuperadorMotor } from './recuperar.mjs';
+import { memoriasDeConversacion } from './ingesta.mjs';
 import { chat } from './llm.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -28,16 +29,17 @@ const val = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] :
 const DATASET = opt('--longmemeval') ? 'longmemeval' : 'locomo';
 const LIMITE = Number(val('--limite', 0)) || 0;
 const RETR = val('--retriever', 'motor');            // motor (nuestro) | embedding (e5-small)
+const INGESTA = val('--ingesta', 'crudo');           // crudo (turnos tal cual) | llm (Qwen3 extrae hechos, como los productos)
 const TOPK = Number(val('--topk', 10));              // turnos que entran en el contexto del contestador
 const TOPE = Number(val('--tope-gasto', 2));         // $ máximos; se corta en seco al superarlo
 const DRY = opt('--dry');
 const JUEZ_PROV = val('--juez-proveedor', null);     // override del juez (p. ej. openai) sin tocar el contestador
 const JUEZ_MODELO = val('--juez-modelo', null);
-const SALIDA = val('--salida', path.join(HERE, `resultados-e2e-${DATASET}-${RETR}.json`));
+const SALIDA = val('--salida', path.join(HERE, `resultados-e2e-${DATASET}-${RETR}-${INGESTA}.json`));
 
 // --- checkpoint reanudable ---
-let estado = { dataset: DATASET, retriever: RETR, topk: TOPK, juez: JUEZ_MODELO || 'local', inicio: new Date().toISOString(), hechos: {} };
-if (fs.existsSync(SALIDA)) { try { const p = JSON.parse(fs.readFileSync(SALIDA, 'utf8')); if (p.dataset === DATASET && p.retriever === RETR) estado = p; } catch { /* checkpoint corrupto: se reinicia */ } }
+let estado = { dataset: DATASET, retriever: RETR, ingesta: INGESTA, topk: TOPK, juez: JUEZ_MODELO || 'local', inicio: new Date().toISOString(), hechos: {} };
+if (fs.existsSync(SALIDA)) { try { const p = JSON.parse(fs.readFileSync(SALIDA, 'utf8')); if (p.dataset === DATASET && p.retriever === RETR && (p.ingesta || 'crudo') === INGESTA) estado = p; } catch { /* checkpoint corrupto: se reinicia */ } }
 const guardar = () => fs.writeFileSync(SALIDA, JSON.stringify(estado, null, 2) + '\n');
 
 // --- contexto a partir de los turnos recuperados (en orden de ranking) ---
@@ -71,16 +73,18 @@ for (const it of ds.items) { if (!porHay.has(it.haystack)) porHay.set(it.haystac
 let gasto = Object.values(estado.hechos).reduce((s, h) => s + (h.coste || 0), 0);
 let hechos = Object.keys(estado.hechos).length;
 let cortado = false;
-process.stdout.write(`\nPipeline end-to-end · ${DATASET} · retriever ${RETR} · top-${TOPK}${DRY ? ' · DRY (sin LLM)' : ` · tope $${TOPE} · juez ${JUEZ_MODELO ? (JUEZ_PROV || 'openai') + ':' + JUEZ_MODELO : 'local'}`}\n`);
+process.stdout.write(`\nPipeline end-to-end · ${DATASET} · ingesta ${INGESTA} · retriever ${RETR} · top-${TOPK}${DRY ? ' · DRY (sin LLM)' : ` · tope $${TOPE} · juez ${JUEZ_MODELO ? (JUEZ_PROV || 'openai') + ':' + JUEZ_MODELO : 'local'}`}\n`);
 if (hechos) process.stdout.write(`Reanudando: ${hechos} preguntas ya resueltas (gasto previo $${gasto.toFixed(4)})\n`);
 
 for (const [hid, items] of porHay) {
     if (cortado) break;
-    const turnos = ds.haystacks[hid].sessions.flatMap(s => s.turnos.map(t => ({ ...t, fecha: s.fecha })));
-    const porTid = new Map(turnos.map(t => [t.tid, t]));
     const pendientes = items.filter(it => !estado.hechos[it.id] && (!LIMITE || hechos < LIMITE));
     if (!pendientes.length) continue;
-    const idx = RETR === 'embedding' ? await recuperadorEmbedding(turnos) : recuperadorMotor(turnos);
+    let unidades;                                     // la "memoria" sobre la que se recupera: hechos extraídos o turnos crudos
+    if (INGESTA === 'llm') { const mem = await memoriasDeConversacion(DATASET, hid, ds.haystacks[hid].sessions); unidades = mem.memorias; gasto += mem.coste || 0; }
+    else { unidades = ds.haystacks[hid].sessions.flatMap(s => s.turnos.map(t => ({ ...t, fecha: s.fecha }))); }
+    const porTid = new Map(unidades.map(t => [t.tid, t]));
+    const idx = RETR === 'embedding' ? await recuperadorEmbedding(unidades) : recuperadorMotor(unidades);
     for (const it of items) {
         if (LIMITE && hechos >= LIMITE) { cortado = true; break; }
         if (estado.hechos[it.id]) continue;              // ya resuelta en una tirada anterior
