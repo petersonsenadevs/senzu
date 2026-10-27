@@ -4,6 +4,10 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-27
+
+- **feature** — F8-T9 (Fase 1): base del cara a cara vs productos de memoria (datasets LoCoMo/LongMemEval + loader común con streaming) (exp) (entrada 181)
+
 ## 2026-10-23
 
 - **feature** — F8-T5: publicación reproducible (modo --bench, artículo BENCHMARK.md, mención en README); sin publicar fuera sin OK (exp) (entrada 180)
