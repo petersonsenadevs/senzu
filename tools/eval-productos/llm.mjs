@@ -51,6 +51,25 @@ export function coste(modelo, uso) {
     return (uso.entrada / 1e6) * p.entrada + (uso.salida / 1e6) * p.salida;
 }
 
+// Ollama nativo (/api/chat): hace falta think:false para APAGAR el razonamiento de Qwen3. Por el endpoint OpenAI el
+// pensamiento va a un campo aparte y deja el contenido vacío si el tope de tokens llega antes de terminar de pensar;
+// así que para 'local' se usa la API nativa. Mismo contrato de salida que openaiChat ({ texto, uso }).
+async function ollamaChat({ modelo, sistema, usuario, maxTokens, temperatura, apiBase }) {
+    const res = await fetch(`${apiBase}/api/chat`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            model: modelo,
+            messages: [...(sistema ? [{ role: 'system', content: sistema }] : []), { role: 'user', content: usuario }],
+            stream: false, think: false,
+            options: { temperature: temperatura, num_predict: maxTokens, seed: 7 },
+        }),
+    });
+    if (!res.ok) throw new Error(`LLM HTTP ${res.status}: ${(await res.text()).slice(0, 300)}`);
+    const j = await res.json();
+    const texto = (j.message?.content ?? '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    return { texto, uso: { entrada: j.prompt_eval_count ?? 0, salida: j.eval_count ?? 0 } };
+}
+
 async function openaiChat({ modelo, sistema, usuario, maxTokens, temperatura, apiBase, apiKey }) {
     const res = await fetch(`${apiBase}/chat/completions`, {
         method: 'POST',
@@ -80,7 +99,8 @@ export async function chat({ rol = 'respuesta', modelo, proveedor, sistema = '',
         if (!apiKey) throw new Error('Falta OPENAI_API_KEY (ponla en tools/.env; ver tools/.env.example)');
         out = await openaiChat({ modelo, sistema, usuario, maxTokens, temperatura, apiBase: 'https://api.openai.com/v1', apiKey });
     } else if (prov === 'local') {
-        out = await openaiChat({ modelo, sistema, usuario, maxTokens, temperatura, apiBase: c.localUrl, apiKey: 'sk-local' });
+        const apiBase = c.localUrl.replace(/\/v1\/?$/, '');     // de .../v1 (OpenAI) al host nativo de Ollama (/api/chat)
+        out = await ollamaChat({ modelo, sistema, usuario, maxTokens, temperatura, apiBase });
     } else {
         throw new Error(`Proveedor '${prov}' aún no implementado (openai y local sí). Pendiente: gemini, claude.`);
     }
