@@ -43,7 +43,7 @@ const guardar = () => fs.writeFileSync(SALIDA, JSON.stringify(estado, null, 2) +
 // --- contexto a partir de los turnos recuperados (en orden de ranking) ---
 function armarContexto(tids, porTid) {
     return tids.map(t => porTid.get(t)).filter(Boolean)
-        .map(t => `${t.hablante ? t.hablante + ': ' : ''}${t.texto}`).join('\n');
+        .map(t => `${t.fecha ? '[' + t.fecha + '] ' : ''}${t.hablante ? t.hablante + ': ' : ''}${t.texto}`).join('\n');
 }
 
 const SIS_CONTESTAR = 'You are a precise assistant. Answer the question using ONLY the conversation excerpts provided. '
@@ -76,7 +76,7 @@ if (hechos) process.stdout.write(`Reanudando: ${hechos} preguntas ya resueltas (
 
 for (const [hid, items] of porHay) {
     if (cortado) break;
-    const turnos = ds.haystacks[hid].sessions.flatMap(s => s.turnos);
+    const turnos = ds.haystacks[hid].sessions.flatMap(s => s.turnos.map(t => ({ ...t, fecha: s.fecha })));
     const porTid = new Map(turnos.map(t => [t.tid, t]));
     const pendientes = items.filter(it => !estado.hechos[it.id] && (!LIMITE || hechos < LIMITE));
     if (!pendientes.length) continue;

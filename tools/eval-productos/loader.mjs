@@ -135,7 +135,7 @@ function stats(ds) {
     process.stdout.write(`  ejemplo: ${JSON.stringify({ id: ej.id, pregunta: ej.pregunta.slice(0, 60), respuesta: ej.respuesta.slice(0, 40), tipo: ej.tipo, evidencia: ej.evidencia.slice(0, 3), abstencion: ej.abstencion })}\n`);
 }
 
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || process.argv[1]?.endsWith('loader.mjs')) {
+if (process.argv[1] && (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || process.argv[1].endsWith('loader.mjs'))) {
     const arg = n => process.argv.includes(n);
     const num = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 ? Number(process.argv[i + 1]) : d; };
     if (arg('--stats')) {
