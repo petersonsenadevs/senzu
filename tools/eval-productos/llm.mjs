@@ -33,13 +33,16 @@ const PRECIOS = {
     'gpt-4o': { entrada: 2.5, salida: 10 },
     'gpt-4o-mini': { entrada: 0.15, salida: 0.6 },
     'gemini-2.0-flash': { entrada: 0, salida: 0 },       // free tier
+    'qwen3:8b': { entrada: 0, salida: 0 },               // local (Ollama): 0 € por consulta
     'local': { entrada: 0, salida: 0 },
 };
 
 export const config = () => ({
-    proveedor: process.env.EVAL_LLM_PROVIDER || 'openai',
-    respuesta: process.env.EVAL_LLM_RESPUESTA || 'gpt-4o-mini',
-    juez: process.env.EVAL_LLM_JUEZ || 'gpt-4o',
+    // LOCAL-first (plan F8-T9): contestar y juzgar con Qwen3-8B local vía Ollama; 0 red, 0 €. El juez se valida contra
+    // GPT-4o POR LLAMADA (chat({ proveedor: 'openai', modelo: 'gpt-4o' })), sin cambiar el proveedor por defecto.
+    proveedor: process.env.EVAL_LLM_PROVIDER || 'local',
+    respuesta: process.env.EVAL_LLM_RESPUESTA || 'qwen3:8b',
+    juez: process.env.EVAL_LLM_JUEZ || 'qwen3:8b',
     localUrl: process.env.EVAL_LLM_LOCAL_URL || 'http://localhost:11434/v1',
 });
 
@@ -67,20 +70,21 @@ async function openaiChat({ modelo, sistema, usuario, maxTokens, temperatura, ap
 }
 
 // Un solo turno pregunta→respuesta. Devuelve { texto, uso:{entrada,salida}, modelo, coste }.
-export async function chat({ rol = 'respuesta', modelo, sistema = '', usuario, maxTokens = 512, temperatura = 0 } = {}) {
+export async function chat({ rol = 'respuesta', modelo, proveedor, sistema = '', usuario, maxTokens = 512, temperatura = 0 } = {}) {
     const c = config();
+    const prov = proveedor || c.proveedor;                  // override por llamada: valida el juez con openai sin tocar el resto
     modelo = modelo || (rol === 'juez' ? c.juez : c.respuesta);
     let out;
-    if (c.proveedor === 'openai') {
+    if (prov === 'openai') {
         const apiKey = process.env.OPENAI_API_KEY;
         if (!apiKey) throw new Error('Falta OPENAI_API_KEY (ponla en tools/.env; ver tools/.env.example)');
         out = await openaiChat({ modelo, sistema, usuario, maxTokens, temperatura, apiBase: 'https://api.openai.com/v1', apiKey });
-    } else if (c.proveedor === 'local') {
+    } else if (prov === 'local') {
         out = await openaiChat({ modelo, sistema, usuario, maxTokens, temperatura, apiBase: c.localUrl, apiKey: 'sk-local' });
     } else {
-        throw new Error(`Proveedor '${c.proveedor}' aún no implementado (openai y local sí). Pendiente: gemini, claude.`);
+        throw new Error(`Proveedor '${prov}' aún no implementado (openai y local sí). Pendiente: gemini, claude.`);
     }
-    return { ...out, modelo, coste: coste(modelo, out.uso) };
+    return { ...out, modelo, proveedor: prov, coste: coste(modelo, out.uso) };
 }
 
 if (process.argv[1]?.endsWith('llm.mjs')) {

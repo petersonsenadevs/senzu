@@ -27,7 +27,7 @@ const HOOKS = process.env.SENZU_HOOKS_DIR || path.join(ROOT, 'core', 'hooks');
 const motor = await import(pathToFileURL(path.join(HOOKS, 'hechos.mjs')).href);
 
 // --- recuperador 1: embedding e5-small (ranking puro: umbral 0, no abstiene; aquí medimos orden, no el "me callo") ---
-async function recuperadorEmbedding(turnos) {
+export async function recuperadorEmbedding(turnos) {
     const map = new Map();                                  // id sintético -> tid real (los tid pueden repetirse)
     const hechos = turnos.map((t, i) => { const uid = 'd' + i; map.set(uid, t.tid); return { id: uid, valor: t.texto, t: i }; });
     const idx = await crearBaselineEmbedding(hechos, { umbral: 0 });
@@ -35,7 +35,7 @@ async function recuperadorEmbedding(turnos) {
 }
 
 // --- recuperador 2: el motor de Senzu (cada turno un hecho con dimensión única; se mapea el id del hecho a su tid) ---
-function recuperadorMotor(turnos) {
+export function recuperadorMotor(turnos) {
     const base = fs.mkdtempSync(path.join(os.tmpdir(), 'senzu-recup-'));
     const P = path.join(base, 'proj');
     fs.mkdirSync(path.join(P, 'senzu'), { recursive: true });
@@ -55,7 +55,7 @@ function recuperadorMotor(turnos) {
     };
 }
 
-function recallItem(tids, gold, ks) {
+export function recallItem(tids, gold, ks) {
     const out = {};
     for (const k of ks) {
         const top = new Set(tids.slice(0, k));
@@ -66,7 +66,7 @@ function recallItem(tids, gold, ks) {
     return out;
 }
 
-async function evaluar(ds, retriever, { ks, limite }) {
+export async function evaluar(ds, retriever, { ks, limite }) {
     const porHay = new Map();
     for (const it of ds.items) { if (!porHay.has(it.haystack)) porHay.set(it.haystack, []); porHay.get(it.haystack).push(it); }
     const filas = [], lat = [];
@@ -103,7 +103,9 @@ function resumir(filas, lat, ks) {
     return r;
 }
 
-// ---- CLI ----
+// ---- CLI (solo al ejecutar directo; como librería exporta los recuperadores para el pipeline end-to-end) ----
+const esCLI = process.argv[1] && (import.meta.url === pathToFileURL(process.argv[1]).href || process.argv[1].endsWith('recuperar.mjs'));
+if (esCLI) {
 const args = process.argv.slice(2);
 const opt = n => args.includes(n);
 const val = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] : d; };
@@ -132,4 +134,5 @@ if (opt('--guardar')) {
     const ruta = path.join(HERE, `resultados-recuperacion-${cualDataset}.json`);
     fs.writeFileSync(ruta, JSON.stringify(salida, null, 2) + '\n');
     process.stdout.write(`\nGuardado: ${ruta}\n`);
+}
 }

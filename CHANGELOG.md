@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-27
 
+- **feature** — F8-T9 (Fase 2b): pipeline end-to-end (recuperar→contestar→juez) con tope de gasto, checkpoints y --dry; llm.mjs local-first Qwen3 (exp) (entrada 183)
 - **feature** — F8-T9 (Fase 2a): recuperación offline motor vs embedding sobre turnos; LoCoMo (motor gana) y LongMemEval (embedding gana), 0 red/0 € (exp) (entrada 182)
 - **feature** — F8-T9 (Fase 1): base del cara a cara vs productos de memoria (datasets LoCoMo/LongMemEval + loader común con streaming) (exp) (entrada 181)
 
