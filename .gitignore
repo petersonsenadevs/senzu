@@ -37,3 +37,12 @@ tools/.models/
 # Datos externos del benchmark (F8): corte descargado de Answerable TyDi QA con tools/eval-externo/bajar-tydiqa.mjs.
 # Se baja una vez y se puede rebajar; lo que SÍ se versiona son los resultados (tools/eval-externo/resultados.json).
 tools/.datos/
+
+# Claves de API del cara a cara contra productos (F8-T9, Fase 2/3): JAMÁS se versionan. El usuario pone su
+# OPENAI_API_KEY (u otra) en un .env local; lo que SÍ se versiona es el ejemplo .env.example.
+.env
+.env.*
+!.env.example
+tools/.env
+tools/.env.*
+!tools/.env.example
