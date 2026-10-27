@@ -19,6 +19,7 @@ import { fileURLToPath } from 'node:url';
 import { cargarLocomo, cargarLongmemeval } from './loader.mjs';
 import { recuperadorEmbedding, recuperadorMotor } from './recuperar.mjs';
 import { memoriasDeConversacion } from './ingesta.mjs';
+import { juzgar, esAbstencion } from './juez.mjs';
 import { chat } from './llm.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
@@ -50,19 +51,10 @@ function armarContexto(tids, porTid) {
 
 const SIS_CONTESTAR = 'You are a precise assistant. Answer the question using ONLY the conversation excerpts provided. '
     + 'Be concise: a few words or one short sentence. If the answer is not in the excerpts, reply exactly: I don\'t know.';
-const SIS_JUEZ = 'You grade whether a predicted answer matches the reference answer for a question. It is correct if it '
-    + 'conveys the same information, even if worded differently; otherwise wrong. Reply with exactly one word: CORRECT or WRONG.';
-
-const esAbstencion = t => /\bi\s*don'?t\s*know\b|no\s+(information|answer|mention|idea)|not\s+(mentioned|available|stated|in the)/i.test(t || '');
 
 async function contestarPregunta(ctx, pregunta) {
     return chat({ rol: 'respuesta', sistema: SIS_CONTESTAR, maxTokens: 128,
         usuario: `Conversation excerpts:\n${ctx}\n\nQuestion: ${pregunta}\nAnswer:` });
-}
-async function juzgar(pregunta, oro, predicha) {
-    const r = await chat({ rol: 'juez', proveedor: JUEZ_PROV, modelo: JUEZ_MODELO, sistema: SIS_JUEZ, maxTokens: 4,
-        usuario: `Question: ${pregunta}\nReference answer: ${oro}\nPredicted answer: ${predicha}\nVerdict:` });
-    return { correcto: /\bcorrect\b/i.test(r.texto) && !/\bwrong\b/i.test(r.texto), coste: r.coste, texto: r.texto };
 }
 
 // --- carga del dataset y agrupado por haystack (ingiere una vez por conversación, consulta todas sus preguntas) ---
@@ -103,7 +95,7 @@ for (const [hid, items] of porHay) {
         const predicha = (resp.texto || '').trim();
         let correcto, juezTxt = null, costeJuez = 0;
         if (it.abstencion) { correcto = esAbstencion(predicha); }     // oro = "no se puede responder": acierta si se abstiene
-        else { const j = await juzgar(it.pregunta, it.respuesta, predicha); correcto = j.correcto; juezTxt = j.texto; costeJuez = j.coste; }
+        else { const j = await juzgar(it.pregunta, it.respuesta, predicha, { proveedor: JUEZ_PROV, modelo: JUEZ_MODELO }); correcto = j.correcto; juezTxt = j.texto; costeJuez = j.coste; }
         const coste = resp.coste + costeJuez;
         gasto += coste;
         estado.hechos[it.id] = { tipo: it.tipo, abstencion: it.abstencion, predicha, oro: it.respuesta, correcto, juez: juezTxt,

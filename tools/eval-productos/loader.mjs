@@ -46,7 +46,8 @@ export function cargarLocomo() {
             const evidencia = Array.isArray(q.evidence) ? q.evidence.map(String) : [];
             items.push({
                 id: `${hid}#${i}`, haystack: hid,
-                pregunta: texto(q.question), respuesta: texto(q.answer),
+                // cat5 (adversaria) trae la respuesta en adversarial_answer, no en answer (que viene undefined).
+                pregunta: texto(q.question), respuesta: texto(q.answer) || texto(q.adversarial_answer),
                 tipo: `locomo-cat${q.category}`,
                 // En LoCoMo la cat 5 (adversaria) lleva evidencia + adversarial_answer (distractor), no es abstención pura.
                 abstencion: false,

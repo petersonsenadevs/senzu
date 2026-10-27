@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-27
 
+- **feature** — F8-T9 (Fase 2e): LoCoMo motor completo 25,6% (0 €); juez local validado a mano (es justo); fix cat5 (adversarial_answer) + re-juez (exp) (entrada 186)
 - **feature** — F8-T9 (Fase 2c): Qwen3-8B local operativo (think:false vía /api/chat nativo); smoke 10 preg. OK; Docker movido a D: (C: +140 GB) (exp) (entrada 184)
 - **feature** — F8-T9 (Fase 2b): pipeline end-to-end (recuperar→contestar→juez) con tope de gasto, checkpoints y --dry; llm.mjs local-first Qwen3 (exp) (entrada 183)
 - **feature** — F8-T9 (Fase 2a): recuperación offline motor vs embedding sobre turnos; LoCoMo (motor gana) y LongMemEval (embedding gana), 0 red/0 € (exp) (entrada 182)
