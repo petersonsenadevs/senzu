@@ -116,6 +116,11 @@ async def main():
     convs = cargar_locomo()
     objetivo = min(sum(len(c['items']) for c in convs), args.limite) if args.limite else sum(len(c['items']) for c in convs)
     hechos_n = len(estado['hechos'])
+    total_sesiones = sum(len(c['sesiones']) for c in convs)
+    total_pasos = total_sesiones + objetivo        # ingesta (sesiones) + preguntas = progreso global
+    pasos = sum(len(c['sesiones']) for c in convs if c['hid'] in estado['ingeridos']) + hechos_n
+    def gpct():
+        return round(100 * pasos / total_pasos) if total_pasos else 0
     print(f"\nzep/graphiti end-to-end - locomo - top-{args.topk} - modelo {args.modelo}", flush=True)
     if hechos_n:
         print(f"Reanudando: {hechos_n} preguntas, {len(estado['ingeridos'])} conversaciones ingeridas", flush=True)
@@ -128,7 +133,7 @@ async def main():
         if hid not in estado['ingeridos']:
             print(f"  ingiriendo conv {ci}/{len(convs)} ({hid}, {len(c['sesiones'])} sesiones)...", flush=True)
             t0 = time.time()
-            for (n, fecha, turnos) in c['sesiones']:
+            for si, (n, fecha, turnos) in enumerate(c['sesiones'], 1):
                 if not turnos:
                     continue
                 cuerpo = "\n".join(f"{sp}: {tx}" if sp else tx for sp, tx in turnos)
@@ -137,6 +142,8 @@ async def main():
                                         source_description='locomo', group_id=hid, reference_time=parse_fecha(fecha))
                 except Exception as e:
                     print(f"    aviso: add_episode fallo {hid}-s{n}: {str(e)[:120]}", flush=True)
+                pasos += 1
+                print(f"  [GLOBAL {gpct()}%] conv {ci}/{len(convs)} · ingesta sesion {si}/{len(c['sesiones'])}", flush=True)
             estado['ingeridos'].append(hid)
             guardar()
             print(f"  ingerida {hid} en {time.time()-t0:.0f}s", flush=True)
@@ -162,10 +169,11 @@ async def main():
                                           'oro': it['oro'], 'correcto': correcto, 'juez': juez_txt,
                                           'recuperados': len(mems), 'coste': 0, 'ms': round((time.time()-t0)*1000, 1)}
             hechos_n += 1
+            pasos += 1
             if hechos_n % 5 == 0:
                 guardar()
                 ok = sum(1 for h in estado['hechos'].values() if h.get('correcto'))
-                print(f"  {hechos_n}/{objetivo} ({100*hechos_n/objetivo:.0f}%) - aciertos {100*ok/hechos_n:.1f}%", flush=True)
+                print(f"  [GLOBAL {gpct()}%] conv {ci}/{len(convs)} · preguntas {hechos_n}/{objetivo} · aciertos {100*ok/hechos_n:.1f}%", flush=True)
         if args.limite and hechos_n >= args.limite:
             break
     guardar()
