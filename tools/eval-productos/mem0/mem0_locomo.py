@@ -11,6 +11,15 @@ import os, re, json, sys, time, argparse, urllib.request
 os.environ.setdefault("MEM0_TELEMETRY", "False")          # mem0: sin telemetria (sin red)
 os.environ.setdefault("ANONYMIZED_TELEMETRY", "False")    # chroma/posthog: idem
 
+# Qwen3 "piensa" por defecto y mem0 no pasa think al cliente de Ollama -> extraccion lentisima. Forzamos think=False
+# en TODAS las llamadas de mem0 a Ollama (mismo modelo, sin el razonamiento): rapido y justo, sin tocar la libreria.
+import ollama as _ollama
+_orig_chat = _ollama.Client.chat
+def _chat_nothink(self, *a, **kw):
+    kw.setdefault("think", False)
+    return _orig_chat(self, *a, **kw)
+_ollama.Client.chat = _chat_nothink
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 PROD = os.path.dirname(HERE)                               # tools/eval-productos
 LOCOMO = os.path.join(PROD, "..", ".datos", "locomo.json")
@@ -81,6 +90,7 @@ def main():
     ap.add_argument("--topk", type=int, default=10)
     ap.add_argument("--modelo", default="qwen3:8b")
     ap.add_argument("--salida", default=os.path.join(PROD, "resultados-e2e-locomo-mem0.json"))
+    ap.add_argument("--coleccion", default="locomo_mem0")   # colección chroma; cámbiala para empezar limpio sin borrar
     args = ap.parse_args()
 
     from mem0 import Memory
@@ -88,7 +98,7 @@ def main():
     config = {
         "llm": {"provider": "ollama", "config": {"model": args.modelo, "temperature": 0, "ollama_base_url": BASE}},
         "embedder": {"provider": "ollama", "config": {"model": "nomic-embed-text", "ollama_base_url": BASE}},
-        "vector_store": {"provider": "chroma", "config": {"collection_name": "locomo_mem0", "path": chroma_path}},
+        "vector_store": {"provider": "chroma", "config": {"collection_name": args.coleccion, "path": chroma_path}},
     }
     mem = Memory.from_config(config)
 
@@ -104,18 +114,21 @@ def main():
         json.dump(estado, open(args.salida, "w", encoding="utf8"), ensure_ascii=False, indent=2)
 
     convs = cargar_locomo()
+    total_items = sum(len(c["items"]) for c in convs)
+    objetivo = min(total_items, args.limite) if args.limite else total_items
     hechos_n = len(estado["hechos"])
     print(f"\nmem0 end-to-end - locomo - top-{args.topk} - modelo {args.modelo} - juez local")
     if hechos_n:
         print(f"Reanudando: {hechos_n} preguntas ya hechas, {len(estado['ingeridos'])} conversaciones ingeridas")
 
-    for c in convs:
+    for ci, c in enumerate(convs, 1):
         hid = c["hid"]
         pend = [it for it in c["items"] if it["id"] not in estado["hechos"] and (not args.limite or hechos_n < args.limite)]
         if not pend:
             continue
         # ingesta: mem0 extrae memorias de cada sesion (una vez por conversacion)
         if hid not in estado["ingeridos"]:
+            print(f"  ingiriendo conv {ci}/{len(convs)} ({hid}, {len(c['sesiones'])} sesiones)...", flush=True)
             t0 = time.time()
             for (_n, fecha, turnos) in c["sesiones"]:
                 if not turnos:
@@ -135,7 +148,7 @@ def main():
             if it["id"] in estado["hechos"]:
                 continue
             t0 = time.time()
-            res = mem.search(query=it["pregunta"], user_id=hid, limit=args.topk)
+            res = mem.search(query=it["pregunta"], filters={"user_id": hid}, limit=args.topk)
             resultados = res.get("results", res) if isinstance(res, dict) else res
             mems = [r.get("memory", "") if isinstance(r, dict) else str(r) for r in (resultados or [])]
             ctx = "\n".join(m for m in mems if m)
@@ -148,10 +161,10 @@ def main():
                                           "oro": it["oro"], "correcto": correcto, "juez": juez_txt,
                                           "recuperados": len(mems), "coste": 0, "ms": round((time.time()-t0)*1000, 1)}
             hechos_n += 1
-            if hechos_n % 10 == 0:
+            if hechos_n % 5 == 0:
                 guardar()
                 ok = sum(1 for h in estado["hechos"].values() if h.get("correcto"))
-                print(f"  {hechos_n} preguntas - aciertos {100*ok/hechos_n:.1f}%", end="\r")
+                print(f"  {hechos_n}/{objetivo} ({100*hechos_n/objetivo:.0f}%) - aciertos {100*ok/hechos_n:.1f}%", flush=True)
         if args.limite and hechos_n >= args.limite:
             break
     guardar()
