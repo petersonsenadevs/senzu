@@ -4,8 +4,13 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-28
+
+- **feature** — F8-T9 (Fase 3a): montaje de mem0 (venv D:, mem0ai 2.2.1 + nomic + adaptador mem0_locomo.py); pendiente primera ejecución (exp) (entrada 188)
+
 ## 2026-10-27
 
+- **feature** — F8-T9 (Fase 2f): embedding e2e LoCoMo 28,0% vs motor 25,6%; el denso gana (esperado), el motor defiende por ejes (exp) (entrada 187)
 - **feature** — F8-T9 (Fase 2e): LoCoMo motor completo 25,6% (0 €); juez local validado a mano (es justo); fix cat5 (adversarial_answer) + re-juez (exp) (entrada 186)
 - **feature** — F8-T9 (Fase 2c): Qwen3-8B local operativo (think:false vía /api/chat nativo); smoke 10 preg. OK; Docker movido a D: (C: +140 GB) (exp) (entrada 184)
 - **feature** — F8-T9 (Fase 2b): pipeline end-to-end (recuperar→contestar→juez) con tope de gasto, checkpoints y --dry; llm.mjs local-first Qwen3 (exp) (entrada 183)
