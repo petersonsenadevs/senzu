@@ -4,8 +4,13 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-29
+
+- **fix** — F8-T9 (Fase 3e): Zep se moría ingiriendo (JSON gigante de qwen3); ingesta troceada en episodios + techo de salida + tolerancia a fallos; conv-26 reseteada por consistencia (exp) (entrada 192)
+
 ## 2026-10-28
 
+- **feature** — F8-T9 (Fase 3d): runner del bench completo (10 convs) + progreso [GLOBAL %] en terminal durante ingesta y preguntas (exp) (entrada 191)
 - **feature** — F8-T9 (Fase 3c): Zep=Graphiti+Neo4j montado (cliente no-think, RRF); funciona pero ~2h/conversación, muy lento (exp) (entrada 190)
 - **feature** — F8-T9 (Fase 3b): mem0 operativo (think:false) + comparador; cara a cara conv-1: motor 28,2% > mem0 14,9% (embedding 30,3%) (exp) (entrada 189)
 - **feature** — F8-T9 (Fase 3a): montaje de mem0 (venv D:, mem0ai 2.2.1 + nomic + adaptador mem0_locomo.py); pendiente primera ejecución (exp) (entrada 188)

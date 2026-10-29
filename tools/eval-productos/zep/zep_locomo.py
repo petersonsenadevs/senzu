@@ -19,6 +19,8 @@ PROD = os.path.dirname(HERE)
 LOCOMO = os.path.join(PROD, '..', '.datos', 'locomo.json')
 BASE_V1 = 'http://localhost:11434/v1'
 BASE_NATIVE = 'http://localhost:11434'
+EP_TURNOS = 6       # turnos por episodio al ingerir (sesion troceada -> JSON de extraccion pequeno y valido)
+EP_TIMEOUT = 300    # s por episodio; si se cuelga se salta y el run sigue
 
 SIS_CONTESTAR = ("You are a precise assistant. Answer the question using ONLY the conversation excerpts provided. "
                  "Be concise: a few words or one short sentence. If the answer is not in the excerpts, reply exactly: I don't know.")
@@ -136,14 +138,22 @@ async def main():
             for si, (n, fecha, turnos) in enumerate(c['sesiones'], 1):
                 if not turnos:
                     continue
-                cuerpo = "\n".join(f"{sp}: {tx}" if sp else tx for sp, tx in turnos)
-                try:
-                    await g.add_episode(name=f"{hid}-s{n}", episode_body=cuerpo, source=EpisodeType.message,
-                                        source_description='locomo', group_id=hid, reference_time=parse_fecha(fecha))
-                except Exception as e:
-                    print(f"    aviso: add_episode fallo {hid}-s{n}: {str(e)[:120]}", flush=True)
+                rt = parse_fecha(fecha)
+                # Trocear la sesion en episodios pequenos: qwen3-8b, ante una sesion entera, se desboca extrayendo
+                # el grafo (JSON de 60k+ que se rompe y mata el proceso). Con ~EP_TURNOS turnos por episodio el
+                # extractor saca JSON pequeno y valido. Es ademas el uso natural de Graphiti (episodios = mensajes).
+                trozos = [turnos[j:j + EP_TURNOS] for j in range(0, len(turnos), EP_TURNOS)]
+                for ti, trozo in enumerate(trozos, 1):
+                    cuerpo = "\n".join(f"{sp}: {tx}" if sp else tx for sp, tx in trozo)
+                    try:
+                        await asyncio.wait_for(
+                            g.add_episode(name=f"{hid}-s{n}-c{ti}", episode_body=cuerpo, source=EpisodeType.message,
+                                          source_description='locomo', group_id=hid, reference_time=rt),
+                            timeout=EP_TIMEOUT)
+                    except Exception as e:
+                        print(f"    aviso: add_episode fallo {hid}-s{n}-c{ti}: {type(e).__name__} {str(e)[:100]}", flush=True)
                 pasos += 1
-                print(f"  [GLOBAL {gpct()}%] conv {ci}/{len(convs)} · ingesta sesion {si}/{len(c['sesiones'])}", flush=True)
+                print(f"  [GLOBAL {gpct()}%] conv {ci}/{len(convs)} · ingesta sesion {si}/{len(c['sesiones'])} ({len(trozos)} ep)", flush=True)
             estado['ingeridos'].append(hid)
             guardar()
             print(f"  ingerida {hid} en {time.time()-t0:.0f}s", flush=True)

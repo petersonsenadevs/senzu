@@ -16,7 +16,9 @@ class OllamaNoThinkClient(OpenAIClient):
         omsgs = self._convert_messages_to_openai_format(messages)
         resolved = self._get_model_for_size(model_size, model=model)
         fmt = response_model.model_json_schema() if response_model else 'json'
-        mt = max_tokens or self.max_tokens
+        # Techo de salida: qwen3-8b se desboca extrayendo el grafo (60k+ chars) y rompe el JSON / mata el proceso.
+        # Con episodios pequenos basta de sobra; si aun asi se pasa, trunca y ese episodio se salta (no cae el run).
+        mt = min(max_tokens or self.max_tokens or 8192, 8192)
         resp = await self._oa.chat(model=resolved, messages=omsgs, think=False, format=fmt,
                                    options={'temperature': self.temperature or 0, 'num_predict': mt, 'seed': 7})
         content = ((resp.get('message') or {}).get('content') or '{}').strip()
