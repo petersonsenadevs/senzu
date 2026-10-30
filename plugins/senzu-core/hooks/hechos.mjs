@@ -215,6 +215,11 @@ const hoy = () => new Date().toISOString();
 export function vigente(h, ahora = hoy()) {
     return h.estado === 'activo' && (!h.desde || h.desde <= ahora) && (!h.hasta || h.hasta > ahora);
 }
+// X-T20: un hecho DATADO en el futuro — afirmado y con fecha de inicio que aún no ha llegado (una mudanza programada,
+// un cambio de stack anunciado). No es vigente todavía (lo sigue siendo el de ahora); aflora en preguntas de futuro.
+export function futuroHecho(h, ahora = hoy()) {
+    return h.estado === 'activo' && h.desde && h.desde > ahora;
+}
 
 // La entrada del devlog del día (la de número más alto): el hecho apunta a la historia de por qué se guardó.
 // Carpetas del devlog en fecha LOCAL (AAAA-MM-DD), como las crea la skill devlog.
@@ -272,7 +277,13 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
     const mismaDim = esUnico ? lista.filter(h => h.dimension === dimension && (h.estado === 'activo' || h.estado === 'dudoso')) : [];
     // Si el valor nuevo trae un matiz y YA hay algo vigente aquí, NO sustituye: deja ambos activos (el aviso lo explica)
     const matiz = esUnico && mismaDim.length ? marcadorAmbiguo(hecho) : null;
-    if (esUnico && !matiz) sustituidos.push(...sustituir(lista, dimension, hecho, ahora));
+    // X-T20: un hecho datado en el FUTURO no sustituye al de ahora — programa una transición: lo vigente sigue
+    // vigente HASTA que empiece el futuro (se le pone hasta; NO pasa a «sustituido»). Al llegar la fecha, vigente()
+    // retira el viejo (hasta<=ahora) y activa el nuevo (desde<=ahora) solo: la línea de tiempo se mueve sola.
+    const esFuturo = esUnico && !matiz && hecho.desde && hecho.desde > ahora;
+    if (esFuturo) {
+        for (const h of mismaDim) if (vigente(h, ahora) && (!h.hasta || h.hasta > hecho.desde)) h.hasta = hecho.desde;
+    } else if (esUnico && !matiz) sustituidos.push(...sustituir(lista, dimension, hecho, ahora));
     if (esUnico) {
         // Sin claves/enlaces propios hereda los de lo que coexiste (lo sustituido, o con matiz lo que sigue vigente):
         // describen la dimensión («idioma», «language») y sin ellos el valor nuevo no se encontraría desde otro idioma
@@ -286,6 +297,7 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
     const vigentesAhora = [...lista, ...otroAlcance].filter(h => h.id !== hecho.id && (h.estado === 'activo' || h.estado === 'dudoso') && vigente(h, ahora));
     const avisos = [...avisosAlGuardar(hecho, vigentesAhora), ...avisosConvencion(hecho, conv, propias, vigentesAhora), ...avisosAutocontenido(hecho)];
     if (matiz) avisos.unshift({ tipo: 'ambiguedad', hecho: mismaDim[0], motivo: `«${matiz}» matiza el valor: no sustituye a lo vigente${mismaDim[0] ? ` («${mismaDim[0].valor}»)` : ''}; quedan ambos activos. Si de verdad lo reemplaza, guárdalo sin el matiz` });
+    if (esFuturo) avisos.unshift({ tipo: 'futuro', hecho: mismaDim.find(h => vigente(h, ahora)), motivo: `programado desde ${String(hecho.desde).slice(0, 10)}: lo vigente${mismaDim.some(h => vigente(h, ahora)) ? ` («${mismaDim.filter(h => vigente(h, ahora)).map(h => h.valor).join('», «')}»)` : ''} sigue hasta entonces; «¿y en el futuro?» traerá este` });
     lista.push(JSON.parse(JSON.stringify(hecho)));
     escribirHechos(file, lista, ilegibles);
     return { accion: entrada.duda ? 'dudoso' : sustituidos.length ? 'sustituye' : 'nuevo', hecho, sustituidos, avisos };
@@ -605,12 +617,15 @@ export const UMBRAL_RECUERDO = 0.8;
 
 // ---------------------------------------------------------------- buscar (BM25 + erratas + cupos por familia)
 // historico: también lo sustituido y caducado («¿dónde vivía antes?»: lo decide el agente, que entiende la pregunta)
-export function buscarHechos(root, consulta, { historico = false, limite = 8, ahora = hoy() } = {}) {
+export function buscarHechos(root, consulta, { historico = false, futuro = false, limite = 8, ahora = hoy() } = {}) {
     const todosH = todosLosHechos(root);
-    const docs = todosH.filter(h => h.estado !== 'invalidado' && (historico || vigente(h, ahora) || h.estado === 'dudoso'));
+    const docs = todosH.filter(h => h.estado !== 'invalidado' && (historico || vigente(h, ahora) || h.estado === 'dudoso' || (futuro && !historico && futuroHecho(h, ahora))));
     const aprendidasDe = aprendidasPorDimension(todosH.filter(h => h.estado !== 'invalidado'));
     // con una pista temporal detectada (X-T12), la pista habla del TIEMPO, no del tema: no busca («antes» traía
     // cualquier hecho que dijera «antes de…»)
+    // El pasado se detecta por ADVERBIOS («antes»): se quitan de la consulta (hablan del tiempo, no del tema; el verbo
+    // «vivía» sí busca). El futuro se detecta por el propio VERBO conjugado («viviré», «mudanza»): NO se quita, porque
+    // es justo lo que enlaza con el hecho (abajo, además, se arrastra el hecho futuro de la dimensión encontrada).
     const q = [...new Set(palabras(consulta))].filter(w => historico !== 'auto' || !PISTAS_TEMPORALES.has(w));
     if (!docs.length || !q.length) return [];
     // De la dimensión se indexa el TEMA, no la familia: «proyecto.analitica» → «analitica». Con la familia, cualquier
@@ -710,6 +725,20 @@ export function buscarHechos(root, consulta, { historico = false, limite = 8, ah
             const conVigente = new Set(hits.filter(x => vigente(x.hecho, ahora) || x.hecho.estado === 'dudoso').map(x => x.hecho.dimension));
             const minVig = Math.min(...hits.filter(x => vigente(x.hecho, ahora)).map(x => x.puntuacion));
             if (isFinite(minVig)) for (const x of hits) if (!conVigente.has(x.hecho.dimension)) x.puntuacion = +Math.min(x.puntuacion, minVig * 0.97).toFixed(3);
+        }
+    }
+    // Preguntando por el FUTURO (X-T20): el hecho datado en el futuro (desde>ahora) de cada dimensión encontrada manda;
+    // lo vigente ahora queda un paso por detrás (sigue estando, por si acaso). Solo si no se pidió el pasado.
+    if (futuro && !historico) {
+        const mejorPorDim = new Map();
+        for (const x of hits) mejorPorDim.set(x.hecho.dimension, Math.max(mejorPorDim.get(x.hecho.dimension) || 0, x.puntuacion));
+        const yaEsta = new Set(hits.map(x => x.hecho.id));
+        // arrastra el hecho futuro de una dimensión que ya coincidió (aunque el futuro no diga las palabras de la pregunta)
+        for (const h of docs) if (futuroHecho(h, ahora) && mejorPorDim.has(h.dimension) && !yaEsta.has(h.id)) hits.push({ hecho: h, puntuacion: mejorPorDim.get(h.dimension), motivo: [`futuro de ${h.dimension}`] });
+        const dimsFut = new Set(hits.filter(x => futuroHecho(x.hecho, ahora)).map(x => x.hecho.dimension));
+        for (const x of hits) {
+            if (futuroHecho(x.hecho, ahora)) x.puntuacion = +(Math.max(x.puntuacion, mejorPorDim.get(x.hecho.dimension) || 0) * 1.05).toFixed(3);   // el futuro manda
+            else if (dimsFut.has(x.hecho.dimension) && vigente(x.hecho, ahora)) x.puntuacion = +(x.puntuacion * 0.9).toFixed(3);   // lo vigente, un paso atrás
         }
     }
     hits.sort((a, b) => b.puntuacion - a.puntuacion || (b.hecho.creado || '').localeCompare(a.hecho.creado || ''));
@@ -858,8 +887,25 @@ const PISTAS_FRASE = /\bdid( \w+)? use to\b|\b(used to|at first|in the beginning
 export function pistaTemporal(texto) {
     return palabras(texto).some(w => PISTAS_TEMPORALES.has(w)) || PISTAS_FRASE.test(normalizar(texto));
 }
-export function recuerdo(root, consulta, { limite = 6, historico = false } = {}) {
-    const hechos = buscarHechos(root, consulta, { historico, limite }).map(x => ({
+// X-T20 · ¿pregunta por el FUTURO? («¿dónde viviré?», «tras la mudanza», «el mes que viene», «where will I move»).
+// Con una, el recuerdo trae el hecho datado en el futuro (desde>ahora) por delante de lo vigente ahora. Multilingüe,
+// en forma normalizada (sin tildes). Idea de Hemispheric (services/temporal.py: _FUTURE_QUERY_PATTERNS).
+const PISTAS_FUTURO = new Set(('mudare mudaremos vivire viviremos estare estaremos trabajare ire iremos sere seremos proximamente mudanza '
+    + 'will shall upcoming '
+    + 'mudarei morarei estarei mudanca proximamente '
+    + 'demenagerai demenagement prochainement '
+    + 'werde kunftig demnachst umzug '
+    + 'traslochero trasferiro prossimamente trasloco').split(' '));
+const PISTAS_FUTURO_FRASE = /\b(me voy a mudar|voy a mudar|voy a vivir|(el mes|la semana|el ano) que viene|(el|la) proxim[oa] (mes|semana|ano|destino)|where will i|where am i moving|will i (live|move|be)|going to (move|live)|after the move|next (week|month|year)|vou me mudar|(mes|semana) que vem|vais? demenager|le mois prochain|la semaine prochaine|nachste woche|nachsten monat|werde ich|(il mese|la settimana) prossim[oa])\b/;
+export function pistaFutura(texto) {
+    return palabras(texto).some(w => PISTAS_FUTURO.has(w)) || PISTAS_FUTURO_FRASE.test(normalizar(texto));
+}
+// Intención temporal de la consulta, con el PASADO por delante (si pide pasado y futuro a la vez, gana el pasado).
+export function intencionTemporal(texto) {
+    return pistaTemporal(texto) ? 'historical' : pistaFutura(texto) ? 'future' : 'none';
+}
+export function recuerdo(root, consulta, { limite = 6, historico = false, futuro = false } = {}) {
+    const hechos = buscarHechos(root, consulta, { historico, futuro, limite }).map(x => ({
         fuente: 'hecho', id: x.hecho.id, texto: `[${x.hecho.dimension}] ${x.hecho.valor}`, motivo: x.motivo, ver: x.hecho.devlog || null, hecho: x.hecho,
         puntuacion: x.puntuacion, debil: !!x.debil,
     }));

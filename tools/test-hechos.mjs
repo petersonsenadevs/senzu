@@ -511,6 +511,20 @@ m.guardarHecho(F, { dimension: 'restriccion.congelacion', valor: 'sin despliegue
 ok(m.contextoHechos(F).length === 0, 'un hecho futuro o ya caducado no está vigente');
 ok(m.buscarHechos(F, 'despliegues agosto', { historico: true }).length === 1, 'pero sí en el histórico');
 
+// 5b. X-T20: intención temporal de FUTURO + la mudanza programada no borra el presente (línea de tiempo)
+ok(m.intencionTemporal('¿dónde viviré?') === 'future' && m.intencionTemporal('el mes que viene dónde estaré') === 'future', 'clasifica la consulta de futuro', JSON.stringify([m.intencionTemporal('¿dónde viviré?'), m.intencionTemporal('el mes que viene dónde estaré')]));
+ok(m.intencionTemporal('¿dónde vivía antes?') === 'historical' && m.intencionTemporal('¿dónde vivo?') === 'none', 'el pasado tiene precedencia y el presente no es ni pasado ni futuro');
+const FU = proyecto('futuro-mudanza');
+m.guardarHecho(FU, { dimension: 'identidad.ubicacion', valor: 'Valencia', texto: 'vivo en Valencia', claves: ['ciudad', 'city', 'vivo'] }, { ahora: '2026-01-01T00:00:00.000Z' });
+const rf = m.guardarHecho(FU, { dimension: 'identidad.ubicacion', valor: 'Barcelona', texto: 'me mudo a Barcelona', claves: ['ciudad', 'city'], desde: '2026-09-01T00:00:00.000Z' }, { ahora: '2026-06-01T00:00:00.000Z' });
+ok(rf.accion === 'nuevo' && rf.avisos.some(a => a.tipo === 'futuro') && rf.sustituidos.length === 0, 'una mudanza programada se guarda como nueva y avisa de la transición (no sustituye)', JSON.stringify([rf.accion, rf.avisos.map(a => a.tipo)]));
+const vigJun = m.buscarHechos(FU, 'en qué ciudad vivo', { ahora: '2026-06-01T00:00:00.000Z' });
+ok(vigJun.length === 1 && vigJun[0].hecho.valor === 'Valencia', 'en junio sigo viviendo en Valencia (el futuro no borró el presente)', JSON.stringify(vigJun.map(x => x.hecho.valor)));
+const futR = m.buscarHechos(FU, 'dónde viviré en qué ciudad', { futuro: 'auto', ahora: '2026-06-01T00:00:00.000Z' });
+ok(futR[0] && futR[0].hecho.valor === 'Barcelona' && futR.some(x => x.hecho.valor === 'Valencia'), 'preguntando por el futuro: Barcelona (desde>ahora) la primera, Valencia detrás', JSON.stringify(futR.map(x => x.hecho.valor)));
+const vigOct = m.buscarHechos(FU, 'en qué ciudad vivo', { ahora: '2026-10-01T00:00:00.000Z' });
+ok(vigOct.length === 1 && vigOct[0].hecho.valor === 'Barcelona', 'pasada la fecha, lo vigente es Barcelona solo (la línea de tiempo se movió sola)', JSON.stringify(vigOct.map(x => x.hecho.valor)));
+
 // 6. alcance del usuario (todos sus proyectos) y olvidar
 const U1 = proyecto('u1'), U2 = proyecto('u2');
 r = m.guardarHecho(U1, { dimension: 'identidad.nombre', valor: 'Peterson', alcance: 'usuario', claves: ['name', 'nombre'] }, { ahora: T(U1, 0) });

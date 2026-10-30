@@ -92,6 +92,14 @@ const familias = hs => [...new Set(hs.map(h => h.dimension.split('.')[0]))];
     const antes = m.buscarHechos(P, 'donde vivia antes en que ciudad', { historico: true });
     ok(val0(antes) === 'Madrid' && (antes[0] || {}).hecho?.estado === 'sustituido', 'temporal: «¿y antes?» (--histórico) → el valor anterior (Madrid, sustituido) el primero', JSON.stringify([val0(antes), (antes[0] || {}).hecho?.estado]));
     ok(antes.some(x => x.hecho?.valor === 'Valencia'), 'temporal: y el histórico sigue incluyendo también el vigente');
+
+    // futuro (X-T20): un hecho datado en el futuro aflora ante «¿y después?» sin borrar el presente
+    const F = proyecto('temporal-futuro');
+    m.guardarHecho(F, { dimension: 'identidad.ubicacion', valor: 'Valencia', texto: 'vivo en Valencia', claves: ['ciudad', 'city', 'vivo'] }, { ahora: '2026-01-01T00:00:00.000Z' });
+    m.guardarHecho(F, { dimension: 'identidad.ubicacion', valor: 'Barcelona', texto: 'me mudo a Barcelona', claves: ['ciudad', 'city'], desde: '2026-09-01T00:00:00.000Z' }, { ahora: '2026-06-01T00:00:00.000Z' });
+    const despues = m.buscarHechos(F, 'tras la mudanza en que ciudad vivire', { futuro: 'auto', ahora: '2026-06-01T00:00:00.000Z' });
+    ok(val0(despues) === 'Barcelona', 'temporal: «¿y después?» (futuro) → el hecho datado en el futuro (Barcelona) el primero', JSON.stringify(despues.map(x => x.hecho.valor)));
+    ok(val0(m.buscarHechos(F, 'donde vivo ahora ciudad', { ahora: '2026-06-01T00:00:00.000Z' })) === 'Valencia', 'temporal: y el presente (Valencia) sigue intacto mientras no llega la fecha');
 }
 
 fs.rmSync(base, { recursive: true, force: true });
