@@ -139,11 +139,27 @@ function stats(ds) {
 if (process.argv[1] && (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}` || process.argv[1].endsWith('loader.mjs'))) {
     const arg = n => process.argv.includes(n);
     const num = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 ? Number(process.argv[i + 1]) : d; };
+    const str = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : d; };
     if (arg('--stats')) {
         const soloL = arg('--locomo'), soloM = arg('--longmemeval');
         if (!soloM) stats(cargarLocomo());
         if (!soloL) stats(await cargarLongmemeval({ limite: num('--limite', Infinity) }));
+    } else if (arg('--exportar-mem0')) {
+        // Subset compacto de LongMemEval para el adaptador mem0 en Python (evita re-parsear los 277 MB en Python).
+        // node loader.mjs --exportar-mem0 --tipos knowledge-update,temporal-reasoning [--salida ruta]
+        const tipos = (str('--tipos', '') || '').split(',').map(s => s.trim()).filter(Boolean);
+        const ds = await cargarLongmemeval({ limite: num('--limite', Infinity) });
+        const items = tipos.length ? ds.items.filter(it => tipos.includes(it.tipo)) : ds.items;
+        const out = items.map(it => ({
+            hid: it.id, pregunta: it.pregunta, respuesta: it.respuesta, tipo: it.tipo, abstencion: it.abstencion,
+            sesiones: ds.haystacks[it.haystack].sessions.map(s => ({ id: s.id, fecha: s.fecha,
+                turnos: s.turnos.filter(t => t.texto).map(t => ({ hablante: t.hablante, texto: t.texto })) })),
+        }));
+        const ruta = str('--salida', path.join(DATOS, 'longmemeval-subset-mem0.json'));
+        fs.writeFileSync(ruta, JSON.stringify(out));
+        process.stdout.write(`Exportadas ${out.length} preguntas${tipos.length ? ` (${tipos.join(', ')})` : ''} → ${ruta}\n`);
     } else {
         process.stdout.write('Uso: node tools/eval-productos/loader.mjs --stats [--locomo|--longmemeval] [--limite N]\n');
+        process.stdout.write('     node tools/eval-productos/loader.mjs --exportar-mem0 --tipos knowledge-update,temporal-reasoning\n');
     }
 }
