@@ -251,7 +251,7 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
         const sustituidos = [];
         if (igual.estado === 'dudoso' && !entrada.duda) {   // «creo que…» y luego lo afirma: deja de ser dudoso
             igual.estado = 'activo'; igual.confirmado = ahora;
-            if (!FAMILIAS_VARIOS.test(dimension)) sustituidos.push(...sustituir(lista, dimension, igual, ahora));
+            if (!FAMILIAS_VARIOS.test(dimension) && !marcadorAmbiguo(igual)) sustituidos.push(...sustituir(lista, dimension, igual, ahora));   // X-T18: un valor con matiz no borra otros al confirmarse
         }
         if (JSON.stringify(igual) !== antes || ilegibles.length) escribirHechos(file, lista, ilegibles);
         return { accion: sustituidos.length ? 'sustituye' : 'ya-estaba', hecho: igual, sustituidos, avisos: [] };
@@ -267,18 +267,25 @@ export function guardarHecho(root, entrada, { ahora = hoy() } = {}) {
         enlaces: (() => { const e = [...new Set([].concat(entrada.enlaces || []).flatMap(x => String(x).split(',')).map(x => { try { return dimensionConvencional(x).dimension; } catch { return claveDimension(x); } }).filter(x => x && x !== dimension))]; return e.length ? e : undefined; })(),
     };
     const sustituidos = [];
-    if (!entrada.duda && !FAMILIAS_VARIOS.test(dimension)) {
-        sustituidos.push(...sustituir(lista, dimension, hecho, ahora));
-        // Sin claves propias hereda las del que sustituye: describen la dimensión («idioma», «language»), y sin
-        // ellas el valor nuevo dejaría de encontrarse desde otro idioma
-        if (!propias.length && sustituidos.some(h => h.claves && h.claves.length)) hecho.claves = clavesConvencionales([...(hecho.claves || []), ...sustituidos.flatMap(h => h.claves || [])], dimension);
-        if (!hecho.enlaces && sustituidos.some(h => h.enlaces && h.enlaces.length)) hecho.enlaces = [...new Set(sustituidos.flatMap(h => h.enlaces || []))];   // igual con los enlaces
+    const esUnico = !entrada.duda && !FAMILIAS_VARIOS.test(dimension);
+    // X-T18: lo que una sustitución limpia borraría en esta dimensión de valor único (activo y dudoso, como sustituir())
+    const mismaDim = esUnico ? lista.filter(h => h.dimension === dimension && (h.estado === 'activo' || h.estado === 'dudoso')) : [];
+    // Si el valor nuevo trae un matiz y YA hay algo vigente aquí, NO sustituye: deja ambos activos (el aviso lo explica)
+    const matiz = esUnico && mismaDim.length ? marcadorAmbiguo(hecho) : null;
+    if (esUnico && !matiz) sustituidos.push(...sustituir(lista, dimension, hecho, ahora));
+    if (esUnico) {
+        // Sin claves/enlaces propios hereda los de lo que coexiste (lo sustituido, o con matiz lo que sigue vigente):
+        // describen la dimensión («idioma», «language») y sin ellos el valor nuevo no se encontraría desde otro idioma
+        const origen = sustituidos.length ? sustituidos : mismaDim;
+        if (!propias.length && origen.some(h => h.claves && h.claves.length)) hecho.claves = clavesConvencionales([...(hecho.claves || []), ...origen.flatMap(h => h.claves || [])], dimension);
+        if (!hecho.enlaces && origen.some(h => h.enlaces && h.enlaces.length)) hecho.enlaces = [...new Set(origen.flatMap(h => h.enlaces || []))];
     }
     // Avisos (no bloquean: decide el agente, que entiende el sentido): lo mismo dicho de otra manera en la familia, y
     // otro valor vigente de la MISMA dimensión que este no sustituye (una duda frente a lo afirmado, u otro alcance)
     const otroAlcance = leerHechos(rutaHechos(root, alcance === 'usuario' ? 'proyecto' : 'usuario'));
     const vigentesAhora = [...lista, ...otroAlcance].filter(h => h.id !== hecho.id && (h.estado === 'activo' || h.estado === 'dudoso') && vigente(h, ahora));
     const avisos = [...avisosAlGuardar(hecho, vigentesAhora), ...avisosConvencion(hecho, conv, propias, vigentesAhora), ...avisosAutocontenido(hecho)];
+    if (matiz) avisos.unshift({ tipo: 'ambiguedad', hecho: mismaDim[0], motivo: `«${matiz}» matiza el valor: no sustituye a lo vigente${mismaDim[0] ? ` («${mismaDim[0].valor}»)` : ''}; quedan ambos activos. Si de verdad lo reemplaza, guárdalo sin el matiz` });
     lista.push(JSON.parse(JSON.stringify(hecho)));
     escribirHechos(file, lista, ilegibles);
     return { accion: entrada.duda ? 'dudoso' : sustituidos.length ? 'sustituye' : 'nuevo', hecho, sustituidos, avisos };
@@ -336,6 +343,27 @@ export function avisosAutocontenido(hecho) {
         out.push({ tipo: 'autocontenido', motivo: `«${crudo}» sin decir de quién o de qué: escríbelo entero (p. ej. «Marco Bianchi cobra 600 € por sesión»)` });
     return out;
 }
+// X-T18: guarda de ambigüedad. Un valor nuevo con MATICES («trabajo part-time», «vivo entre A y B», «antes en
+// Málaga», «a veces en remoto») no debe BORRAR el valor vigente bueno en una familia de valor único: deja ambos
+// activos y avisa. Una sustitución limpia («ahora vivo en Madrid») sí sustituye. Marcadores en forma normalizada
+// (normalizar() ya quita tildes y pasa a minúsculas), multilingües (es/en/pt/fr/de/it). Idea de Hemispheric
+// (services/candidates.py: _AMBIGUITY_MARKERS), con límite de palabra Unicode para no colar falsos positivos
+// («restaurantes»→«antes», «acerca»→«cerca»). Las frases van antes que su prefijo («cerca de» antes que «cerca»).
+const MARCADORES_AMBIGUEDAD = [
+    'de vez en cuando', 'de vez em quando', 'de temps en temps', 'in der nahe', 'hace tiempo', 'hace poco',
+    'a mi-temps', 'cerca de', 'perto de', 'pres de', 'vicino a', 'un tempo', 'used to', 'part time', 'part-time',
+    'por ahora', 'de momento', 'ogni tanto', 'a veces', 'as vezes', 'a volte', 'a ratos', 'a medias',
+    'tambien', 'tambem', 'antes', 'prima', 'avant', 'auch', 'anche', 'aussi', 'cerca', 'perto', 'pres',
+    'entre', 'between', 'near', 'also', 'sometimes', 'before', 'recently', 'occasionally', 'parfois',
+    'manchmal', 'fruher', 'antigamente', 'autrefois', 'gelegentlich', 'teilzeit', 'zeitweise', 'vicino', 'formerly',
+];
+const RE_AMBIGUEDAD = new RegExp('(?<![\\p{L}\\p{N}])(?:' + MARCADORES_AMBIGUEDAD.map(m => m.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|') + ')(?![\\p{L}\\p{N}])', 'u');
+// Devuelve el marcador de ambigüedad encontrado en el valor/texto (para el aviso), o null si el valor es limpio.
+function marcadorAmbiguo(hecho) {
+    const m = RE_AMBIGUEDAD.exec(normalizar([hecho.valor, hecho.texto].filter(Boolean).join(' ')));
+    return m ? m[0] : null;
+}
+
 // Lo vigente de la dimensión (activo y dudoso: lo afirmado gana a la duda) pasa a sustituido por «nuevo»
 function sustituir(lista, dimension, nuevo, ahora) {
     const fin = nuevo.desde || ahora, out = [];

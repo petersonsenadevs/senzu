@@ -48,6 +48,24 @@ ok(hist.length === 2 && hist.some(x => x.hecho.valor === 'Málaga' && /ya no vig
 r = m.guardarHecho(P, { dimension: 'identidad.ubicacion', valor: 'Madrid', duda: true }, { ahora: T(P, 200) });
 ok(r.accion === 'dudoso' && primero(P, 'ciudad city').valor !== 'Madrid' && m.todosLosHechos(P).find(h => h.valor === 'Valencia').estado === 'activo', 'una duda («creo que…») no sustituye lo afirmado');
 
+// 1b. X-T18: un valor con MATIZ no borra el vigente bueno (familia de valor único); uno limpio sí sustituye
+const AM = proyecto('ambiguedad');
+m.guardarHecho(AM, { dimension: 'identidad.ubicacion', valor: 'Madrid', claves: ['ciudad', 'city'] }, { ahora: T(AM, 0) });
+r = m.guardarHecho(AM, { dimension: 'identidad.ubicacion', valor: 'a veces en Barcelona', claves: ['ciudad', 'city'] }, { ahora: T(AM, 10) });
+ok(r.accion === 'nuevo' && r.avisos.some(a => a.tipo === 'ambiguedad' && /«a veces»/.test(a.motivo) && /Madrid/.test(a.motivo)), 'un valor con matiz («a veces…») NO sustituye: avisa de ambigüedad citando lo vigente', JSON.stringify(r.avisos));
+ok(m.todosLosHechos(AM).filter(h => h.dimension === 'identidad.ubicacion' && h.estado === 'activo').length === 2, '…y quedan los DOS activos (no se borró el bueno)');
+r = m.guardarHecho(AM, { dimension: 'identidad.ubicacion', valor: 'ahora en Sevilla', claves: ['ciudad', 'city'] }, { ahora: T(AM, 20) });
+ok(r.accion === 'sustituye' && r.sustituidos.length === 2 && m.todosLosHechos(AM).filter(h => h.dimension === 'identidad.ubicacion' && h.estado === 'activo').length === 1, 'un valor LIMPIO después SÍ sustituye a los dos (una sola verdad vigente)', JSON.stringify([r.accion, r.sustituidos.length]));
+// matiz en otros idiomas y sin falsos positivos por subcadena
+const AM2 = proyecto('ambiguedad2');
+m.guardarHecho(AM2, { dimension: 'preferencia.trabajo', valor: 'remoto', claves: ['work', 'trabajo'] }, { ahora: T(AM2, 0) });
+r = m.guardarHecho(AM2, { dimension: 'preferencia.trabajo', valor: 'part-time in the office', claves: ['work'] }, { ahora: T(AM2, 10) });
+ok(r.accion === 'nuevo' && r.avisos.some(a => a.tipo === 'ambiguedad'), 'matiz en inglés («part-time») también guarda ambos', JSON.stringify(r.avisos.map(a => a.tipo)));
+const AM3 = proyecto('ambiguedad3');
+m.guardarHecho(AM3, { dimension: 'proyecto.cliente', valor: 'Bar Pepe', claves: ['cliente', 'client'] }, { ahora: T(AM3, 0) });
+r = m.guardarHecho(AM3, { dimension: 'proyecto.cliente', valor: 'Restaurantes del Norte', claves: ['cliente', 'client'] }, { ahora: T(AM3, 10) });
+ok(r.accion === 'sustituye' && !r.avisos.some(a => a.tipo === 'ambiguedad'), 'sin falso positivo: «Restaurantes» NO dispara el marcador «antes» (sustituye limpio)', JSON.stringify([r.accion, r.avisos.map(a => a.tipo)]));
+
 // 2. varios valores a la vez en las familias que acumulan
 const V = proyecto('varios');
 m.guardarHecho(V, { dimension: 'pendiente.web', valor: 'revisar el formulario de contacto' }, { ahora: T(V, 0) });

@@ -107,6 +107,19 @@ const archivo = d => path.join(d, 'senzu', 'memoria', 'hechos.jsonl');
     ok(m.todosLosHechos(P).length === formatos.length, `${formatos.length} formatos de ruta (C:\\, C:/, barra final, /c/) → el mismo almacén`, String(m.todosLosHechos(P).length));
 }
 
+// 6. X-T18: guarda de ambigüedad — una frase matizada no borra el valor vigente bueno; los dos se recuperan
+{
+    const P = proyecto('ambiguedad');
+    m.guardarHecho(P, { dimension: 'identidad.ubicacion', valor: 'Málaga', claves: ['ciudad', 'city'] });
+    const r = m.guardarHecho(P, { dimension: 'identidad.ubicacion', valor: 'antes vivía cerca de Granada', claves: ['ciudad', 'city'] });
+    const vivos = m.todosLosHechos(P).filter(h => h.dimension === 'identidad.ubicacion' && h.estado === 'activo');
+    ok(r.accion === 'nuevo' && r.avisos.some(a => a.tipo === 'ambiguedad'), 'frase con dos matices («antes», «cerca de») no sustituye: avisa', JSON.stringify(r.avisos.map(a => a.tipo)));
+    ok(vivos.length === 2, 'quedan los dos valores activos (no se perdió el bueno)', String(vivos.length));
+    ok((m.buscarHechos(P, 'ciudad city')[0] || {}).hecho?.valor === 'Málaga', 'el valor limpio y vigente sigue siendo el primero al buscar');
+    const limpio = m.guardarHecho(P, { dimension: 'identidad.ubicacion', valor: 'Sevilla', claves: ['ciudad', 'city'] });
+    ok(limpio.accion === 'sustituye' && m.todosLosHechos(P).filter(h => h.dimension === 'identidad.ubicacion' && h.estado === 'activo').length === 1, 'un valor limpio posterior sí deja una sola verdad vigente', JSON.stringify([limpio.accion, limpio.sustituidos.length]));
+}
+
 fs.rmSync(base, { recursive: true, force: true });
 process.stdout.write(`Casos: ${casos}  Fallos: ${fallos}\n`);
 process.exit(fallos ? 1 : 0);
