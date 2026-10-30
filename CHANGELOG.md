@@ -4,6 +4,10 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-10-30
+
+- **feature** — F8-T9: cierre del cara a cara contra productos (LoCoMo); tabla a 3 completa (motor 25,6% · embedding 28% · mem0 21,1%) + Zep muestra 18,5%; BENCHMARK.md publicable; Zep inviable completo en local (exp) (entrada 193)
+
 ## 2026-10-29
 
 - **fix** — F8-T9 (Fase 3e): Zep se moría ingiriendo (JSON gigante de qwen3); ingesta troceada en episodios + techo de salida + tolerancia a fallos; conv-26 reseteada por consistencia (exp) (entrada 192)
