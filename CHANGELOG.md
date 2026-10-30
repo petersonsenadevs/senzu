@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-30
 
+- **feature** — F9-T1: frontera del núcleo (carve-out Hemispheric); inventario de core/hooks en cerebro (viaja: recuerdo-vivo/session-start/estado-sesion/memoria/hechos) · base común (lib/messages/session-end) · método Senzu (se queda); gate tools/test-carve-frontera.mjs que falla si un hook de cerebro alcanza método (transitivo + fail-on-uncovered + autocomprobación); 78/0 y prueba negativa exit=1 (exp) (entrada 200)
 - **design** — Cortex: reskin con la paleta de la web de Hemispheric (hemi-web): base casi-negra + acento ámbar #B45309 + 5 zonas rearmonizadas + Instrument Serif; tokens confirmados en el HTML; FALTA verificación visual (ui-verify no corre aquí: sin Playwright, file:// y publish bloqueados) (exp) (entrada 199)
 - **feature** — X-T22: harness del benchmark de memoria sobre LongMemEval (prueba seria de X-18/temporal); ingesta estructurada a dimensiones estables (sustituye/data), adaptador mem0 para LongMemEval, runner reanudable; experimento controlado motor vs embedding vs mem0 en knowledge-update + temporal-reasoning (211 preg.); cableado verificado, run pendiente (exp) (entrada 198)
 - **feature** — X-T20: intención temporal de futuro; una mudanza programada (desde>ahora) no borra el presente (transición en la línea de tiempo) y aflora ante «¿y después?»; pistas futuras multilingües + intencionTemporal (pasado con precedencia); test-hechos 199/0, hard-recall 14/0, eval sin cambio (exp) (entrada 197)
