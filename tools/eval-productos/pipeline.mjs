@@ -17,8 +17,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cargarLocomo, cargarLongmemeval } from './loader.mjs';
-import { recuperadorEmbedding, recuperadorMotor } from './recuperar.mjs';
-import { memoriasDeConversacion } from './ingesta.mjs';
+import { recuperadorEmbedding, recuperadorMotor, recuperadorMotorEstructurado } from './recuperar.mjs';
+import { memoriasDeConversacion, memoriasEstructuradas } from './ingesta.mjs';
 import { juzgar, esAbstencion } from './juez.mjs';
 import { chat } from './llm.mjs';
 
@@ -30,7 +30,8 @@ const val = (n, d) => { const i = args.indexOf(n); return i >= 0 ? args[i + 1] :
 const DATASET = opt('--longmemeval') ? 'longmemeval' : 'locomo';
 const LIMITE = Number(val('--limite', 0)) || 0;
 const RETR = val('--retriever', 'motor');            // motor (nuestro) | embedding (e5-small)
-const INGESTA = val('--ingesta', 'crudo');           // crudo (turnos tal cual) | llm (Qwen3 extrae hechos, como los productos)
+const INGESTA = val('--ingesta', 'crudo');           // crudo (turnos tal cual) | llm (Qwen3 extrae hechos) | estructurada (X-T22: hechos con clave estable; el motor sustituye/data)
+const TIPOS = (val('--tipos', '') || '').split(',').map(s => s.trim()).filter(Boolean);   // X-T22: filtrar por tipo de pregunta (p. ej. knowledge-update,temporal-reasoning)
 const TOPK = Number(val('--topk', 10));              // turnos que entran en el contexto del contestador
 const TOPE = Number(val('--tope-gasto', 2));         // $ máximos; se corta en seco al superarlo
 const DRY = opt('--dry');
@@ -58,7 +59,8 @@ async function contestarPregunta(ctx, pregunta) {
 }
 
 // --- carga del dataset y agrupado por haystack (ingiere una vez por conversación, consulta todas sus preguntas) ---
-const ds = DATASET === 'longmemeval' ? await cargarLongmemeval({ limite: LIMITE || Infinity }) : cargarLocomo();
+const ds = DATASET === 'longmemeval' ? await cargarLongmemeval({ limite: (TIPOS.length ? Infinity : (LIMITE || Infinity)) }) : cargarLocomo();
+if (TIPOS.length) ds.items = ds.items.filter(it => TIPOS.includes(it.tipo));   // X-T22: solo los tipos pedidos (LIMITE cuenta sobre ellos)
 const porHay = new Map();
 for (const it of ds.items) { if (!porHay.has(it.haystack)) porHay.set(it.haystack, []); porHay.get(it.haystack).push(it); }
 
@@ -73,10 +75,13 @@ for (const [hid, items] of porHay) {
     const pendientes = items.filter(it => !estado.hechos[it.id] && (!LIMITE || hechos < LIMITE));
     if (!pendientes.length) continue;
     let unidades;                                     // la "memoria" sobre la que se recupera: hechos extraídos o turnos crudos
-    if (INGESTA === 'llm') { const mem = await memoriasDeConversacion(DATASET, hid, ds.haystacks[hid].sessions); unidades = mem.memorias; gasto += mem.coste || 0; }
+    if (INGESTA === 'estructurada') { const mem = await memoriasEstructuradas(DATASET, hid, ds.haystacks[hid].sessions); unidades = mem.memorias; gasto += mem.coste || 0; }
+    else if (INGESTA === 'llm') { const mem = await memoriasDeConversacion(DATASET, hid, ds.haystacks[hid].sessions); unidades = mem.memorias; gasto += mem.coste || 0; }
     else { unidades = ds.haystacks[hid].sessions.flatMap(s => s.turnos.map(t => ({ ...t, fecha: s.fecha }))); }
     const porTid = new Map(unidades.map(t => [t.tid, t]));
-    const idx = RETR === 'embedding' ? await recuperadorEmbedding(unidades) : recuperadorMotor(unidades);
+    // El motor con ingesta estructurada usa su adaptador que SUSTITUYE/data (X-18/X-20); embedding siempre embebe plano
+    const idx = RETR === 'embedding' ? await recuperadorEmbedding(unidades)
+        : (INGESTA === 'estructurada' ? recuperadorMotorEstructurado(unidades) : recuperadorMotor(unidades));
     for (const it of items) {
         if (LIMITE && hechos >= LIMITE) { cortado = true; break; }
         if (estado.hechos[it.id]) continue;              // ya resuelta en una tirada anterior

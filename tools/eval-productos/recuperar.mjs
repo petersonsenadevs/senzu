@@ -55,6 +55,40 @@ export function recuperadorMotor(turnos) {
     };
 }
 
+// --- recuperador 3 (X-T22): el motor con INGESTA ESTRUCTURADA. Cada memoria trae una CLAVE estable (home_city, job…);
+// se guarda en identidad.<clave> EN ORDEN cronológico, así una actualización SUSTITUYE a la anterior (X-18) y las
+// fechas dan la línea de tiempo. Al consultar, se clasifica la intención temporal (X-20/X-12) y se recupera en
+// consecuencia: lo vigente para "ahora", lo sustituido para "antes". Es como el motor se usa de verdad en el producto. ---
+function fechaISO(s) {
+    if (!s) return null;
+    const d = new Date(String(s).replace(/\([^)]*\)/g, '').trim());   // quita "(Sat)" y similares
+    return isNaN(d.getTime()) ? null : d.toISOString();
+}
+export function recuperadorMotorEstructurado(memorias) {
+    const base = fs.mkdtempSync(path.join(os.tmpdir(), 'senzu-estruct-'));
+    const P = path.join(base, 'proj');
+    fs.mkdirSync(path.join(P, 'senzu'), { recursive: true });
+    fs.writeFileSync(path.join(P, 'senzu', 'senzu.json'), '{}');
+    process.env.SENZU_MEMORIA_USUARIO = path.join(base, 'memoria.md');
+    const map = new Map();
+    const T0 = Date.UTC(2000, 0, 1, 9, 0, 0);   // las memorias SIN fecha quedan como las más antiguas (no pisan a las datadas)
+    memorias.forEach((mrec, i) => {
+        if (!mrec.valor || !mrec.key) return;
+        const real = fechaISO(mrec.fecha);
+        const ahora = real || new Date(T0 + i * 3600 * 1000).toISOString();   // orden cronológico: la actualización llega después y sustituye
+        const r = motor.guardarHecho(P, { dimension: 'identidad.' + mrec.key, valor: mrec.valor, claves: [mrec.key], desde: real || undefined }, { ahora });
+        map.set(r.hecho.id, mrec.tid);
+    });
+    return {
+        buscar(q, k) {
+            const intent = motor.intencionTemporal(q);
+            return motor.buscarHechos(P, q, { limite: k, historico: intent === 'historical' ? 'auto' : false, futuro: intent === 'future' ? 'auto' : false })
+                .map(h => map.get(h.hecho.id)).filter(Boolean);
+        },
+        limpiar() { fs.rmSync(base, { recursive: true, force: true }); },
+    };
+}
+
 export function recallItem(tids, gold, ks) {
     const out = {};
     for (const k of ks) {
