@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-30
 
+- **fix** — X-T23: arreglada la deriva de versionado; test-version §4 comprueba que el último tag de release (no cada patch efímero) tiene su línea en novedades.json; verify-build por fin TODO en verde (33 suites) sin inventar notas (exp) (entrada 196)
 - **test** — X-T19: suite hard-recall determinista SIN LLM (gate de CI); distractor 3ª persona, multilingüe, diversidad bajo cupo, temporal presente/pasado; triada por capa; la descubre verify-build sola; 12/0 y PASS en verify-build (único rojo: test-version, deriva preexistente ajena) (exp) (entrada 195)
 - **feature** — X-T18: guarda de ambigüedad al sustituir; un valor con matiz (es/en/pt/fr/de/it) no borra el vigente bueno en familias de valor único, deja ambos activos y avisa; regex con límite de palabra Unicode (sin falsos positivos); test-hechos 193/0, robustez 23/0, eval sin cambio (exp) (entrada 194)
 - **feature** — F8-T9: cierre del cara a cara contra productos (LoCoMo); tabla a 3 completa (motor 25,6% · embedding 28% · mem0 21,1%) + Zep muestra 18,5%; BENCHMARK.md publicable; Zep inviable completo en local (exp) (entrada 193)

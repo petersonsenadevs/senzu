@@ -88,10 +88,15 @@ let ctx = ''; try { ctx = JSON.parse(ss.stdout).hookSpecificOutput.additionalCon
 ok(/SENZU DESACTUALIZADO: Senzu 2\.12\.0[\s\S]*\/plugin update[\s\S]*2\.14\.0 \(importante\): catorce/.test(ctx), 'session-start: aviso y novedades', ctx.slice(0, 500) || ss.stderr);
 ok(ctx.indexOf('SENZU DESACTUALIZADO') < ctx.indexOf('Stack:'), 'session-start: el aviso va antes que el resto');
 
-// 4. cada versión publicada lleva su línea en core/novedades.json (si no, quien no actualice no sabe qué se pierde)
-const publicada = JSON.parse(fs.readFileSync(path.join(ROOT, 'plugins', 'senzu-core', '.claude-plugin', 'plugin.json'), 'utf8')).version;
+// 4. cada RELEASE lleva su línea en core/novedades.json (si no, quien no actualice no sabe qué se pierde). OJO
+// (X-T23): la versión de plugin.json ENTRE releases es EFÍMERA — último tag + nº de commits + 1 (build-plugins.ps1),
+// sube en cada commit a propósito para que /plugin update refresque; NO es una release, así que exigirle nota sería
+// inventarla. El invariante real: el último tag de release (vX.Y.Z) tiene su línea. Sin tags accesibles no se exige.
 const novedades = JSON.parse(fs.readFileSync(path.join(ROOT, 'core', 'novedades.json'), 'utf8')).novedades;
-ok(novedades.some(n => n.version === publicada), `core/novedades.json tiene la versión publicada (${publicada})`);
+const tag = spawnSync('git', ['-C', ROOT, 'describe', '--tags', '--abbrev=0', '--match', 'v[0-9]*'], { encoding: 'utf8' });
+const release = tag.status === 0 ? (tag.stdout || '').trim().replace(/^v/, '') : '';
+if (release) ok(novedades.some(n => n.version === release), `core/novedades.json tiene el último release publicado (${release})`);
+else { casos++; process.stdout.write('SKIP sin tag de release accesible (checkout sin tags): no se exige nota\n'); }
 ok(novedades.every(n => n.version && n.texto && n.texto.length <= 220), 'novedades: versión y texto corto en cada una');
 
 fs.rmSync(base, { recursive: true, force: true });
