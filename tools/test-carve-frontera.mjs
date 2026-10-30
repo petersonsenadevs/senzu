@@ -14,7 +14,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const HOOKS = process.env.SENZU_HOOKS_DIR || path.join(ROOT, 'core', 'hooks');
 
 // --- La frontera (debe cuadrar con plan/carve-out-frontera.md) -------------------------------------------
-const CEREBRO = ['hechos', 'recuerdo-vivo', 'session-start', 'estado-sesion', 'memoria-viva', 'memoria-archivo', 'hechos-guard'];
+const CEREBRO = ['hechos', 'recuerdo-vivo', 'session-start', 'estado-sesion', 'memoria-viva', 'memoria-archivo', 'hechos-guard', 'host'];
 const BASE = ['lib', 'messages', 'session-end'];   // base común: el cerebro puede importarla; tampoco alcanza método
 const SENZU = ['arquitectura-guard', 'arranque-guard', 'back-skill-reminder', 'backend-guard', 'cierre-limpio',
     'code-hygiene', 'conventions-guard', 'depurar-coach', 'edit-tracker', 'feature-guard', 'format-on-save',

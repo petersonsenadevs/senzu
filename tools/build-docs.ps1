@@ -141,6 +141,7 @@ function Get-HooksBody {
         'session-end.mjs'          = @('SessionEnd', 'Limpia los marcadores de sesión.')
         'lib.mjs'                  = $null
         'hechos.mjs'               = $null   # librería del motor de hechos (memoria.mjs y los hooks), no un hook
+        'host.mjs'                 = $null   # librería de detección de anfitrión (carve-out), no un hook
         'messages.mjs'             = $null
         'supply-scan.mjs'          = $null
         'secret-patterns.mjs'      = $null
@@ -300,6 +301,7 @@ function Get-HooksBodyEn {
         'supply-scan.mjs'          = $null
         'secret-patterns.mjs'      = $null
         'hechos.mjs'               = $null   # fact engine library (memoria.mjs and the hooks), not a hook
+        'host.mjs'                 = $null   # host-detection library (carve-out), not a hook
     }
     $L.Add('| Hook | Event | What it does |')
     $L.Add('|---|---|---|')
@@ -481,7 +483,7 @@ if (Test-Path $readmePath) {
     $md = Read-Utf8 $readmePath
     $nSkills = @($script:Registry.skills).Count
     $nStacks = @(Get-ChildItem (Join-Path $root 'stacks') -Directory).Count
-    $nHooks = @(Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | Where-Object { $_.Name -ne 'lib.mjs' -and $_.Name -ne 'messages.mjs' -and $_.Name -ne 'supply-scan.mjs' -and $_.Name -ne 'secret-patterns.mjs' }).Count
+    $nHooks = @(Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | Where-Object { $_.Name -ne 'lib.mjs' -and $_.Name -ne 'messages.mjs' -and $_.Name -ne 'supply-scan.mjs' -and $_.Name -ne 'secret-patterns.mjs' -and $_.Name -ne 'host.mjs' }).Count
     $nCmds = @(Get-ChildItem (Join-Path $root 'core\commands') -Filter *.md).Count
     $nPlugins = @(Get-ChildItem (Join-Path $root 'plugins') -Directory -ErrorAction SilentlyContinue).Count
     # Misma versión que los plugins (SENZU_RELEASE o el manifiesto recién generado): el último tag aún no existe
