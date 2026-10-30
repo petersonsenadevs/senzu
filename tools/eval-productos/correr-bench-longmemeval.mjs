@@ -16,6 +16,8 @@ import { fileURLToPath } from 'node:url';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const PYM = path.join(HERE, 'mem0', '.venv', 'Scripts', 'python.exe');
 const TIPOS = 'knowledge-update,temporal-reasoning';
+const LIMITE = String(Number(process.argv[2]) || 0);   // tanda: node correr-bench-longmemeval.mjs 30  → solo 30 preguntas
+const lim = LIMITE !== '0' ? ['--limite', LIMITE] : [];
 const SUBSET = path.join(HERE, '..', '.datos', 'longmemeval-subset-mem0.json');
 const R_MOTOR = path.join(HERE, 'resultados-e2e-longmemeval-motor-estructurada.json');
 const R_EMB = path.join(HERE, 'resultados-e2e-longmemeval-embedding-estructurada.json');
@@ -40,16 +42,16 @@ if (!fs.existsSync(SUBSET)) {
 // 1) MOTOR con ingesta estructurada (construye la caché de extracción que el embedding reutiliza)
 run('Motor · ingesta estructurada', 'node',
     [path.join(HERE, 'pipeline.mjs'), '--longmemeval', '--ingesta', 'estructurada', '--retriever', 'motor',
-        '--tipos', TIPOS, '--topk', '10', '--tope-gasto', '999']);
+        '--tipos', TIPOS, '--topk', '10', '--tope-gasto', '999', ...lim]);
 
 // 2) EMBEDDING con la MISMA extracción (caché ya hecha): casi gratis en tiempo
 run('Embedding · misma extracción (plana)', 'node',
     [path.join(HERE, 'pipeline.mjs'), '--longmemeval', '--ingesta', 'estructurada', '--retriever', 'embedding',
-        '--tipos', TIPOS, '--topk', '10', '--tope-gasto', '999']);
+        '--tipos', TIPOS, '--topk', '10', '--tope-gasto', '999', ...lim]);
 
 // 3) mem0 con su propia memoria (su ingesta natural); colección y json propios; reanuda solo
 run('mem0 · su propia memoria', PYM,
-    [path.join(HERE, 'mem0', 'mem0_longmemeval.py'), '--topk', '10', '--coleccion', 'longmemeval_full', '--salida', R_MEM0],
+    [path.join(HERE, 'mem0', 'mem0_longmemeval.py'), '--topk', '10', '--coleccion', 'longmemeval_full', '--salida', R_MEM0, ...lim],
     { cwd: path.join(HERE, 'mem0') });
 
 // 4) tabla final sobre las preguntas comunes (por tipo: knowledge-update y temporal-reasoning)

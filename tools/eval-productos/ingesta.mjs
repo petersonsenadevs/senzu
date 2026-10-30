@@ -58,12 +58,15 @@ export async function memoriasEstructuradas(dataset, hid, sessions, { maxTokens 
     fs.mkdirSync(dir, { recursive: true });
     const memorias = [];   // en ORDEN cronológico (sesiones en orden): el adaptador del motor confía en ese orden para sustituir
     let coste = 0, llamadas = 0;
-    for (const s of sessions) {
+    const N = sessions.length, t0 = Date.now();
+    for (let si = 0; si < N; si++) {
+        const s = sessions[si];
         const conv = s.turnos.filter(t => t.texto).map(t => `${t.hablante ? t.hablante + ': ' : ''}${t.texto}`).join('\n');
         if (!conv) continue;
         const r = await chat({ rol: 'respuesta', sistema: SIS_ESTRUCTURAR, maxTokens,
             usuario: `Date: ${s.fecha || 'unknown'}\nConversation:\n${conv}\n\nFacts (JSON array):` });
         coste += r.coste; llamadas++;
+        process.stdout.write(`  [extraer ${hid}] sesión ${si + 1}/${N} · ${Math.round((Date.now() - t0) / 1000)}s\r`);
         parsearEstructurado(r.texto).forEach((o, i) => memorias.push({
             tid: `${hid}:${s.id}:${o.key}:${i}`, key: o.key, valor: o.value,
             fecha: o.date || s.fecha || '', texto: o.date ? `${o.value} (${o.date})` : o.value, hablante: '',

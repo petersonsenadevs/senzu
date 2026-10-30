@@ -70,10 +70,13 @@ let cortado = false;
 process.stdout.write(`\nPipeline end-to-end · ${DATASET} · ingesta ${INGESTA} · retriever ${RETR} · top-${TOPK}${DRY ? ' · DRY (sin LLM)' : ` · tope $${TOPE} · juez ${JUEZ_MODELO ? (JUEZ_PROV || 'openai') + ':' + JUEZ_MODELO : 'local'}`}\n`);
 if (hechos) process.stdout.write(`Reanudando: ${hechos} preguntas ya resueltas (gasto previo $${gasto.toFixed(4)})\n`);
 
+let hayIdx = 0; const hayTotal = porHay.size;
 for (const [hid, items] of porHay) {
     if (cortado) break;
+    hayIdx++;
     const pendientes = items.filter(it => !estado.hechos[it.id] && (!LIMITE || hechos < LIMITE));
     if (!pendientes.length) continue;
+    if (INGESTA !== 'crudo') process.stdout.write(`\n[haystack ${hayIdx}/${hayTotal}] ${hid} · ingiriendo (${ds.haystacks[hid].sessions.length} sesiones)...\n`);
     let unidades;                                     // la "memoria" sobre la que se recupera: hechos extraídos o turnos crudos
     if (INGESTA === 'estructurada') { const mem = await memoriasEstructuradas(DATASET, hid, ds.haystacks[hid].sessions); unidades = mem.memorias; gasto += mem.coste || 0; }
     else if (INGESTA === 'llm') { const mem = await memoriasDeConversacion(DATASET, hid, ds.haystacks[hid].sessions); unidades = mem.memorias; gasto += mem.coste || 0; }
