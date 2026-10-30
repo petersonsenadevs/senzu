@@ -36,19 +36,22 @@ const cerebro = () => `<svg class="cerebro neon" viewBox="20 20 360 285" role="g
 </svg>`;
 
 const CSS = `
+/* Paleta alineada a la web de Hemispheric (D:/hemi-web, src/styles/tokens.css: design-system «hemispheric»): base
+   casi-negra + acento ÁMBAR, tipografía serif en títulos. Las 5 zonas se rearmonizan a tonos tierra/joya apagados:
+   distinguibles entre sí y distintos del ámbar, que queda reservado al ESTADO ACTIVO (--foco). */
 :root {
-  --fondo: #0C0F13; --papel: #141920; --texto: #E8ECF1; --suave: #8B96A5; --linea: #232B36; --foco: #F2C14E;
-  --r-frontal: #FF7A59; --r-parietal: #3DD6C4; --r-occipital: #F2C14E; --r-temporal: #FF5C8A; --r-hipocampo: #9BE15D;
-  --fuente-titulos: 'Space Grotesk', 'Segoe UI', system-ui, sans-serif; --fuente-texto: 'Manrope', 'Segoe UI', system-ui, sans-serif; --radio: 999px;
-  --halo: rgba(12, 15, 19, .85); --tinte: 10%;
+  --fondo: #0A0A0A; --papel: #111111; --texto: #F5F5F5; --suave: #A3A3A3; --linea: #333333; --foco: #B45309;
+  --r-frontal: #C25E3A; --r-parietal: #4E8C86; --r-occipital: #5B7FA6; --r-temporal: #B05C7E; --r-hipocampo: #7E9B52;
+  --fuente-titulos: 'Instrument Serif', Georgia, 'Times New Roman', serif; --fuente-texto: 'Inter', system-ui, 'Segoe UI', sans-serif; --radio: 999px;
+  --halo: rgba(10, 10, 10, .85); --tinte: 12%;
   color-scheme: dark;
 }
-/* Claro: no es el oscuro invertido. Papel frío, colores más hondos para que contrasten, sin brillo (en claro, el brillo
-   ensucia) y tinta oscura en los textos de color */
+/* Claro: papel blanco de la web, tinta casi-negra, acento ámbar más hondo y zonas más oscuras para que contrasten
+   sobre blanco (en claro el brillo ensucia). */
 [data-theme="light"] {
-  --fondo: #EEF1F5; --papel: #FFFFFF; --texto: #0F1722; --suave: #4D5868; --linea: #D5DBE3; --foco: #0B6E66;
-  --r-frontal: #D9481F; --r-parietal: #00897B; --r-occipital: #B7791F; --r-temporal: #D61F69; --r-hipocampo: #3F8F12;
-  --halo: rgba(255, 255, 255, .92); --tinte: 7%;
+  --fondo: #FAFAFA; --papel: #FFFFFF; --texto: #0A0A0A; --suave: #737373; --linea: #D4D4D4; --foco: #92400E;
+  --r-frontal: #A8431F; --r-parietal: #2F6F69; --r-occipital: #3C5F86; --r-temporal: #8E3A5C; --r-hipocampo: #5A7334;
+  --halo: rgba(255, 255, 255, .92); --tinte: 8%;
   color-scheme: light;
 }
 * { box-sizing: border-box; }

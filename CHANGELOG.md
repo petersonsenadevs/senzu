@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-10-30
 
+- **design** — Cortex: reskin con la paleta de la web de Hemispheric (hemi-web): base casi-negra + acento ámbar #B45309 + 5 zonas rearmonizadas + Instrument Serif; tokens confirmados en el HTML; FALTA verificación visual (ui-verify no corre aquí: sin Playwright, file:// y publish bloqueados) (exp) (entrada 199)
 - **feature** — X-T22: harness del benchmark de memoria sobre LongMemEval (prueba seria de X-18/temporal); ingesta estructurada a dimensiones estables (sustituye/data), adaptador mem0 para LongMemEval, runner reanudable; experimento controlado motor vs embedding vs mem0 en knowledge-update + temporal-reasoning (211 preg.); cableado verificado, run pendiente (exp) (entrada 198)
 - **feature** — X-T20: intención temporal de futuro; una mudanza programada (desde>ahora) no borra el presente (transición en la línea de tiempo) y aflora ante «¿y después?»; pistas futuras multilingües + intencionTemporal (pasado con precedencia); test-hechos 199/0, hard-recall 14/0, eval sin cambio (exp) (entrada 197)
 - **fix** — X-T23: arreglada la deriva de versionado; test-version §4 comprueba que el último tag de release (no cada patch efímero) tiene su línea en novedades.json; verify-build por fin TODO en verde (33 suites) sin inventar notas (exp) (entrada 196)
