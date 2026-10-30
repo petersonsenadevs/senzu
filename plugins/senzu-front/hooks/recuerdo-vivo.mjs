@@ -7,6 +7,7 @@
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { readHookInput, projectRoot, sessionFlag, outHookJson, esMensajeDelUsuario } from './lib.mjs';
+import { reclamarInyeccion } from './host.mjs';
 import { recuerdo, palabras, palabraConPeso, UMBRAL_RECUERDO, anotarUso, apuntarInyeccion, mapaMemoria, textoMapa, rutaBuscador, intencionTemporal } from './hechos.mjs';
 
 // Umbrales (se afinan con la evaluación de F4). Hechos: BM25 del motor (IDF suavizado, escala estable). Memoria y
@@ -23,6 +24,8 @@ const consulta = texto.replace(/^\/[\w:-]+\s*/, '');   // «/plan pagos con stri
 if (!palabras(consulta).some(palabraConPeso)) process.exit(0);
 
 const root = projectRoot();
+// Apretón de manos (F9-T3): si otra capa (núcleo/Senzu) ya reclamó la inyección de este evento+turno, cedo.
+if (!reclamarInyeccion('UserPromptSubmit', { input: p, root }).inyectar) process.exit(0);
 const sid = p.session_id ? String(p.session_id) : 'default';
 const flag = sessionFlag(sid, 'recuerdo-inyectado');
 let ya = new Set();

@@ -14,6 +14,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { rutaNativa, ruta, rutaMarcador } from './lib.mjs';
 
@@ -60,6 +61,55 @@ export function resolverHost({ input = {}, env = process.env, root } = {}) {
             estado: path.join(ruta(raiz, '.estado'), 'ultima-sesion.json'),   // sin efecto: no crea el dir (a diferencia de lib.rutaEstado)
         },
     };
+}
+
+// ---------------------------------------------------------------- apretón de manos (F9-T3)
+// Que recuerdo-vivo + session-start (los que emiten additionalContext) no inyecten DOS VECES cuando hay dos capas
+// registradas para el mismo evento (p. ej. el núcleo Hemispheric y el adaptador Senzu). Cerrojo de turno
+// "primero-gana", atómico: la primera invocación de un evento+turno se queda el turno e inyecta; la segunda lo ve
+// y cede. El contenido es el mismo motor en ambas capas, así que da igual quién gane: basta con que inyecte UNA.
+// NO se basa en "quién es Senzu" (en el repo fuente los hooks son los de Senzu pero no hay senzu.json; un cede por
+// marcador los silenciaría): el dueño determinista por capa se decide en F10, cuando cada capa tiene su instalación.
+const sanitClave = s => s.replace(/[^a-zA-Z0-9_.-]/g, '_').slice(0, 180);
+
+// Clave del turno: el mismo mensaje/arranque produce la MISMA clave en las dos capas (para que colisionen y una ceda),
+// pero DISTINTA entre proyectos (raíz) y sesiones (sid), para no mezclar turnos de proyectos ni de sesiones distintas.
+function claveTurno(evento, input, root) {
+    const sid = String((input && input.session_id) || 'default');
+    const raiz = root ? crypto.createHash('md5').update(String(root)).digest('hex').slice(0, 8) : '';
+    let huella = '';
+    if (evento === 'UserPromptSubmit') huella = crypto.createHash('md5').update(String((input && input.prompt) || '')).digest('hex').slice(0, 12);
+    else if (evento === 'SessionStart') huella = String((input && input.source) || '');
+    return `${evento}:${raiz}:${sid}:${huella}`;
+}
+
+// Reclamo atómico: true = me quedo el turno (inyecto); false = ya lo tiene otro fresco (cedo). Creación exclusiva
+// (flag 'wx') → en una carrera de procesos solo uno crea el archivo. Marca caducada (crash/sesión muerta) → se
+// retira y se reintenta. Reloj hacia atrás (ahora < ts) → diff negativa < ttl → fresca → cedo (no caduca en falso).
+function reclamarMarca(f, { pid, ahora, ttlMs }) {
+    try { fs.mkdirSync(path.dirname(f), { recursive: true }); } catch { }
+    for (let i = 0; i < 2; i++) {
+        try {
+            fs.writeFileSync(f, JSON.stringify({ pid, ts: ahora }), { flag: 'wx' });
+            return true;
+        } catch (e) {
+            if (e.code !== 'EEXIST') throw e;
+            let ts = 0;
+            try { ts = (JSON.parse(fs.readFileSync(f, 'utf8')) || {}).ts || 0; } catch { }
+            if (ahora - ts < ttlMs) return false;          // marca fresca de otra capa: cedo
+            try { fs.rmSync(f, { force: true }); } catch { } // marca huérfana: la retiro y reintento
+        }
+    }
+    return false;   // otro se adelantó tras retirar la huérfana: cedo
+}
+
+// ¿Debo inyectar YO este evento? dir inyectable para tests; por defecto el temp con prefijo dev-standards- (lo barre
+// session-end a los 2 días). ttlMs = ventana de un turno: pasada, una marca se considera huérfana.
+export function reclamarInyeccion(evento, { input = {}, root, ahora = Date.now(), ttlMs = 60000, dir } = {}) {
+    const clave = claveTurno(evento, input, root);
+    const f = dir ? path.join(dir, sanitClave(clave) + '.claim') : path.join(os.tmpdir(), 'dev-standards-hsk-' + sanitClave(clave) + '.flag');
+    const inyectar = reclamarMarca(f, { pid: process.pid, ahora, ttlMs });
+    return { inyectar, clave, archivo: f, motivo: inyectar ? 'reclamado' : 'ya reclamado este turno' };
 }
 
 // CLI de diagnóstico: `node core/hooks/host.mjs` imprime el anfitrión resuelto aquí y ahora.

@@ -7,9 +7,12 @@ import {
     readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion, ramaProtegida, siguientePaso, estadoVersion, rutaBuscador,
 } from './lib.mjs';
 import { contextoHechos, decisionesObsoletas, abiertos, FAMILIAS_CICLO, contradicciones, mapaMemoria, textoMapa } from './hechos.mjs';
+import { reclamarInyeccion } from './host.mjs';
 
 const p = readHookInput() || {};
 const root = projectRoot();
+// Apretón de manos (F9-T3): si otra capa (núcleo/Senzu) ya reclamó el arranque de esta sesión, cedo.
+if (!reclamarInyeccion('SessionStart', { input: p, root }).inyectar) process.exit(0);
 const DL = rutaRel(root, 'devlog'), PL = rutaRel(root, 'plan'), DS = rutaRel(root, 'design-system'), CV = rutaRel(root, 'conventions.md');   // rutas reales (senzu/ o antiguas)
 const marker = getMarker(root);
 const L = [];
