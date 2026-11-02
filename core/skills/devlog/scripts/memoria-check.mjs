@@ -58,7 +58,7 @@ if (perdidas.length) avisos.push(`rutas que ya no existen en el proyecto: ${perd
 // Decisiones que citan un valor que un hecho ya sustituyó (motor de hechos, hooks/hechos.mjs). Sin el motor, se omite.
 {
     const AQUI = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
-    const motor = [path.join(AQUI, '..', '..', '..', 'hooks', 'hechos.mjs'), path.join(root, '.claude', 'hooks', 'hechos.mjs')].find(f => fs.existsSync(f));
+    const motor = [path.join(AQUI, '..', 'src', 'hechos.mjs'), path.join(AQUI, '..', '..', '..', 'hooks', 'hechos.mjs'), path.join(root, '.claude', 'hooks', 'hechos.mjs')].find(f => fs.existsSync(f));
     if (motor) {
         try {
             const { decisionesObsoletas } = await import(new URL('file:///' + motor.replace(/\\/g, '/').replace(/^\//, '')).href);

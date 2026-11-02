@@ -861,7 +861,7 @@ function conCupos(lista, limite, fam) {
 // sale a la vez de MEMORIA.md y de su entrada del devlog cuenta una sola vez (gana la de MEMORIA: es la vigente).
 const AQUI = path.dirname(fileURLToPath(import.meta.url));
 export function rutaBuscador(root) {
-    const c = [process.env.SENZU_BUSCADOR, path.join(AQUI, '..', 'skills', 'devlog', 'scripts', 'buscar.mjs'),
+    const c = [process.env.SENZU_BUSCADOR, path.join(AQUI, '..', 'cli', 'buscar.mjs'), path.join(AQUI, '..', 'skills', 'devlog', 'scripts', 'buscar.mjs'),
         path.join(root, '.claude', 'skills', 'devlog', 'scripts', 'buscar.mjs'), path.join(root, '.agents', 'skills', 'devlog', 'scripts', 'buscar.mjs')].filter(Boolean);
     return c.find(f => fs.existsSync(f)) || null;
 }

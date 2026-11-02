@@ -27,7 +27,7 @@ const out = s => process.stdout.write(s + '\n');
 
 async function motor() {   // hechos.mjs de los hooks: junto a la skill (plugin o .claude), o en el paquete de Senzu
     const marcador = (() => { try { return JSON.parse(fs.readFileSync(path.join(root, 'senzu', 'senzu.json'), 'utf8')); } catch { return {}; } })();
-    const c = [path.join(AQUI, '..', '..', '..', 'hooks', 'hechos.mjs'), path.join(root, '.claude', 'hooks', 'hechos.mjs'),
+    const c = [path.join(AQUI, '..', 'src', 'hechos.mjs'), path.join(AQUI, '..', '..', '..', 'hooks', 'hechos.mjs'), path.join(root, '.claude', 'hooks', 'hechos.mjs'),
         marcador.standardsRoot && path.join(marcador.standardsRoot, 'core', 'hooks', 'hechos.mjs'), process.env.SENZU_HOME && path.join(process.env.SENZU_HOME, 'core', 'hooks', 'hechos.mjs')].filter(Boolean);
     for (const f of c) if (fs.existsSync(f)) return import(pathToFileURL(f).href);
     out('No encuentro el motor de hechos de Senzu (hooks/hechos.mjs). ¿Está instalado? /instalar');
@@ -146,7 +146,8 @@ if (opt('--informe')) {   // X-T4: el uso REAL (lo que se inyectó en las sesion
 if (opt('--cortex')) {   // Cortex: la memoria en un HTML local, sin red; --cliente: sin nada privado, para enseñarlo
     if (!m.datosCortex) { out('Este Senzu no trae Cortex todavía: actualízalo.'); process.exit(2); }
     const cliente = !!opt('--cliente');
-    const { htmlCortex } = await import(pathToFileURL(path.join(AQUI, 'cortex.mjs')).href);
+    const cortexFile = [path.join(AQUI, '..', 'cortex', 'cortex.mjs'), path.join(AQUI, 'cortex.mjs')].find(f => fs.existsSync(f));
+    const { htmlCortex } = await import(pathToFileURL(cortexFile).href);
     const datos = m.datosCortex(root, { cliente });
     const dir = opt('--salida') && opt('--salida') !== true ? path.resolve(String(opt('--salida'))) : m.ruta(root, 'cortex');
     fs.mkdirSync(dir, { recursive: true });
