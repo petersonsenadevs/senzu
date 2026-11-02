@@ -4,6 +4,11 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-11-02
+
+- **test** — F10-T5: paridad e2e entre anfitriones en el repo propio (test-paridad portado, HOOKS=src, en npm test): recall+arranque byte-idénticos bajo Claude/Codex/standalone en 6 idiomas; 22/0 y npm test 54/199/14/24/22; CIERRA el carve-out F10 (Obsidian descartada, Codex-plugin pendiente) (exp) (entrada 209)
+- **feature** — F10-T4: Senzu consume el cerebro de Hemispheric (fuente de verdad) por sync unidireccional (tools/sync-hemispheric.mjs) + guard de deriva (test-sync-hemispheric) que rompe el build si divergen; resolvers hechos/memoria/memoria-check layout-agnósticos (unión de candidatos) → 16 ficheros byte-idénticos; degrada sin el repo hermano; Codex nativo por plugin pendiente; verify-build verde, Hemispheric npm test 54/199/14/24 (exp) (entrada 208)
+
 ## 2026-10-30
 
 - **decisión** — Licencia de Hemispheric: doble licencia © 2026 Peterson Sena — no comercial gratis (PolyForm Noncommercial 1.0.0, con crédito) + uso comercial de pago (COMMERCIAL.md, petersonsena24@gmail.com); MIT descartado (permite comercial gratis); Senzu sigue MIT; LICENSE/COMMERCIAL/README/package.json + memoria proyecto.licencia-hemispheric (exp) (entrada 207)

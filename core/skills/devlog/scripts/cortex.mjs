@@ -381,7 +381,20 @@ const APP = String.raw`
     e.addEventListener('click', ir);
     e.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); ir(); } });
   });
-  $('#buscar').addEventListener('input', function (e) { filtro = e.target.value.trim().toLowerCase(); limite = PAGINA; lista(); });
+  // F11: traduce la búsqueda a cuántos datos coinciden por zona y se lo pasa al 3D (enciende solo esos nodos)
+  function focoBusqueda() {
+    if (!tresD) return;
+    var cuentas = null;
+    if (filtro) {
+      cuentas = {};
+      (region ? [region] : ZONAS).filter(zonaVisible).forEach(function (z) {
+        var n = items(z).filter(function (it) { return [temaDe(it), it.valor, it.texto, it.dimension].join(' ').toLowerCase().indexOf(filtro) >= 0; }).length;
+        if (n) cuentas[z] = n;
+      });
+    }
+    tresD.buscar(cuentas);
+  }
+  $('#buscar').addEventListener('input', function (e) { filtro = e.target.value.trim().toLowerCase(); limite = PAGINA; lista(); focoBusqueda(); });
   $('#mas').addEventListener('click', function () { limite += PAGINA * 3; lista(); });
   $('#cerrar').addEventListener('click', function () { $('#detalle').hidden = true; });
   var tema = $('#tema');
@@ -407,7 +420,7 @@ const APP = String.raw`
   // al llegar. Giro libre de 360° (arrastre con inercia, flechas, doble clic) y etiquetas de cada zona.
   var tresD = null;
   function cerebro3D(cv) {
-    var ctx = cv.getContext('2d'), pts = [], nodos = [], enl = [], pulsos = [], destellos = [];
+    var ctx = cv.getContext('2d'), pts = [], nodos = [], enl = [], pulsos = [], destellos = [], foco = null, focoBase = [], nodosPorZona = {};
     var ang = 0.38, cab = 0.12, vx = 0, vy = 0, vivo = false, arr = null;
     var quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
     var s = 7, rnd = function () { s = (s * 16807) % 2147483647; return s / 2147483647; };
@@ -470,6 +483,7 @@ const APP = String.raw`
     });
     var hipos = nodos.map(function (n, i) { return n.r === 'hipocampo' ? i : -1; }).filter(function (i) { return i >= 0; });
     nodos.forEach(function (n, i) { if (n.r !== 'hipocampo' && hipos.length && rnd() < 0.14) enl.push([i, hipos[Math.floor(rnd() * hipos.length)]]); });
+    nodos.forEach(function (n, i) { (nodosPorZona[n.r] = nodosPorZona[n.r] || []).push(i); });   // F11: nodos por zona, para encender el dato buscado
     // ---- etiquetas: el centro de cada zona en cada hemisferio (se usa el que mira a la cámara)
     var centros = {};
     ZONAS.forEach(function (z) {
@@ -507,7 +521,7 @@ const APP = String.raw`
       var punto = function (q, a, r) { ctx.globalAlpha = Math.min(1, a); ctx.fillStyle = col[q.p.r]; ctx.fillRect(q.x - r / 2, q.y - r / 2, r, r); };
       // lo que más usa, más vivo; lo que casi no usa, apagado; lo que se consulta ahora (cómo piensa), encendido
       var calor = {}, algunaChispa = !!pensando; ZONAS.forEach(function (z) { calor[z] = chispa[z] ? 1.45 : algunaChispa ? 0.3 : 0.3 + 0.7 * nivel(z); });
-      var zonaA = function (p) { return fuera(p.r) ? 0.07 : p.r === 'neutro' ? (claro ? 0.3 : 0.42) : (region !== null && p.r === region ? 1.2 : 1) * calor[p.r]; };
+      var zonaA = function (p) { if (foco) return fuera(p.r) ? 0.05 : 0.12; return fuera(p.r) ? 0.07 : p.r === 'neutro' ? (claro ? 0.3 : 0.42) : (region !== null && p.r === region ? 1.2 : 1) * calor[p.r]; };
       for (var k = 0; k < atras.length; k += 4) punto(atras[k], (claro ? 0.1 : 0.07) * zonaA(atras[k].p), 1.2 * atras[k].f);   // detrás, solo una muestra
       delante.forEach(function (q) {
         var a = (0.4 + 0.6 * q.luz) * (q.p.s ? 0.3 : 1) * zonaA(q.p);
@@ -521,7 +535,8 @@ const APP = String.raw`
       enl.forEach(function (e) {
         var a = nodos[e[0]], b = nodos[e[1]];
         if (fuera(a.r) && fuera(b.r)) return;
-        ctx.globalAlpha = (claro ? 0.16 : 0.1) * (region !== null && (a.r === region || b.r === region) ? 2.2 : 1);
+        if (foco) ctx.globalAlpha = (foco[e[0]] && foco[e[1]]) ? (claro ? 0.5 : 0.6) : (foco[e[0]] || foco[e[1]]) ? (claro ? 0.22 : 0.28) : (claro ? 0.04 : 0.03);
+        else ctx.globalAlpha = (claro ? 0.16 : 0.1) * (region !== null && (a.r === region || b.r === region) ? 2.2 : 1);
         ctx.strokeStyle = col[a.r]; ctx.lineWidth = 0.8;
         ctx.beginPath(); ctx.moveTo(pn[e[0]].x, pn[e[0]].y); ctx.lineTo(pn[e[1]].x, pn[e[1]].y); ctx.stroke();
       });
@@ -537,6 +552,11 @@ const APP = String.raw`
         if (fuera(z)) return;
         ctx.fillStyle = col[z]; ctx.globalAlpha = d.v * (claro ? 0.45 : 0.6);
         ctx.beginPath(); ctx.arc(P.x, P.y, 3 + (1 - d.v) * 9, 0, 7); ctx.fill();
+      });
+      if (foco) focoBase.forEach(function (i) {
+        var P = pn[i], z = nodos[i].r; ctx.fillStyle = col[z];
+        ctx.globalAlpha = claro ? 0.4 : 0.6; ctx.beginPath(); ctx.arc(P.x, P.y, 11, 0, 7); ctx.fill();
+        ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(P.x, P.y, claro ? 3 : 2.6, 0, 7); ctx.fill();
       });
       ctx.globalCompositeOperation = 'source-over';
       // etiquetas de las zonas (en el idioma elegido), en el lado que mira a la cámara
@@ -606,14 +626,27 @@ const APP = String.raw`
         for (var k = 0; k < 10 && cand.length; k++) pulsos.push({ e: cand[Math.floor(rnd() * cand.length)], t: rnd() * 0.3, v: 0.03 + rnd() * 0.03 });
       });
     }
-    return { dibujar: dibujar, rafaga: rafaga, empezar: function () { vivo = true; paso(); }, parar: function () { vivo = false; } };
+    // F11: la búsqueda enciende SOLO los nodos del dato encontrado (+ sus vecinos) y atenúa el resto; impulsos en ellos
+    function buscar(cuentas) {
+      if (!cuentas) { foco = null; focoBase = []; dibujar(); return; }
+      var set = {}, base = [];
+      Object.keys(cuentas).forEach(function (z) {
+        var ns = nodosPorZona[z] || [];
+        for (var i = 0; i < Math.min(cuentas[z], ns.length); i++) { set[ns[i]] = 1; base.push(ns[i]); }
+      });
+      base.forEach(function (i) { enl.forEach(function (e) { if (e[0] === i) set[e[1]] = 1; else if (e[1] === i) set[e[0]] = 1; }); });
+      foco = set; focoBase = base;
+      if (!quieto) base.forEach(function (i) { enl.forEach(function (e, ei) { if (e[0] === i || e[1] === i) pulsos.push({ e: ei, t: 0, v: 0.02 + rnd() * 0.02 }); }); });
+      dibujar();
+    }
+    return { dibujar: dibujar, rafaga: rafaga, buscar: buscar, empezar: function () { vivo = true; paso(); }, parar: function () { vivo = false; } };
   }
   var cv = $('#lienzo3d'), caja = $('[data-vista]');
   $$('[data-ir]').forEach(function (bt) {
     bt.addEventListener('click', function () {
       var v = bt.getAttribute('data-ir'); caja.setAttribute('data-vista', v);
       $$('[data-ir]').forEach(function (o) { o.setAttribute('aria-pressed', String(o === bt)); });
-      if (v === '3d') { tresD = tresD || cerebro3D(cv); tresD.empezar(); } else if (tresD) tresD.parar();
+      if (v === '3d') { tresD = tresD || cerebro3D(cv); tresD.empezar(); focoBusqueda(); } else if (tresD) tresD.parar();
     });
   });
   traducir();
