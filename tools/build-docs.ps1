@@ -127,17 +127,21 @@ function Get-HooksBody {
         'front-skill-reminder.mjs' = @('PreToolUse Edit/Write (front)', 'Primera edición de UI: BLOQUEA una vez si no hay design system NI brief (obliga a preguntar); después recuerda ui-ux-pro-max, el set de iconos del MASTER y las reglas duras de UI.')
         'format-on-save.mjs'       = @('PostToolUse', 'Formatea el archivo guardado con la herramienta del stack (Pint/Prettier/ruff) si existe. Nunca bloquea.')
         'edit-tracker.mjs'         = @('PostToolUse', 'Apunta cada archivo que toca la sesión (para cierre-limpio) y marca que se editó código (stop-guard exige verificación posterior).')
+        'recuerdo-vivo.mjs'        = @('UserPromptSubmit', 'Con cada mensaje del usuario, lo que la memoria ya sabe de eso: hechos (en cualquier idioma), decisiones de MEMORIA.md y entradas del devlog, con fuente y motivo. Hasta 5, por encima de un umbral, sin repetir en la sesión; nada con mensajes de una o dos palabras ni con informes de subagentes. Citado como datos.')
         'memoria-viva.mjs'         = @('UserPromptSubmit', 'Si dices una regla o una corrección («no vuelvas a…», «te dije…», «a partir de ahora…»), pide al agente apuntarla en la memoria del proyecto o en la tuya (todos tus proyectos). Guarda tus últimas peticiones para /retomar.')
         'memoria-archivo.mjs'      = @('PreToolUse Edit/Write', 'La primera vez que se va a tocar un archivo, le pasa al agente lo que la memoria y el devlog dicen de él (decisiones, lo que no funcionó). No bloquea.')
         'estado-sesion.mjs'        = @('Stop · PreCompact', 'Guarda en qué se quedó la sesión (peticiones, archivos, lo que quedó sin commitear, tarea en curso) para la siguiente y para /retomar. Al cerrar, BLOQUEA una vez si diste una regla o corrección y no quedó apuntada en la memoria.')
         'arranque-guard.mjs'       = @('PreToolUse Edit/Write (código y manifiestos)', 'BLOQUEA, una vez por paso y sesión, la primera edición de código si falta instalar Senzu o /adoptar (proyecto con código sin convenciones). Sin plan NO bloquea: recuerda que hay que saber qué se va a hacer y, si no está claro, hablarlo con el usuario; /plan o /brief solo si es grande. Nunca para senzu/, CLAUDE.md, AGENTS.md ni la documentación. El usuario puede quitar un paso con init.mjs --omitir-paso.')
         'tarjeta-guard.mjs'        = @('PreToolUse Edit/Write (senzu/plan/PLAN.md)', 'BLOQUEA pasar una tarjeta a [done] sin «Verificado:» (la evidencia real), «Cumple:» (cómo cumple su «Para qué»: el objetivo del usuario o el hallazgo de la auditoría que resuelve) y un «Devlog:» que exista. Vale igual para las tarjetas del plan y las de /auditar.')
+        'hechos-guard.mjs'         = @('PostToolUse Bash y edición · Stop', 'Memoria de hechos, en cualquier idioma: apunta cuándo se revisó la memoria (memoria.mjs --guardar, --olvidar o --nada, sobre el comando sin texto citado; o editar MEMORIA.md o la memoria personal) y BLOQUEA el cierre una vez si hubo conversación de verdad (2+ mensajes del usuario con palabras con peso) y no se revisó. Quien entiende qué es un hecho es el agente; el hook no busca frases.')
         'feature-guard.mjs'        = @('Stop · PostToolUse Bash', 'Backend. BLOQUEA el cierre (una vez por conjunto de archivos) si la sesión tocó código de backend y ningún test, si creó o tocó migraciones sin ejecutarlas o sin probar su rollback (apunta los migrate que se ejecutan), o si el código usa variables de entorno nuevas que no están en .env.example.')
         'cierre-limpio.mjs'        = @('Stop', 'BLOQUEA el cierre (una vez) si dejas sin commitear archivos que tocaste en esta sesión: o terminas y commiteas (en una rama), o commiteas y dices qué falta. Los cambios que NO tocaste (otro agente como Codex, otra sesión o el usuario) solo los avisa: no se commitean ni se descartan sin preguntar.')
         'stop-guard.mjs'           = @('Stop', 'BLOQUEA el cierre (una vez) si falta: devlog del día, verify-build tras editar código, o ui-verify móvil tras tocar UI. Además avisa de assets pesados añadidos en las últimas 24 h (imágenes de más de 500 KB, fuentes sin woff2, vídeos grandes).')
         'pre-compact.mjs'          = @('PreCompact', 'Re-inyecta lo esencial (stack, versiones, design system, plan, reglas) para sobrevivir a la compactación de contexto.')
         'session-end.mjs'          = @('SessionEnd', 'Limpia los marcadores de sesión.')
         'lib.mjs'                  = $null
+        'hechos.mjs'               = $null   # librería del motor de hechos (memoria.mjs y los hooks), no un hook
+        'host.mjs'                 = $null   # librería de detección de anfitrión (carve-out), no un hook
         'messages.mjs'             = $null
         'supply-scan.mjs'          = $null
         'secret-patterns.mjs'      = $null
@@ -280,11 +284,13 @@ function Get-HooksBodyEn {
         'front-skill-reminder.mjs' = @('PreToolUse Edit/Write (front)', 'First UI edit: BLOCKS once if there is no design system NOR brief (it forces asking); afterwards it reminds of ui-ux-pro-max, the MASTER icon set and the hard UI rules.')
         'format-on-save.mjs'       = @('PostToolUse', 'Formats the saved file with the stack''s tool (Pint/Prettier/ruff) if it exists. Never blocks.')
         'edit-tracker.mjs'         = @('PostToolUse', 'Records every file the session touches (for cierre-limpio) and marks that code was edited (stop-guard then requires verification).')
+        'recuerdo-vivo.mjs'        = @('UserPromptSubmit', 'With each user message, what the memory already knows about it: facts (in any language), MEMORIA.md decisions and devlog entries, with source and reason. Up to 5, above a threshold, without repeating within the session; nothing for one- or two-word messages or for subagent reports. Quoted as data.')
         'memoria-viva.mjs'         = @('UserPromptSubmit', 'If you state a rule or a correction ("never again…", "I told you…", "from now on…"), it asks the agent to note it in the project memory or in yours (all your projects). Keeps your last requests for /resume.')
         'memoria-archivo.mjs'      = @('PreToolUse Edit/Write', 'The first time a file is about to be touched, it gives the agent what the memory and the devlog say about it (decisions, what did not work). Does not block.')
         'estado-sesion.mjs'        = @('Stop · PreCompact', 'Saves where the session left off (requests, files, what was left uncommitted, task in progress) for the next session and for /resume. On close, BLOCKS once if you gave a rule or a correction and it was not noted in the memory.')
         'arranque-guard.mjs'       = @('PreToolUse Edit/Write (code and manifests)', 'BLOCKS, once per step and session, the first code edit if Senzu is not installed or /adopt is missing (a project with code and no conventions). Without a plan it does NOT block: it reminds that you need to know what is going to be done and, if it is not clear, to talk it over with the user; /plan or /brief only if it is big. Never for senzu/, CLAUDE.md, AGENTS.md or the documentation. The user can drop a step with init.mjs --omitir-paso.')
         'tarjeta-guard.mjs'        = @('PreToolUse Edit/Write (senzu/plan/PLAN.md)', 'BLOCKS moving a card to [done] without «Verificado:» (verified: the real evidence), «Cumple:» (meets: how it meets its «Para qué», the user''s goal or the audit finding it solves) and a «Devlog:» that exists. The same for plan cards and /audit cards.')
+        'hechos-guard.mjs'         = @('PostToolUse Bash and edit · Stop', 'Fact memory, in any language: records when the memory was reviewed (memoria.mjs --guardar, --olvidar or --nada, on the command without quoted text; or editing MEMORIA.md or the personal memory) and BLOCKS closing once if there was a real conversation (2+ user messages with weighty words) and it was not reviewed. It is the agent who understands what a fact is; the hook does not look for phrases.')
         'feature-guard.mjs'        = @('Stop · PostToolUse Bash', 'Backend. BLOCKS closing (once per set of files) if the session touched backend code and no test, if it created or touched migrations without running them or without testing their rollback (it records the migrate commands that run), or if the code uses new environment variables that are not in .env.example.')
         'cierre-limpio.mjs'        = @('Stop', 'BLOCKS closing (once) if you leave uncommitted files you touched in this session: either finish and commit (on a branch), or commit and say what is missing. Changes you did NOT touch (another agent such as Codex, another session or the user) are only reported: they are neither committed nor discarded without asking.')
         'stop-guard.mjs'           = @('Stop', 'BLOCKS closing (once) if something is missing: the day''s devlog, verify-build after editing code, or mobile ui-verify after touching UI. It also warns about heavy assets added in the last 24 h (images over 500 KB, fonts without woff2, large videos).')
@@ -294,6 +300,8 @@ function Get-HooksBodyEn {
         'messages.mjs'             = $null
         'supply-scan.mjs'          = $null
         'secret-patterns.mjs'      = $null
+        'hechos.mjs'               = $null   # fact engine library (memoria.mjs and the hooks), not a hook
+        'host.mjs'                 = $null   # host-detection library (carve-out), not a hook
     }
     $L.Add('| Hook | Event | What it does |')
     $L.Add('|---|---|---|')
@@ -475,7 +483,7 @@ if (Test-Path $readmePath) {
     $md = Read-Utf8 $readmePath
     $nSkills = @($script:Registry.skills).Count
     $nStacks = @(Get-ChildItem (Join-Path $root 'stacks') -Directory).Count
-    $nHooks = @(Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | Where-Object { $_.Name -ne 'lib.mjs' -and $_.Name -ne 'messages.mjs' -and $_.Name -ne 'supply-scan.mjs' -and $_.Name -ne 'secret-patterns.mjs' }).Count
+    $nHooks = @(Get-ChildItem (Join-Path $root 'core\hooks') -Filter *.mjs | Where-Object { $_.Name -ne 'lib.mjs' -and $_.Name -ne 'messages.mjs' -and $_.Name -ne 'supply-scan.mjs' -and $_.Name -ne 'secret-patterns.mjs' -and $_.Name -ne 'host.mjs' }).Count
     $nCmds = @(Get-ChildItem (Join-Path $root 'core\commands') -Filter *.md).Count
     $nPlugins = @(Get-ChildItem (Join-Path $root 'plugins') -Directory -ErrorAction SilentlyContinue).Count
     # Misma versión que los plugins (SENZU_RELEASE o el manifiesto recién generado): el último tag aún no existe

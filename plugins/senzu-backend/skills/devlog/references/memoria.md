@@ -8,6 +8,7 @@
 5. Buscar en el pasado con `buscar.mjs`
 6. Qué obliga y qué no
 7. Memoria del usuario (todos sus proyectos)
+7b. Memoria de hechos (datos estables, en cualquier idioma)
 8. Memoria viva: correcciones, archivos y retomar
 
 ## 1. Tres niveles: memoria, índice, entradas
@@ -105,6 +106,93 @@ sin preguntar») va en su memoria personal, no repetido en cada `MEMORIA.md`: po
 `.config/senzu/memoria.md` en su carpeta de usuario (`SENZU_MEMORIA_USUARIO` la cambia). Una línea por regla.
 session-start y pre-compact la inyectan en cualquier proyecto. Si choca con la memoria de un proyecto, manda
 la del proyecto. Se escribe con `/recordar` (que pregunta si va al proyecto o al usuario cuando no está claro).
+
+## 7b. Memoria de hechos (datos estables, en cualquier idioma)
+Las decisiones y reglas van a MEMORIA.md; los DATOS que pueden cambiar (dónde vive el usuario, el cliente, el stack,
+un presupuesto, un plazo, una preferencia concreta) van a la memoria de hechos: `scripts/memoria.mjs`.
+- **Quién entiende y quién guarda**: el agente entiende la frase en el idioma que sea y la guarda estructurada
+  (`--dimension familia.tema --valor … --claves …`, con claves también en inglés y en el idioma del usuario para
+  encontrarla desde cualquiera); el motor (`hooks/hechos.mjs`) es determinista y sin red: sustituye por dimensión
+  (lo viejo queda en el histórico con su fecha), no duplica, fecha y busca igual en cualquier escritura.
+- **Convención de claves** (el contenido, en cualquier idioma; las claves, no): `familia.tema` con familia de la
+  lista (identidad, preferencia, proyecto, objetivo, pendiente, restriccion, nota, hecho, aprendizaje, enlace) y tema
+  en castellano, minúsculas, sin tildes y con guiones. Lo habitual tiene nombre fijo (ubicacion, nombre, idioma,
+  zona-horaria, horario, cliente, stack, hosting, dominio, repositorio, pasarela-pago, presupuesto, plazo,
+  gestor-paquetes, editor, tipografia, color-marca, analitica, lanzamiento, tests); lo que escribas en otro idioma
+  (`project.alojamiento`) se lleva solo a lo canónico (`proyecto.hosting`) y SUSTITUYE al valor viejo. Una familia
+  fuera de la lista no se guarda. `--claves`: el término en inglés y el del idioma del usuario (en los temas fijos,
+  el inglés lo pone el motor). Si una dimensión nueva comparte claves con otra, avisa: puede ser el mismo dato.
+  Los temas fijos traen además su léxico en ~20 idiomas (en el índice, sin red): «кто клиент?» o «客户是谁» encuentran
+  al cliente aunque nadie guardara claves en ruso o en chino.
+- **Familias que acumulan** (objetivo, pendiente, nota, hecho, aprendizaje); el resto, un valor vigente por
+  dimensión. `--duda` para lo no afirmado del todo; `--alcance usuario` para lo que vale en todos sus proyectos.
+- **Procedencia**: `--fuente usuario` (por defecto: lo afirmó), `devlog` o `agente` (lo dedujiste tú). Lo deducido
+  y lo dudoso pesan algo menos y se marcan; si el usuario lo afirma después, sube a «usuario» y la duda se confirma.
+- **Avisos al guardar** (no bloquean): «casi duplicado» en la misma familia (trigramas, cualquier escritura) →
+  `--olvidar` uno si es lo mismo; «contradice» otro valor vigente que no se sustituye → pregunta cuál vale.
+- **Que se entienda solo** (proposiciones autocontenidas): el hecho se lee semanas después y fuera de la
+  conversación. Escribe quién o qué con su nombre y la fecha absoluta: «Marco Bianchi, el fotógrafo, cobra 600 € por
+  sesión», no «cobra 600 €»; «la demo es el 15-10-2026», no «la demo es mañana». Al guardar avisa («ojo, ¿se entiende
+  solo?») de:
+  - tiempo relativo en ~20 idiomas («mañana», «la semana que viene», «tomorrow», «morgen», «明天»), pero no «por la
+    mañana» ni «hoy por hoy»;
+  - un pronombre al empezar («él», «she», «elle»), salvo siglas y nombres («IT», «Ella Fitzgerald»);
+  - lo que solo se entiende aquí («lo de antes», «same as before»);
+  - una nota de una a tres palabras sin de quién ni de qué («600 €»).
+
+  Medido: con las notas de las preguntas de saltos escritas así, 5 de 16 aciertan a la primera en vez de segundas.
+- **Verla (Cortex)**: `memoria.mjs --cortex` genera `senzu/cortex/index.html`, un HTML local sin red con un cerebro
+  2D/3D por zonas (lo que se quiere conseguir, el proyecto, normas y decisiones, quién eres y lo vivido), qué cambió
+  esta semana, lo abierto, el buscador y el detalle con su historia, procedencia y enlaces; en el 3D, impulsos
+  entre neuronas según el uso de cada zona. La interfaz habla el idioma del navegador (es, en, pt, fr, de, it;
+  selector y --idioma); los datos se enseñan como se guardaron. Una vez generado, se regenera solo al cerrar una
+  sesión en la que cambió la memoria (con su idioma, y también cliente.html si existe); tocar una zona en el 3D la elige. Es privado: la carpeta
+  se ignora en git. `--cortex --cliente` genera `cliente.html` para enseñarlo: sin lo personal, lo deducido, lo
+  dudoso, lo aprendido, el devlog ni los comandos (no van ni dentro del archivo). **Cómo piensa**: con el registro
+  de uso real, cada zona brilla según lo que el agente la ha consultado en 14 días (más lo reciente y lo que usó,
+  menos lo que ignoró), y «Ver cómo piensa» reproduce sus últimas consultas encendiendo, paso a paso, las zonas que
+  tocó (con lo que se preguntó y si lo usó). Al cliente le llegan solo las cifras por zona, sin lo preguntado.
+- **Uso real** (`--informe`): cada inyección (y cada silencio) se apunta en `senzu/.estado/recuerdo-uso.jsonl`
+  (privado, fuera de git); al cerrar se mira en la conversación si el agente la usó. Da la precisión real, lo que
+  más se ignora (ruido) y los silencios para revisar. Sin la conversación (Codex) queda «sin datos».
+- **El pasado, solo**: si el mensaje pregunta por el pasado («antes», «solía», «al principio», «used to», «früher»,
+  «prima», «以前», «раньше»… en unos 20 idiomas), el recuerdo vivo trae también la historia de lo que encuentra. Va lo
+  vigente delante y lo anterior pegado detrás, marcado «ya no vigente»; lo caducado de otros temas, detrás de todo.
+  La pista no cuenta como tema («antes» no trae cualquier hecho que diga «antes de…»). Con `--historico`, pedido por el
+  agente, lo anterior sigue delante.
+- **Aprende del uso (reconsolidación)**: si el usuario pregunta con palabras que el hecho no tiene y el agente lo
+  encuentra él (`--recordar`/`--buscar`, que también se apuntan) y lo usa, al cerrar el hecho aprende esas palabras;
+  la próxima vez llega solo. Lo que llega y se ignora desaprende lo que lo trajo. Prudente a propósito:
+  - de un mensaje largo no se aprende;
+  - lo aprendido UNA vez rescata (trae lo que si no, no saldría), pero no adelanta a lo que coincide por lo que dice;
+  - las palabras que salen en muchos mensajes (las de pregunta, en cualquier idioma) o en dos temas no cuentan.
+
+  Medido con `tools/eval-reconsolidacion.mjs`: la misma pregunta otra vez pasa del 91,4 % al 100 % (recall@3) sin
+  estropear nada; con un agente que se equivoca un 20 % de las veces, recall@3 tampoco baja en nada. Lo aprendido
+  sale en `--informe`.
+- **Une lo que va junto (activación propagada)**: lo que se encuentra con fuerza activa lo que comparte con ello un
+  NOMBRE propio («Marco Bianchi» en el fotógrafo y en su tarifa) o un enlace guardado, hasta dos saltos y perdiendo
+  fuerza en cada uno. Así «¿cuánto cobra el fotógrafo?» llega a la tarifa, que no dice «fotógrafo». Llega marcado
+  «vía «bianchi» con nota.fotografo» y pegado a lo que lo trajo. Prudente a propósito:
+  - solo propaga lo que ya se inyectaría: si la pregunta no tiene respuesta, sigue callando;
+  - un nombre que está en 5 hechos o más no enlaza nada (efecto abanico de ACT-R); una palabra en minúscula no es un
+    nombre;
+  - dos hechos solo se suman si juntos cubren al menos la mitad de la pregunta y cada uno aporta algo.
+
+  Para que funcione, guarda los nombres como se escriben («Rui Costa», no «rui costa»). Medido con `eval-hechos
+  --cat saltos`: las preguntas de varios saltos pasan del 56 % al 87,5 % (recall@3) y ninguna otra pregunta empeora.
+- **Uso y enfriamiento**: lo que llega al agente (al hablar, al editar, `--buscar`, `--recordar`) suma un uso; lo
+  usado sube un poco y lo que pasa de 90 días sin usarse se enfría despacio (×0,9 como mucho). Nada se borra.
+- **Llega sola**: al iniciar (lo vigente), con cada mensaje (recuerdo-vivo: hechos, decisiones y devlog de lo que
+  se habla) y al editar (los hechos del tema del archivo). Consulta a mano: `--recordar "…"` (las tres memorias),
+  `--buscar "…"` (`--historico` para el pasado).
+- **Sabe que no sabe**: si la pregunta nombra algo que la memoria no conoce («Playwright», «PHP») y solo roza una
+  palabra, no se inyecta; --buscar lo enseña marcado. Lo débil restante va marcado para que decidas tú.
+- **Se exige**: hechos-guard no deja cerrar una sesión con conversación sin revisar la memoria (`--guardar` o
+  `--nada`). memoria-check avisa de decisiones que citan un valor ya sustituido.
+- **Consolidar**: si la sesión tocó 3 o más archivos de trabajo (sin contar devlog, plan ni memoria) y no guardó
+  ningún `aprendizaje.*`, el cierre pide, una vez, hasta 3 aprendizajes (una causa, lo que no funcionó, cómo se
+  hace algo aquí), enlazados solos con la entrada del devlog del día; o `--nada --motivo "sin aprendizajes"`.
 
 ## 8. Memoria viva: correcciones, archivos y retomar
 - **Correcciones del usuario**: cuando dice «no vuelvas a…», «te dije…», «a partir de ahora…» o «siempre

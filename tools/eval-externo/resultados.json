@@ -1,0 +1,413 @@
+{
+  "dataset": "copenlu/answerable_tydiqa",
+  "split": "validation",
+  "revision": "4413588cd5f38fddbf047f87a7167a0a9de5369a",
+  "fecha": "2026-10-23",
+  "corte": {
+    "ans": 40,
+    "unans": 25
+  },
+  "motores": {
+    "motor": {
+      "total": {
+        "preguntas": 715,
+        "conRespuesta": 440,
+        "sinRespuesta": 275,
+        "recall1": 76.1,
+        "recall3": 88.2,
+        "abstencion": 1.5
+      },
+      "porIdioma": {
+        "arabic": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 70,
+          "recall3": 87.5,
+          "abstencion": 0
+        },
+        "bengali": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 82.5,
+          "recall3": 100,
+          "abstencion": 0
+        },
+        "english": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 82.5,
+          "recall3": 95,
+          "abstencion": 0
+        },
+        "finnish": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 85,
+          "recall3": 92.5,
+          "abstencion": 0
+        },
+        "indonesian": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 97.5,
+          "recall3": 100,
+          "abstencion": 0
+        },
+        "japanese": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 80,
+          "recall3": 92.5,
+          "abstencion": 0
+        },
+        "korean": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 52.5,
+          "recall3": 62.5,
+          "abstencion": 8
+        },
+        "russian": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 72.5,
+          "recall3": 90,
+          "abstencion": 4
+        },
+        "swahili": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 80,
+          "recall3": 90,
+          "abstencion": 4
+        },
+        "telugu": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 65,
+          "recall3": 72.5,
+          "abstencion": 0
+        },
+        "thai": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 70,
+          "recall3": 87.5,
+          "abstencion": 0
+        }
+      }
+    },
+    "bm25": {
+      "total": {
+        "preguntas": 715,
+        "conRespuesta": 440,
+        "sinRespuesta": 275,
+        "recall1": 73.2,
+        "recall3": 86.1,
+        "abstencion": 1.1
+      },
+      "porIdioma": {
+        "arabic": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 80,
+          "recall3": 92.5,
+          "abstencion": 0
+        },
+        "bengali": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 82.5,
+          "recall3": 90,
+          "abstencion": 0
+        },
+        "english": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 85,
+          "recall3": 92.5,
+          "abstencion": 0
+        },
+        "finnish": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 60,
+          "recall3": 77.5,
+          "abstencion": 4
+        },
+        "indonesian": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 97.5,
+          "recall3": 100,
+          "abstencion": 0
+        },
+        "japanese": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 80,
+          "recall3": 92.5,
+          "abstencion": 0
+        },
+        "korean": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 42.5,
+          "recall3": 57.5,
+          "abstencion": 8
+        },
+        "russian": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 70,
+          "recall3": 90,
+          "abstencion": 0
+        },
+        "swahili": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 80,
+          "recall3": 92.5,
+          "abstencion": 0
+        },
+        "telugu": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 67.5,
+          "recall3": 80,
+          "abstencion": 0
+        },
+        "thai": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 60,
+          "recall3": 82.5,
+          "abstencion": 0
+        }
+      }
+    },
+    "grep": {
+      "total": {
+        "preguntas": 715,
+        "conRespuesta": 440,
+        "sinRespuesta": 275,
+        "recall1": 62,
+        "recall3": 80.2,
+        "abstencion": 1.1
+      },
+      "porIdioma": {
+        "arabic": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 67.5,
+          "recall3": 90,
+          "abstencion": 0
+        },
+        "bengali": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 77.5,
+          "recall3": 87.5,
+          "abstencion": 0
+        },
+        "english": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 57.5,
+          "recall3": 82.5,
+          "abstencion": 0
+        },
+        "finnish": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 55,
+          "recall3": 75,
+          "abstencion": 4
+        },
+        "indonesian": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 85,
+          "recall3": 95,
+          "abstencion": 0
+        },
+        "japanese": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 70,
+          "recall3": 92.5,
+          "abstencion": 0
+        },
+        "korean": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 42.5,
+          "recall3": 55,
+          "abstencion": 8
+        },
+        "russian": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 60,
+          "recall3": 77.5,
+          "abstencion": 0
+        },
+        "swahili": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 72.5,
+          "recall3": 87.5,
+          "abstencion": 0
+        },
+        "telugu": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 42.5,
+          "recall3": 75,
+          "abstencion": 0
+        },
+        "thai": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 52.5,
+          "recall3": 65,
+          "abstencion": 0
+        }
+      }
+    },
+    "embedding": {
+      "total": {
+        "preguntas": 715,
+        "conRespuesta": 440,
+        "sinRespuesta": 275,
+        "recall1": 88.6,
+        "recall3": 92,
+        "abstencion": 4
+      },
+      "porIdioma": {
+        "arabic": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 87.5,
+          "recall3": 90,
+          "abstencion": 4
+        },
+        "bengali": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 87.5,
+          "recall3": 97.5,
+          "abstencion": 0
+        },
+        "english": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 92.5,
+          "recall3": 95,
+          "abstencion": 8
+        },
+        "finnish": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 97.5,
+          "recall3": 97.5,
+          "abstencion": 0
+        },
+        "indonesian": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 97.5,
+          "recall3": 100,
+          "abstencion": 0
+        },
+        "japanese": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 92.5,
+          "recall3": 97.5,
+          "abstencion": 0
+        },
+        "korean": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 77.5,
+          "recall3": 90,
+          "abstencion": 8
+        },
+        "russian": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 85,
+          "recall3": 85,
+          "abstencion": 8
+        },
+        "swahili": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 87.5,
+          "recall3": 87.5,
+          "abstencion": 8
+        },
+        "telugu": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 75,
+          "recall3": 77.5,
+          "abstencion": 8
+        },
+        "thai": {
+          "preguntas": 65,
+          "conRespuesta": 40,
+          "sinRespuesta": 25,
+          "recall1": 95,
+          "recall3": 95,
+          "abstencion": 0
+        }
+      }
+    }
+  },
+  "generado": "2026-10-23T15:08:59.645Z"
+}

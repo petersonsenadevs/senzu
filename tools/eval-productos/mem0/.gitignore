@@ -1,0 +1,7 @@
+# Entorno y datos locales de mem0 (no se versiona; el script sí)
+.venv/
+__pycache__/
+*.pyc
+chroma/
+*.db
+mem0_data/

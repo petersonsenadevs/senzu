@@ -1,0 +1,25 @@
+{
+  "_que_es": "Batería ADVERSARIA de F8-T4: casos rebuscados que un escéptico probaría. Separada del corpus principal (no la carga eval-hechos; la usa tools/test-eval-baselines.mjs) para no mover las cifras publicadas (devlogs 173-177). Homónimos (misma palabra, distinto sentido), envenenamiento con casi-duplicados, idioma cruzado, erratas y preguntas sin respuesta. Los empates y la escala de 10.000 hechos se generan en el test (deterministas). Misma entrada para los cuatro motores.",
+  "hechos": [
+    {"id": "hom1", "dimension": "proyecto.mueble-banco", "valor": "el banco del vestíbulo es de roble macizo", "claves": ["banco", "bench", "mueble", "vestíbulo"], "t": 1},
+    {"id": "hom2", "dimension": "proyecto.entidad-banco", "valor": "la cuenta del proyecto está en el banco Santander", "claves": ["banco", "bank", "cuenta", "account"], "t": 2},
+    {"id": "cross1", "dimension": "proyecto.ventana-despliegue", "valor": "el despliegue a producción se hace los martes a las 9", "claves": ["despliegue", "deploy", "martes", "tuesday", "producción"], "t": 3},
+    {"id": "p0", "dimension": "proyecto.resp-auth", "valor": "el responsable del módulo de autenticación es Lucía", "claves": ["responsable", "módulo", "owner", "autenticación", "auth"], "t": 10},
+    {"id": "p1", "dimension": "proyecto.resp-perfiles", "valor": "el responsable del módulo de perfiles es Diego", "claves": ["responsable", "módulo", "owner", "perfiles", "profiles"], "t": 11},
+    {"id": "p2", "dimension": "proyecto.resp-buscador", "valor": "el responsable del módulo de búsqueda es Ana", "claves": ["responsable", "módulo", "owner", "búsqueda", "search"], "t": 12},
+    {"id": "p3", "dimension": "proyecto.resp-pagos", "valor": "el responsable del módulo de pagos es Marta", "claves": ["responsable", "módulo", "owner", "pagos", "payments"], "t": 13},
+    {"id": "p4", "dimension": "proyecto.resp-notif", "valor": "el responsable del módulo de notificaciones es Rubén", "claves": ["responsable", "módulo", "owner", "notificaciones", "notifications"], "t": 14},
+    {"id": "p5", "dimension": "proyecto.resp-informes", "valor": "el responsable del módulo de informes es Sara", "claves": ["responsable", "módulo", "owner", "informes", "reports"], "t": 15}
+  ],
+  "preguntas": [
+    {"q": "¿de qué madera es el banco del vestíbulo?", "lang": "es", "espera": "hom1", "cat": "homonimo"},
+    {"q": "¿en qué banco está la cuenta del proyecto?", "lang": "es", "espera": "hom2", "cat": "homonimo"},
+    {"q": "when is the deploy to production done?", "lang": "en", "espera": "cross1", "cat": "cruzado"},
+    {"q": "¿quién es el responsable del módulo de pagos?", "lang": "es", "espera": "p3", "cat": "envenenado"},
+    {"q": "¿quién lleva el módulo de búsqueda?", "lang": "es", "espera": "p2", "cat": "envenenado"},
+    {"q": "¿quién es responsabel del modulo de pagss?", "lang": "es", "espera": "p3", "cat": "errata"},
+    {"q": "¿cuál es la contraseña del wifi de la oficina?", "lang": "es", "espera": null, "cat": "sin-respuesta"},
+    {"q": "¿qué coche conduce el usuario?", "lang": "es", "espera": null, "cat": "sin-respuesta"},
+    {"q": "¿cuántos empleados tiene la empresa?", "lang": "es", "espera": null, "cat": "sin-respuesta"}
+  ]
+}

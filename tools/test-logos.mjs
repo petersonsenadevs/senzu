@@ -60,7 +60,7 @@ const P = proyecto();
     ok(bash(P, 'python3 .agents/skills/graphic-design/scripts/icon/generate.py --prompt x').status === 2, 'guard: bloquea el generador de iconos (ruta de Codex)');
     ok(bash(P, 'node .claude/skills/image-gen/scripts/generate.mjs --prompt "logo minimalista de una semilla"').status === 2, 'guard: bloquea image-gen con un prompt de logo');
     ok(bash(P, 'node .claude/skills/image-gen/scripts/generate.mjs --prompt "foto de producto para el hero"').status === 0, 'guard: image-gen para otras imágenes sí');
-    ok(bash(P, gen, { SENZU_ALLOW_LOGO: '1' }).status === 0, 'guard: con SENZU_ALLOW_LOGO=1 (pedido por el usuario) pasa');
+    ok(bash(P, 'SENZU_ALLOW_LOGO=1 ' + gen).status === 0, 'guard: con SENZU_ALLOW_LOGO=1 como prefijo del comando (pedido por el usuario) pasa');
     const sin = proyecto({ conLogo: false });
     ok(bash(sin, gen).status === 0, 'guard: sin logo elegido, generar logos está permitido');
 }
