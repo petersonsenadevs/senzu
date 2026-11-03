@@ -455,10 +455,26 @@ const APP = String.raw`
           if (p[6] === 'c' && dist(3, sg, x, y, z) < 1.14) continue;            // cisura de Silvio, sobre el temporal
           if (p[6] === 'c' && y > 0.22 && x > -0.2 && x < 0.5) continue;         // la base del cerebro, tapada por el temporal
           var zona = p[6] === 't' ? 'temporal' : p[6] === 'b' ? 'neutro' : x < -0.3 ? 'frontal' : x > 0.45 ? 'occipital' : 'parietal';
-          var surco = p[6] === 'b' ? Math.abs(Math.sin(38 * (y - 0.44) + 3 * x)) < 0.3 : Math.abs(surcoDe(x, y, z)) < 0.11;
-          // la normal de la superficie: con ella se tapa lo de detrás y se ilumina lo de delante (se lee como un sólido)
-          var nx = (x - p[0]) / (p[3] * p[3]), ny = (y - p[1]) / (p[4] * p[4]), nz = (z - sg * p[2]) / (p[5] * p[5]), nn = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
-          pts.push({ x: x, y: y, z: z, r: zona, s: surco, h: sg, nx: nx / nn, ny: ny / nn, nz: nz / nn });
+          // campo de pliegues: donde vale ~0 hay surco. Con el se MODULA el radio (surco hacia dentro, circunvolucion
+          // hacia fuera) a lo largo de la normal lisa: relieve de verdad, no solo puntos mas oscuros.
+          var fold = p[6] === 'b' ? Math.sin(38 * (y - 0.44) + 3 * x) : surcoDe(x, y, z);
+          var surco = Math.abs(fold) < (p[6] === 'b' ? 0.3 : 0.11);
+          // normal LISA del elipsoide: direccion de la piel, para desplazar y para tapar lo de detras
+          var sx = (x - p[0]) / (p[3] * p[3]), sy = (y - p[1]) / (p[4] * p[4]), sz = (z - sg * p[2]) / (p[5] * p[5]), sn0 = Math.sqrt(sx * sx + sy * sy + sz * sz) || 1;
+          sx /= sn0; sy /= sn0; sz /= sn0;
+          var disp = (p[6] === 'b' ? 0.03 : 0.06) * (Math.abs(fold) - 0.42);
+          x += sx * disp; y += sy * disp; z += sz * disp;
+          // normal de SOMBREADO = la lisa inclinada por el gradiente del pliegue (diferencias finitas): asi los lomos
+          // cogen luz y los surcos caen en sombra (sin esto el relieve no se lee aunque los puntos se muevan)
+          var nx = sx, ny = sy, nz = sz;
+          if (p[6] !== 'b') {
+            var e = 0.012, kp = 0.05;
+            nx -= ((surcoDe(x + e, y, z) - surcoDe(x - e, y, z)) / (2 * e)) * kp;
+            ny -= ((surcoDe(x, y + e, z) - surcoDe(x, y - e, z)) / (2 * e)) * kp;
+            nz -= ((surcoDe(x, y, z + e) - surcoDe(x, y, z - e)) / (2 * e)) * kp;
+            var rn = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1; nx /= rn; ny /= rn; nz /= rn;
+          }
+          pts.push({ x: x, y: y, z: z, r: zona, s: surco, h: sg, nx: nx, ny: ny, nz: nz });
         }
       });
       for (var i = 0; i < 260; i++) {   // tronco del encéfalo

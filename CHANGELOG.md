@@ -4,8 +4,15 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-11-03
+
+- **feature** — F12-T8: seccion de slides "Meet the Cortex" en hemi-web (carrusel sin dependencias: scroll-snap + botones + puntos + teclado + prefers-reduced-motion; 5 slides que explican el cerebro) + "Cortex" en la Nav; ademas baja el margen lateral (contenedor 1400->1600, texto 2xl->3xl) y se arregla el render de la web Astro en el entorno (remapeo de assets con letra de unidad). Build 2 paginas OK, render desktop/movil sin errores ni desborde. Falta visto del usuario (exp) (entrada 213)
+
 ## 2026-11-02
 
+- **fix** — F12-T1: nueva fase F12 (web seria, 7 tarjetas) + auditoria de hemi-web por codigo (no se renderiza el build Astro aqui: localhost bloqueado) + cluster critico arreglado: licencia "MIT" falsa -> PolyForm Noncommercial + comercial de pago (C) Peterson Sena con CTA mailto; enlaces muertos /docs y REPO_URL="#" retirados/condicionales (sin href="#"); Obsidian quitado de anfitriones; build 2 paginas OK. Pendiente (usuario): comando de instalacion real y URL del repo (exp) (entrada 212)
+- **test** — F11-T2: batería visual de la Cortex (tests/test-cortex-visual.mjs, Hemispheric) que mide píxeles del canvas 3D en Chromium real; 40 casos (6 idiomas, datos límite vacío/uno/enorme/raros con emoji-RTL-inyección, foco de búsqueda por diffing de frames, cerebro se pinta de verdad, presupuesto de frame móvil, paridad+privacidad cliente); MUERDE (sabotaje de la atenuación → FALLO, revertido); npm test 54/199/14/24/22/40. Además: el agente SÍ puede ver renders vía Playwright→PNG→lectura (file://, localhost y publicar bloqueados por el sandbox) (exp) (entrada 211)
+- **feature** — F11-T1: Cortex 3D dirigido por la búsqueda; al buscar se encienden solo los nodos del dato encontrado (uno por dato por zona) + sus conexiones y el resto se atenúa, con impulsos («rollo cerebro»); nodosPorZona + buscar() + focoBusqueda en cortex.mjs (fuente Hemispheric, sync a Senzu); HTML 145KB OK, verify-build verde (test-cortex 105 PASS); falta visto visual del usuario (exp) (entrada 210)
 - **test** — F10-T5: paridad e2e entre anfitriones en el repo propio (test-paridad portado, HOOKS=src, en npm test): recall+arranque byte-idénticos bajo Claude/Codex/standalone en 6 idiomas; 22/0 y npm test 54/199/14/24/22; CIERRA el carve-out F10 (Obsidian descartada, Codex-plugin pendiente) (exp) (entrada 209)
 - **feature** — F10-T4: Senzu consume el cerebro de Hemispheric (fuente de verdad) por sync unidireccional (tools/sync-hemispheric.mjs) + guard de deriva (test-sync-hemispheric) que rompe el build si divergen; resolvers hechos/memoria/memoria-check layout-agnósticos (unión de candidatos) → 16 ficheros byte-idénticos; degrada sin el repo hermano; Codex nativo por plugin pendiente; verify-build verde, Hemispheric npm test 54/199/14/24 (exp) (entrada 208)
 
