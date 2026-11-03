@@ -78,6 +78,14 @@ h1 { font-size: clamp(30px, 4.4vw, 54px); font-weight: 700; line-height: 1.02; m
 .v3d canvas { width: 100%; height: 460px; display: block; touch-action: none; cursor: grab; }
 .v3d canvas:active { cursor: grabbing; }
 [data-vista="2d"] .v3d, [data-vista="3d"] .v2d { display: none !important; }
+/* modo solo-cerebro (incrustable en la web): solo el canvas 3D, sin panel ni mandos, fondo transparente para fundirse */
+html[data-solo], html[data-solo] body { background: transparent; }
+html[data-solo] .panel, html[data-solo] .arriba, html[data-solo] .mente, html[data-solo] .chips, html[data-solo] .pista { display: none !important; }
+html[data-solo] .escena { grid-template-columns: 1fr; min-height: 100vh; }
+html[data-solo] .lienzo { padding: 0; grid-template-rows: 1fr; min-height: 100vh; }
+html[data-solo] .escenario { min-height: 100vh; }
+html[data-solo] .escenario .v3d { max-width: none; width: 100%; height: 100%; }
+html[data-solo] .v3d canvas { height: 100vh; }
 .dibujo { width: 100%; }
 .pista { margin: 6px 0 0; text-align: center; color: var(--suave); font-size: 14px; max-width: 60ch; }
 .cerebro { width: 100%; height: auto; display: block; overflow: visible; }
@@ -575,19 +583,30 @@ const APP = String.raw`
         ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(P.x, P.y, claro ? 3 : 2.6, 0, 7); ctx.fill();
       });
       ctx.globalCompositeOperation = 'source-over';
-      // etiquetas de las zonas (en el idioma elegido), en el lado que mira a la cámara
-      ctx.font = '700 12px ' + css('--fuente-titulos'); ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+      // etiquetas de las zonas (idioma elegido), en el lado que mira a la cámara: estilo data-art (mono, mayúsculas,
+      // tracking, en el color de la zona) con marcador de anillo+punto y un conector fino. Más marca, menos «texto pelado».
+      ctx.font = '600 10px ui-monospace, "Geist Mono", "SFMono-Regular", Menlo, monospace'; ctx.textBaseline = 'middle'; ctx.lineJoin = 'round';
+      try { ctx.letterSpacing = '1.4px'; } catch (e) { }
       ZONAS.forEach(function (z) {
         if (!zonaVisible(z)) return;
         var cc = centros[z].filter(Boolean).map(function (p) { return proyectar(p, w, h, esc, c, sn, cp, sp); }).sort(function (a, b) { return a.z - b.z; })[0];
         if (!cc) return;
-        var txt = t('etq.' + z);
-        ctx.globalAlpha = region === null || region === z ? 1 : 0.35;
-        ctx.fillStyle = col[z]; ctx.beginPath(); ctx.arc(cc.x, cc.y, 3.5, 0, 7); ctx.fill();
-        ctx.lineWidth = 4; ctx.strokeStyle = css('--halo'); ctx.strokeText(txt, cc.x + 8, cc.y);
-        ctx.fillStyle = css('--texto'); ctx.fillText(txt, cc.x + 8, cc.y);
+        var txt = t('etq.' + z).toUpperCase();
+        var at = region === null || region === z ? 1 : 0.3;
+        // marcador: anillo + punto en el color de la zona
+        ctx.globalAlpha = at;
+        ctx.lineWidth = 1.5; ctx.strokeStyle = col[z]; ctx.beginPath(); ctx.arc(cc.x, cc.y, 4.5, 0, 7); ctx.stroke();
+        ctx.fillStyle = col[z]; ctx.beginPath(); ctx.arc(cc.x, cc.y, 1.7, 0, 7); ctx.fill();
+        // conector fino hacia el rótulo
+        ctx.globalAlpha = at * 0.55; ctx.lineWidth = 1;
+        ctx.beginPath(); ctx.moveTo(cc.x + 6, cc.y); ctx.lineTo(cc.x + 12, cc.y); ctx.stroke();
+        // rótulo en el color de la zona, con halo para legibilidad
+        ctx.globalAlpha = at;
+        ctx.lineWidth = 3.5; ctx.strokeStyle = css('--halo'); ctx.strokeText(txt, cc.x + 15, cc.y);
+        ctx.fillStyle = col[z]; ctx.fillText(txt, cc.x + 15, cc.y);
       });
       ctx.globalAlpha = 1;
+      try { ctx.letterSpacing = '0px'; } catch (e) { }
     }
     function latir() {   // nacen impulsos según la actividad de cada zona; avanzan; al llegar, destello
       if (quieto) return;
@@ -667,6 +686,7 @@ const APP = String.raw`
   });
   traducir();
   todo();
+  if (raiz.hasAttribute('data-solo')) { var _b3 = $('[data-ir="3d"]'); if (_b3) _b3.click(); }   // incrustado: arranca en 3D
 })();
 `;
 
@@ -674,12 +694,13 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 // JSON dentro de <script type="application/json">: «<» escapado, así ningún valor puede cerrar la etiqueta
 const json = o => JSON.stringify(o).replace(/</g, '\\u003c');
 
-export function htmlCortex(datos, { cli = null, idioma = null } = {}) {
+export function htmlCortex(datos, { cli = null, idioma = null, soloCerebro = false } = {}) {
     const cliente = !!datos.cliente;
+    const solo = !!(datos.soloCerebro || soloCerebro);   // modo incrustable: solo el cerebro 3D, sin panel ni mandos
     const D = { ...datos, cli: cliente ? null : cli, idioma: idioma && TEXTOS[idioma] ? idioma : null };
     const es = TEXTOS.es;   // el HTML trae el castellano escrito (sin JavaScript también se lee); el programa lo traduce
     return `<!doctype html>
-<html lang="es" data-theme="dark"${cliente ? ' data-cliente' : ''}>
+<html lang="es" data-theme="dark"${cliente ? ' data-cliente' : ''}${solo ? ' data-solo' : ''}>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">

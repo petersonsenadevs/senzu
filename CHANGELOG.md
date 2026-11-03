@@ -6,6 +6,7 @@ Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diari
 
 ## 2026-11-03
 
+- **feature** — F12-T5: el cerebro REAL (cortex.mjs con relieve) se ve en la web; se genera con datos de demo (proyecto ficticio Aurora Coffee, 17 hechos) un HTML autonomo public/cortex-demo.html y se embebe por iframe (CortexEmbed.astro) en la seccion demo, sustituyendo el grafo SVG de juguete (Cortex.tsx); + texto de pista interactiva. Iframe carga OK (canvas #lienzo3d), ui-verify 0 problemas (375/768/1440). Hero aun con el grafo de juguete (pendiente) (exp) (entrada 214)
 - **feature** — F12-T8: seccion de slides "Meet the Cortex" en hemi-web (carrusel sin dependencias: scroll-snap + botones + puntos + teclado + prefers-reduced-motion; 5 slides que explican el cerebro) + "Cortex" en la Nav; ademas baja el margen lateral (contenedor 1400->1600, texto 2xl->3xl) y se arregla el render de la web Astro en el entorno (remapeo de assets con letra de unidad). Build 2 paginas OK, render desktop/movil sin errores ni desborde. Falta visto del usuario (exp) (entrada 213)
 
 ## 2026-11-02
