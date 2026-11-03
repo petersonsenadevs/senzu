@@ -107,10 +107,10 @@ el agente se entera solo (router, hooks y skills). Los comandos slash son atajos
 - **Tu memoria personal** (`.config/senzu/memoria.md` en tu carpeta de usuario): lo que vale en TODOS tus
   proyectos (idioma, cómo quieres los commits, el tono). Llega a cada sesión de cada proyecto; no hay que
   repetirlo en cada `MEMORIA.md`.
-- **Memoria determinista de HECHOS (opcional, Hemispheric)**: para una memoria de hechos fechada, entre sesiones
-  y por autor —aparte del devlog—, instala **Hemispheric** (producto propio: `npx hemispheric install`). Senzu lo
-  **detecta** cuando está en el proyecto (crea `.hemispheric/`) y el agente la usa junto a la memoria del devlog, sin
-  duplicar. Senzu **no** lleva ese motor dentro: Hemispheric es un producto aparte que se acopla.
+- **Memoria determinista de HECHOS (opcional, Corvusmem)**: para una memoria de hechos fechada, entre sesiones
+  y por autor —aparte del devlog—, instala **Corvusmem** (producto propio: `npx corvusmem install`). Senzu lo
+  **detecta** cuando está en el proyecto (crea `.corvusmem/`) y el agente la usa junto a la memoria del devlog, sin
+  duplicar. Senzu **no** lleva ese motor dentro: Corvusmem es un producto aparte que se acopla.
 - **Tus correcciones no se pierden**: si dices «no vuelvas a…», «te dije…» o «a partir de ahora…», el agente
   tiene que apuntarlo (en el proyecto o en tu memoria personal) y no puede cerrar si no lo hizo. También con
   `/recordar`.

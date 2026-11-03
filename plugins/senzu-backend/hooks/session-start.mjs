@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {
-    readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion, ramaProtegida, siguientePaso, estadoVersion, hemisphericInstalado,
+    readHookInput, projectRoot, getMarker, gitBranch, gitDirty, gitCambios, designSystemMaster, planStatus, todayDevlog, devlogNextNumber, hookConfig, outHookJson, todayStr, pad3, detectVersions, eolWarnings, projectMaturity, bloqueMemoria, proximosPasos, ruta, rutaRel, textoLogos, logosSinRegistrar, bloqueMemoriaUsuario, revisarMemoria, leerUltimaSesion, ramaProtegida, siguientePaso, estadoVersion, corvusmemInstalado,
 } from './lib.mjs';
 
 const p = readHookInput() || {};
@@ -98,10 +98,10 @@ if (pasos) L.push(`- Donde se quedo la ultima entrada: ${pasos}`);
 L.push(...bloqueMemoria(root));
 L.push(...bloqueMemoriaUsuario());
 for (const a of revisarMemoria(root)) L.push(`- Memoria: ${a}`);
-// Acoplamiento con Hemispheric (producto de memoria aparte): si está instalado, su memoria determinista de hechos
+// Acoplamiento con Corvusmem (producto de memoria aparte): si está instalado, su memoria determinista de hechos
 // (fechada, entre sesiones, multiusuario) corre por sus propios hooks JUNTO a la memoria del devlog de Senzu.
-if (hemisphericInstalado(root)) {
-    L.push('- Hemispheric instalado: su memoria determinista de HECHOS (fechada, entre sesiones, por autor) corre por sus propios hooks junto a la del devlog de Senzu. Úsala y consúltala (node .hemispheric/cli… o lo que inyecte); no dupliques lo que ya guarda.');
+if (corvusmemInstalado(root)) {
+    L.push('- Corvusmem instalado: su memoria determinista de HECHOS (fechada, entre sesiones, por autor) corre por sus propios hooks junto a la del devlog de Senzu. Úsala y consúltala (node .corvusmem/cli… o lo que inyecte); no dupliques lo que ya guarda.');
 }
 // En qué se quedó la sesión anterior (estado-sesion): para seguir sin que el usuario tenga que contarlo
 const ant = leerUltimaSesion(root);
