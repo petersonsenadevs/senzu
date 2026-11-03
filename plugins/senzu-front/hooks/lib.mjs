@@ -510,6 +510,16 @@ export function bloqueMemoria(root, maxLineas = 70) {
     return L;
 }
 
+// ---------------------------------------------------------------- acoplamiento con Hemispheric (producto aparte)
+// Hemispheric es la memoria determinista de hechos: su propio producto/paquete (npx hemispheric install). Si está
+// instalado en el proyecto, su instalador crea .hemispheric/ en la raíz; Senzu lo DETECTA para que el agente use esa
+// memoria y para no duplicar lo que ya guarda. Determinista y sin red: solo mira el disco. No es un acoplamiento por
+// import (Senzu no depende del motor); es por dato.
+export function hemisphericInstalado(root) {
+    try { return fs.existsSync(path.join(String(root || process.cwd()), '.hemispheric')); }
+    catch { return false; }
+}
+
 // ---------------------------------------------------------------- memoria del USUARIO (todos sus proyectos)
 // Sus reglas de siempre (idioma, git, estilo), para no repetirlas proyecto a proyecto. Fuera de ~/.senzu: esa
 // carpeta es un clon de git que se actualiza con pull.
