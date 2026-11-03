@@ -82,7 +82,7 @@ h1 { font-size: clamp(30px, 4.4vw, 54px); font-weight: 700; line-height: 1.02; m
 html[data-solo], html[data-solo] body { background: transparent; }
 html[data-solo] .panel, html[data-solo] .arriba, html[data-solo] .mente, html[data-solo] .chips, html[data-solo] .pista { display: none !important; }
 html[data-solo] .escena { grid-template-columns: 1fr; min-height: 100vh; }
-html[data-solo] .lienzo { padding: 0; grid-template-rows: 1fr; min-height: 100vh; }
+html[data-solo] .lienzo { padding: 0; grid-template-rows: 1fr; min-height: 100vh; background: transparent; }
 html[data-solo] .escenario { min-height: 100vh; }
 html[data-solo] .escenario .v3d { max-width: none; width: 100%; height: 100%; }
 html[data-solo] .v3d canvas { height: 100vh; }
