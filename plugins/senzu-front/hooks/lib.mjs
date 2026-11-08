@@ -241,6 +241,23 @@ export function convencionesSelladas(root) {   // también la arquitectura decla
 
 export function projectRoot() { return rutaNativa(process.env.CLAUDE_PROJECT_DIR || process.cwd()); }
 
+// ¿Está Corvusmem instalado y operando aquí (en el proyecto o global)? Corvus es el DUEÑO de la memoria: cuando está,
+// Senzu le CEDE sus hooks de memoria (recuerdo-vivo, memoria-viva, hechos-guard y el bloque de HECHOS del arranque)
+// para no duplicar ni partir la memoria — pero conserva lo suyo (método, plan, devlog, guards). Se detecta por los
+// ficheros de hook DURABLES de Corvus (que es lo que de verdad corre): .corvusmem/hooks/ en el proyecto, o
+// ~/.config/corvusmem/hooks/ si Corvus se instaló global. Una carpeta .corvusmem/ suelta (solo memoria, sin hooks) no
+// cuenta: sin los hooks de Corvus no habría quien inyecte, así que Senzu no debe callarse.
+export function hayCorvus(root) {
+    const o = process.env.SENZU_CORVUS;                 // override para tests: '1' fuerza sí, '0' fuerza no
+    if (o === '1') return true;
+    if (o === '0' || process.env.SENZU_TEST_ISOLATED) return false;   // suites aisladas: sin detección global del entorno
+    try {
+        if (fs.existsSync(path.join(root, '.corvusmem', 'hooks', 'session-start.mjs'))) return true;   // Corvus en el proyecto
+        if (fs.existsSync(path.join(os.homedir(), '.config', 'corvusmem', 'hooks', 'session-start.mjs'))) return true;   // Corvus global
+    } catch { }
+    return false;
+}
+
 export function sessionFlag(sid, name) {
     const s = String(sid || '').replace(/[^a-zA-Z0-9_-]/g, '') || 'default';
     return path.join(os.tmpdir(), `dev-standards-${name}-${s}.flag`);   // compat-dev-standards (nombre interno de los marcadores temporales)

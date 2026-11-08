@@ -170,6 +170,19 @@ La lógica está en lib.mjs (`importsDe`, `resolverImport` con PSR-4, alias de t
 `--sellar`). Sellada, la protegen protect-files, el guard y el pre-commit como las convenciones. Sin
 `capas.json` no se aplica nada: no se impone arquitectura a quien no la ha elegido.
 
+## Memoria de hechos (ideas de Hemispheric, sin su infraestructura)
+Tres memorias que se complementan: el **devlog** (la historia), **MEMORIA.md** (decisiones y reglas, D-xxx) y los
+**hechos** (datos estables que cambian: `senzu/memoria/hechos.jsonl` del proyecto y `hechos.jsonl` del usuario).
+Reparto: el agente entiende el idioma y guarda estructurado (dimensión, valor, claves en varios idiomas); el motor
+(`hooks/hechos.mjs`) es determinista y sin red: sustitución por dimensión con histórico y fechas, familias que
+acumulan, dudas que no sustituyen, cerrojo para varios procesos, líneas dañadas apartadas, búsqueda con
+Intl.Segmenter (cualquier escritura), BM25 con IDF suavizado, «palabra con peso» sin listas por idioma, erratas por
+Damerau acotada y flexiones por prefijo, cupos por familia, motivo y marca de relación débil. `recuerdo()` une
+hechos, MEMORIA.md y devlog (buscar.mjs) en una consulta. Hooks: session-start (lo vigente y decisiones
+obsoletas), recuerdo-vivo (con cada mensaje), memoria-archivo (al editar), hechos-guard (registra la revisión y no
+deja cerrar sin ella) y estado-sesion (lo aprendido a la sesión siguiente). Medido con `tools/eval-hechos.mjs`
+(126 preguntas, 12 idiomas): recall@1 95 %, recall@3 99 %, abstención 76,9 % (los roces de una palabra se marcan).
+
 ## Perfiles de instalación
 `core/perfiles.json` responde «¿qué es el proyecto?» con un conjunto de grupos de skills. Un perfil es una
 selección por categorías con nombre: se guarda en `senzu/senzu.json` y cada actualización la respeta, con

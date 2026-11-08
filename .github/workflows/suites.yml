@@ -83,6 +83,35 @@ jobs:
       - name: test-backend (una feature no se da por hecha sin test, migración probada ni .env.example)
         run: node tools/test-backend.mjs
 
+      - name: test-hechos (memoria de hechos determinista en cualquier idioma, sin red)
+        run: node tools/test-hechos.mjs
+
+      - name: test-hechos-hooks (lo que la memoria de hechos inyecta y exige en los hooks)
+        run: node tools/test-hechos-hooks.mjs
+
+      - name: test-hechos-robustez (archivo dañado, concurrencia, 10 000 hechos, Unicode raro, rutas)
+        run: node tools/test-hechos-robustez.mjs
+
+      - name: eval-hechos base (recuerdo multilingüe medido; mínimos de no regresión)
+        run: node tools/eval-hechos.mjs --corpus base --sin-cat saltos --min-recall3 97 --min-recall1 90 --min-abstencion 86
+
+      - name: eval-hechos total (con la batería dura de FitLab; mínimos de no regresión)
+        run: node tools/eval-hechos.mjs --sin-cat saltos --min-recall3 92 --min-recall1 85 --min-abstencion 62
+
+      - name: eval-hechos con el pasado detectado en la pregunta, como el recuerdo vivo (X-T12)
+        run: node tools/eval-hechos.mjs --auto-temporal --sin-cat saltos --min-recall3 93 --min-recall1 80 --min-abstencion 62
+
+      - name: eval-hechos de varios saltos (la respuesta es una pareja de hechos; se mide en el top 3) (X-T13)
+        run: node tools/eval-hechos.mjs --cat saltos --min-recall3 87
+
+      - name: eval-reconsolidacion (aprender del uso no estropea nada, también con un agente que se equivoca)
+        run: |
+          node tools/eval-reconsolidacion.mjs --rondas 2 --estricto
+          node tools/eval-reconsolidacion.mjs --rondas 2 --ruido 0.2 --estricto
+
+      - name: test-cortex (la memoria en HTML; la vista de cliente sin nada privado en el archivo)
+        run: node tools/test-cortex.mjs
+
       - name: test-arquitectura (capas, contextos de DDD, controlador sin ORM, DTO y carpetas declaradas)
         run: node tools/test-arquitectura.mjs
 

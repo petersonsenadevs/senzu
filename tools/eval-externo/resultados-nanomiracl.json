@@ -1,0 +1,173 @@
+{
+  "dataset": "hakari-bench/NanoMIRACL",
+  "revision": "ea97b8cca4e0e0e19910c43e7f3ee9a60fef3a74",
+  "fecha": "2026-10-23",
+  "tope": 1000,
+  "idiomas": [
+    "ar",
+    "en",
+    "es",
+    "fr",
+    "ja",
+    "ru"
+  ],
+  "motores": {
+    "motor": {
+      "total": {
+        "preguntas": 1200,
+        "recall1": 42.1,
+        "recall3": 63.7
+      },
+      "porIdioma": {
+        "ar": {
+          "preguntas": 200,
+          "recall1": 41.5,
+          "recall3": 55
+        },
+        "en": {
+          "preguntas": 200,
+          "recall1": 40,
+          "recall3": 65.5
+        },
+        "es": {
+          "preguntas": 200,
+          "recall1": 52,
+          "recall3": 75.5
+        },
+        "fr": {
+          "preguntas": 200,
+          "recall1": 23,
+          "recall3": 48.5
+        },
+        "ja": {
+          "preguntas": 200,
+          "recall1": 51,
+          "recall3": 67.5
+        },
+        "ru": {
+          "preguntas": 200,
+          "recall1": 45,
+          "recall3": 70
+        }
+      }
+    },
+    "bm25": {
+      "total": {
+        "preguntas": 300,
+        "recall1": 50.3,
+        "recall3": 82.7
+      },
+      "porIdioma": {
+        "ar": {
+          "preguntas": 50,
+          "recall1": 48,
+          "recall3": 72
+        },
+        "en": {
+          "preguntas": 50,
+          "recall1": 42,
+          "recall3": 90
+        },
+        "es": {
+          "preguntas": 50,
+          "recall1": 86,
+          "recall3": 98
+        },
+        "fr": {
+          "preguntas": 50,
+          "recall1": 24,
+          "recall3": 74
+        },
+        "ja": {
+          "preguntas": 50,
+          "recall1": 52,
+          "recall3": 80
+        },
+        "ru": {
+          "preguntas": 50,
+          "recall1": 50,
+          "recall3": 82
+        }
+      }
+    },
+    "grep": {
+      "total": {
+        "preguntas": 300,
+        "recall1": 26.7,
+        "recall3": 55.7
+      },
+      "porIdioma": {
+        "ar": {
+          "preguntas": 50,
+          "recall1": 26,
+          "recall3": 60
+        },
+        "en": {
+          "preguntas": 50,
+          "recall1": 18,
+          "recall3": 52
+        },
+        "es": {
+          "preguntas": 50,
+          "recall1": 52,
+          "recall3": 82
+        },
+        "fr": {
+          "preguntas": 50,
+          "recall1": 16,
+          "recall3": 38
+        },
+        "ja": {
+          "preguntas": 50,
+          "recall1": 18,
+          "recall3": 46
+        },
+        "ru": {
+          "preguntas": 50,
+          "recall1": 30,
+          "recall3": 56
+        }
+      }
+    },
+    "embedding": {
+      "total": {
+        "preguntas": 300,
+        "recall1": 70.3,
+        "recall3": 96
+      },
+      "porIdioma": {
+        "ar": {
+          "preguntas": 50,
+          "recall1": 70,
+          "recall3": 90
+        },
+        "en": {
+          "preguntas": 50,
+          "recall1": 68,
+          "recall3": 96
+        },
+        "es": {
+          "preguntas": 50,
+          "recall1": 86,
+          "recall3": 100
+        },
+        "fr": {
+          "preguntas": 50,
+          "recall1": 60,
+          "recall3": 98
+        },
+        "ja": {
+          "preguntas": 50,
+          "recall1": 66,
+          "recall3": 96
+        },
+        "ru": {
+          "preguntas": 50,
+          "recall1": 72,
+          "recall3": 96
+        }
+      }
+    }
+  },
+  "generado": "2026-10-23T16:42:41.440Z"
+}

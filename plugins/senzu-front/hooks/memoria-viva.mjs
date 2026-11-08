@@ -6,7 +6,7 @@
 // Solo señales fuertes: «siempre» o «nunca» sueltos no cuentan (salen en cualquier frase).
 
 import fs from 'node:fs';
-import { readHookInput, sessionFlag, outHookJson, rutaMemoriaUsuario, projectRoot, rutaRel, esMensajeDelUsuario } from './lib.mjs';
+import { readHookInput, sessionFlag, outHookJson, rutaMemoriaUsuario, projectRoot, rutaRel, esMensajeDelUsuario, hayCorvus } from './lib.mjs';
 
 const p = readHookInput();
 const texto = p && typeof p.prompt === 'string' ? p.prompt.trim() : '';
@@ -22,6 +22,10 @@ try {
     previas.push({ t: new Date().toISOString(), texto: corto });
     fs.writeFileSync(f, JSON.stringify(previas.slice(-5)));
 } catch {}
+
+// Corvusmem manda la memoria: si está instalado, la captura de reglas/correcciones la lleva Corvus (su live-memory).
+// Senzu mantiene el rastro de últimas peticiones de arriba (continuidad para /retomar) y cede solo el aviso de memoria.
+if (hayCorvus(projectRoot())) process.exit(0);
 
 // 2. reglas y correcciones
 const REGLA = new RegExp([

@@ -4,8 +4,34 @@
 
 Resumen por fecha (lo nuevo arriba). El detalle de cada entrada vive en el diario interno del proyecto.
 
+## 2026-11-08
+
+- **feat** — Senzu cede la memoria a Corvusmem (manda Corvus): nueva lib.hayCorvus (hooks durables .corvusmem/hooks o ~/.config/corvusmem/hooks; override SENZU_CORVUS) y cesion en recuerdo-vivo/memoria-viva/hechos-guard/session-start (conserva metodo+devlog, cede el bloque de HECHOS). Fix falso positivo guard deltest ("del" espanol en otra orden). Corvus 0.4.0: no cede + adoptarMemoriaSenzu (hereda senzu/memoria/hechos.jsonl una vez). Tests: memoria-viva 23, paridad 22, hechos-hooks 150, carve-frontera 81, Corvus test:core verde (entrada 241)
+
+## 2026-11-05
+
+- **feat** — Web (hemi-web, rama feat/og-sitemap-llms ebe79b8): og-image.png regenerada con marca Corvusmem (cuervo guardian + orbe, render Playwright 1200x630) reemplaza la vieja "Hemispheric"; sitemap.xml (5 URLs + hreflang); robots.txt con Sitemap + punteros llms; llms.txt (indice) + llms-full.txt (explicacion completa) = navegacion agentica; JSON-LD SoftwareApplication en BaseLayout; enlace /llms.txt en Footer. build 5 paginas OK. Deploy (merge+push Vercel) lo hace el usuario (entrada 240)
+- **feat** — F14 desacople Corvusmem<->Senzu (repo hemispheric): session-start solo-memoria + ingles (catalogo start.*), familias EN (FAMILIA_EN/etiquetaDimension), live-recall [senzu]->[Corvusmem], nombres de zona EN. npm test 54/205/14/24/35/22/40. Publicado 0.2.0; zonas en 0.2.1. NOTA: el INDEX perdio 182-238 (revert externo de artefactos locales); las entradas existen como ficheros (entrada 239)
+
+## 2026-10-27
+
+- **feature** — F8-T9 (Fase 1): base del cara a cara vs productos de memoria (datasets LoCoMo/LongMemEval + loader común con streaming) (exp) (entrada 181)
+
+## 2026-10-23
+
+- **feature** — F8-T5: publicación reproducible (modo --bench, artículo BENCHMARK.md, mención en README); sin publicar fuera sin OK (exp) (entrada 180)
+- **feature** — F8-T8: 2.º benchmark externo (NanoMIRACL); embedding gana, motor a la par de bm25, misma historia que TyDi (exp) (entrada 179)
+- **feature** — F8-T4: batería adversaria (envenenado, homónimos, cruzado, erratas, abstención, empates, 10.000 hechos); test-eval-baselines (exp) (entrada 178)
+- **feature** — F8-T3: dónde pierde el motor (parafraseo/distractor ante embedding; TyDi); modo --comparar, sin sobreajuste (exp) (entrada 177)
+- **feature** — F8-T2: ejes más allá del recall (latencia, red, determinismo, coste, tamaño); modo --tabla (exp) (entrada 176)
+- **feature** — F8-T7: benchmark externo público (Answerable TyDi QA) con datos reales; el motor bate a bm25/grep, pierde en recall ante embeddings (exp) (entrada 175)
+- **feature** — F8-T1: baseline semántico (embedding local e5-small) y cierre del cara a cara de los cuatro (exp) (entrada 174)
+- **feature** — F8-T1: baselines grep y bm25 para el benchmark comparado de la memoria (exp) (entrada 173)
+
 ## 2026-10-22
 
+- **fix** — fix: brand con sync-senzu.mjs y /dependencias como comando (2.24.2) (entrada 172)
+- **docs** — Skills y comandos en inglés para la documentación (2.24.1) (entrada 171)
 - **feature** — Los escapes SENZU_ALLOW_* valen por comando, no por sesión (2.24.0) (entrada 170)
 - **docs** — El resto de la documentación en inglés (skills, referencia, novedades, créditos, README) (entrada 169)
 - **feature** — Los muros Bash miran dentro del script que se ejecuta (2.24.0) (entrada 168)

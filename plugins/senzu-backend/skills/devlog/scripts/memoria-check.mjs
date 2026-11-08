@@ -55,6 +55,18 @@ const rutas = [...new Set(lineas.flatMap(l => [...l.matchAll(/`([\w./-]+\/[\w.-]
 const perdidas = rutas.filter(r => !/[<>*]/.test(r) && !fs.existsSync(path.join(root, r)));
 if (perdidas.length) avisos.push(`rutas que ya no existen en el proyecto: ${perdidas.join(', ')} (¿se movieron? actualiza la línea o pásala al histórico)`);
 
+// Decisiones que citan un valor que un hecho ya sustituyó (motor de hechos, hooks/hechos.mjs). Sin el motor, se omite.
+{
+    const AQUI = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
+    const motor = [path.join(AQUI, '..', 'src', 'hechos.mjs'), path.join(AQUI, '..', '..', '..', 'hooks', 'hechos.mjs'), path.join(root, '.claude', 'hooks', 'hechos.mjs')].find(f => fs.existsSync(f));
+    if (motor) {
+        try {
+            const { decisionesObsoletas } = await import(new URL('file:///' + motor.replace(/\\/g, '/').replace(/^\//, '')).href);
+            for (const o of decisionesObsoletas(root)) avisos.push(`${o.decision} cita «${o.valorViejo}», pero el hecho ${o.dimension} ahora es «${o.valorNuevo}»: ¿sigue vigente esa decisión? Actualízala (o pásala al histórico como sustituida)`);
+        } catch { }
+    }
+}
+
 if (!avisos.length) { out(`[memoria] ${path.relative(root, memF)}: sana (${cuerpo.length} líneas, ${ids.length} decisiones).`); process.exit(0); }
 out(`[memoria] ${path.relative(root, memF)}: ${avisos.length} aviso(s)`);
 for (const a of avisos) out(`  - ${a}`);

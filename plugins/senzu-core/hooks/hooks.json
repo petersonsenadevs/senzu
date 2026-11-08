@@ -23,6 +23,11 @@
                                                                  "type":  "command",
                                                                  "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/memoria-viva.mjs\"",
                                                                  "timeout":  30
+                                                             },
+                                                             {
+                                                                 "type":  "command",
+                                                                 "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/recuerdo-vivo.mjs\"",
+                                                                 "timeout":  30
                                                              }
                                                          ]
                                            }
@@ -127,6 +132,11 @@
                                                             "type":  "command",
                                                             "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/edit-tracker.mjs\"",
                                                             "timeout":  30
+                                                        },
+                                                        {
+                                                            "type":  "command",
+                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/hechos-guard.mjs\"",
+                                                            "timeout":  30
                                                         }
                                                     ]
                                       },
@@ -141,6 +151,11 @@
                                                         {
                                                             "type":  "command",
                                                             "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/feature-guard.mjs\"",
+                                                            "timeout":  30
+                                                        },
+                                                        {
+                                                            "type":  "command",
+                                                            "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/hechos-guard.mjs\"",
                                                             "timeout":  30
                                                         }
                                                     ]
@@ -162,6 +177,11 @@
                                                  {
                                                      "type":  "command",
                                                      "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/feature-guard.mjs\"",
+                                                     "timeout":  30
+                                                 },
+                                                 {
+                                                     "type":  "command",
+                                                     "command":  "node \"${CLAUDE_PLUGIN_ROOT}/hooks/hechos-guard.mjs\"",
                                                      "timeout":  30
                                                  },
                                                  {
